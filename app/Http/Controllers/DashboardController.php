@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Shift;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\TransactionItem;
 
 class DashboardController extends Controller
 {
@@ -46,7 +47,12 @@ class DashboardController extends Controller
         $outOfStockCount = 0;
     }
 
-    $topProducts   = collect();
+    $topProducts = TransactionItem::join('products', 'transaction_items.product_id', '=', 'products.id')
+        ->selectRaw('products.name, SUM(transaction_items.subtotal) as revenue')
+        ->groupBy('products.id', 'products.name')
+        ->orderByDesc('revenue')
+        ->limit(5)
+        ->get();
     $liveInventory = collect();
 
     try {

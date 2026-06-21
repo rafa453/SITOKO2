@@ -8,6 +8,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PaymentMethodController;
+use App\Http\Controllers\ShiftController;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,6 +60,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Laporan shift (dipanggil via AJAX dari Reports page)
     Route::get('/shifts/summary', [ShiftController::class, 'summary'])->name('shifts.summary');
+
+    // Inventory
+    Route::resource('inventory', ProductController::class);
+    Route::post('/inventory/{product}/restock', [ProductController::class, 'restock'])->name('inventory.restock');
 
 
 });

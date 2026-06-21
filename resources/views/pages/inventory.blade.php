@@ -5,28 +5,32 @@
 @section('page-subtitle', 'Manage your stock, categories, and supplier data.')
 
 @section('header-actions')
-    <div class="filter-bar">
+    <form method="GET" action="{{ route('inventory.index') }}" class="filter-bar" id="filterForm">
         <div class="search-input-wrapper" style="width:220px">
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input type="text" class="form-input" placeholder="Search product...">
+            <input type="text" name="search" class="form-input" placeholder="Search product..."
+                value="{{ request('search') }}"
+                onchange="this.form.submit()">
         </div>
-        <select class="form-select" style="width:150px">
-            <option>All Categories</option>
-            <option>Beras & Sembako</option>
-            <option>Minyak & Lemak</option>
-            <option>Minuman</option>
-            <option>Bumbu</option>
-            <option>Snack</option>
+
+        <select name="category" class="form-select" style="width:150px" onchange="this.form.submit()">
+            <option value="">All Categories</option>
+            @foreach($categories as $cat)
+                <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
+                    {{ $cat }}
+                </option>
+            @endforeach
         </select>
-        <select class="form-select" style="width:140px">
-            <option>Stock Status</option>
-            <option>Healthy</option>
-            <option>Low Stock</option>
-            <option>Out of Stock</option>
+
+        <select name="status" class="form-select" style="width:140px" onchange="this.form.submit()">
+            <option value="">Stock Status</option>
+            <option value="low" {{ request('status') == 'low' ? 'selected' : '' }}>Low Stock</option>
+            <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Out of Stock</option>
         </select>
-    </div>
+    </form>
+
     <a href="{{ route('inventory.create') }}" class="btn btn--primary">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -36,6 +40,13 @@
 @endsection
 
 @section('content')
+
+{{-- ===== FLASH MESSAGE ===== --}}
+@if(session('success'))
+    <div class="alert alert--success" style="margin-bottom:16px">
+        {{ session('success') }}
+    </div>
+@endif
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
@@ -49,7 +60,7 @@
                 </svg>
             </div>
         </div>
-        <div class="stat-card__value">124</div>
+        <div class="stat-card__value">{{ number_format($totalSkus) }}</div>
         <div class="stat-card__meta text-muted text-sm">Active Products</div>
     </div>
 
@@ -63,7 +74,7 @@
                 </svg>
             </div>
         </div>
-        <div class="stat-card__value" style="color:#D97706">12</div>
+        <div class="stat-card__value" style="color:#D97706">{{ $lowStockCount }}</div>
         <div class="stat-card__meta">
             <span class="badge badge--red">CRITICAL</span>
             <span class="text-sm" style="color:#92400E">Items below threshold</span>
@@ -80,7 +91,7 @@
                 </svg>
             </div>
         </div>
-        <div class="stat-card__value" style="color:#EF4444">3</div>
+        <div class="stat-card__value" style="color:#EF4444">{{ $outOfStockCount }}</div>
         <div class="stat-card__meta">
             <span class="badge badge--red">RESTOCK NOW</span>
             <span class="text-sm" style="color:#991B1B">Immediate action required</span>
@@ -98,7 +109,7 @@
         </div>
         <div>
             <div class="stat-card__rp">Rp</div>
-            <div class="stat-card__value">42.500.000</div>
+            <div class="stat-card__value">{{ number_format($stockValue, 0, ',', '.') }}</div>
         </div>
         <div class="stat-card__meta text-muted text-sm">Estimated asset value</div>
     </div>
@@ -116,27 +127,28 @@
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
             @php
-            $categories = [
-                ['name'=>'Beras & Sembako', 'count'=>45, 'color'=>'#2563EB'],
-                ['name'=>'Minyak & Lemak',  'count'=>28, 'color'=>'#0EA5E9'],
-                ['name'=>'Minuman',          'count'=>22, 'color'=>'#6366F1'],
-                ['name'=>'Bumbu',            'count'=>15, 'color'=>'#8B5CF6'],
-                ['name'=>'Snack',            'count'=>14, 'color'=>'#A78BFA'],
-            ];
-            $maxCount = 45;
+                $catColors = ['#2563EB','#0EA5E9','#6366F1','#8B5CF6','#A78BFA','#EC4899','#14B8A6'];
+                $maxCount  = $categoryBreakdown->max('count') ?: 1;
             @endphp
 
-            @foreach($categories as $cat)
+            @foreach($categoryBreakdown as $i => $cat)
             <div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px">
-                    <span style="font-size:13px; font-weight:500">{{ $cat['name'] }}</span>
-                    <span style="font-size:13px; color:var(--text-muted)">{{ $cat['count'] }} items</span>
+                    <span style="font-size:13px; font-weight:500">{{ $cat->category ?? 'Uncategorized' }}</span>
+                    <span style="font-size:13px; color:var(--text-muted)">{{ $cat->count }} items</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-bar__fill" style="width:{{ round($cat['count']/$maxCount*100) }}%; background:{{ $cat['color'] }}"></div>
+                    <div class="progress-bar__fill"
+                         style="width:{{ round($cat->count / $maxCount * 100) }}%;
+                                background:{{ $catColors[$i % count($catColors)] }}">
+                    </div>
                 </div>
             </div>
             @endforeach
+
+            @if($categoryBreakdown->isEmpty())
+                <p class="text-muted text-sm">No category data available.</p>
+            @endif
         </div>
     </div>
 
@@ -144,37 +156,33 @@
     <div class="card">
         <div class="card-header">
             <div class="card-title">Stock Alerts</div>
-            <span class="badge badge--red">5</span>
+            <span class="badge badge--red">{{ $stockAlerts->count() }}</span>
         </div>
         <div class="card-body" style="padding-top:8px; padding-bottom:8px">
-            @php
-            $alerts = [
-                ['name'=>'Beras Premium 5kg',  'detail'=>'2 Bags Left',   'level'=>'critical'],
-                ['name'=>'Minyak Goreng 1L',   'detail'=>'12 Pcs (Low)',  'level'=>'low'],
-                ['name'=>'Garam Dapur 250g',   'detail'=>'Out of Stock',  'level'=>'out'],
-                ['name'=>'Sabun Cuci Piring',  'detail'=>'8 Pcs (Low)',   'level'=>'low'],
-                ['name'=>'Mie Instan Kari',    'detail'=>'15 Pcs (Low)',  'level'=>'low'],
-            ];
-            @endphp
-
-            @foreach($alerts as $alert)
+            @forelse($stockAlerts as $alert)
             <div class="alert-item">
                 <div class="alert-item__info">
-                    <div class="alert-item__name">{{ $alert['name'] }}</div>
-                    <div class="alert-item__detail {{ $alert['level']==='out' ? 'text-danger' : ($alert['level']==='critical' ? 'text-danger' : 'text-warning') }}">
-                        @if($alert['level']==='out')
+                    <div class="alert-item__name">{{ $alert->name }}</div>
+                    <div class="alert-item__detail {{ $alert->qty == 0 ? 'text-danger' : 'text-warning' }}">
+                        @if($alert->qty == 0)
                             <span class="status-dot status-dot--red" style="margin-right:4px"></span>
-                        @elseif($alert['level']==='critical')
-                            <span style="color:var(--red-500)">↓ </span>
+                            Out of Stock
                         @else
                             <span style="color:var(--amber-500)">⚠ </span>
+                            {{ $alert->qty }} {{ $alert->unit }} Left (threshold: {{ $alert->threshold }})
                         @endif
-                        {{ $alert['detail'] }}
                     </div>
                 </div>
-                <button class="btn btn--secondary btn--sm">Restock</button>
+                <form method="POST" action="{{ route('inventory.restock', $alert->id) }}" style="display:flex; gap:4px; align-items:center">
+                    @csrf
+                    <input type="number" name="qty" value="10" min="1"
+                           style="width:52px; padding:4px 6px; font-size:12px; border:1px solid var(--border); border-radius:var(--radius-sm)">
+                    <button type="submit" class="btn btn--secondary btn--sm">Restock</button>
+                </form>
             </div>
-            @endforeach
+            @empty
+                <p class="text-muted text-sm" style="padding:8px 0">No stock alerts. All items are healthy.</p>
+            @endforelse
         </div>
     </div>
 
@@ -185,15 +193,9 @@
     <div class="card-header">
         <div class="card-title">Product Inventory</div>
         <div style="display:flex; gap:8px">
-            <button class="btn-icon" title="Filter">
+            <button class="btn-icon" title="Filter" onclick="document.getElementById('filterForm').scrollIntoView({behavior:'smooth'})">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-            </button>
-            <button class="btn-icon" title="Export">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
             </button>
         </div>
@@ -203,7 +205,7 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>SKU</th>
                     <th>Product Name</th>
                     <th>Category</th>
                     <th>Unit</th>
@@ -211,70 +213,72 @@
                     <th>Threshold</th>
                     <th>Buy Price</th>
                     <th>Sell Price</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @php
-                $products = [
-                    ['id'=>'PRD-0042','name'=>'Beras Premium 5kg','tag'=>'STAPLE',  'cat'=>'Beras & Sembako','unit'=>'Bag', 'qty'=>2,  'threshold'=>18,'buy'=>'Rp 62.000','sell'=>'Rp 68.500','low'=>true],
-                    ['id'=>'PRD-0043','name'=>'Minyak Goreng 1L', 'tag'=>'LIQUID',  'cat'=>'Minyak & Lemak', 'unit'=>'Pcs', 'qty'=>12, 'threshold'=>24,'buy'=>'Rp 14.200','sell'=>'Rp 16.000','low'=>true],
-                    ['id'=>'PRD-0044','name'=>'Gula Pasir 1kg',   'tag'=>'STAPLE',  'cat'=>'Beras & Sembako','unit'=>'Kg',  'qty'=>48, 'threshold'=>15,'buy'=>'Rp 13.500','sell'=>'Rp 15.000','low'=>false],
-                    ['id'=>'PRD-0045','name'=>'Teh Celup 25s',    'tag'=>'DRINK',   'cat'=>'Minuman',        'unit'=>'Box', 'qty'=>62, 'threshold'=>10,'buy'=>'Rp 5.200', 'sell'=>'Rp 6.500', 'low'=>false],
-                    ['id'=>'PRD-0046','name'=>'Kecap Manis 600ml','tag'=>'CONDIMENT','cat'=>'Bumbu',         'unit'=>'Pouch','qty'=>25,'threshold'=>5, 'buy'=>'Rp 18.000','sell'=>'Rp 21.000','low'=>false],
-                ];
-                @endphp
-
-                @foreach($products as $p)
+                @forelse($products as $p)
                 <tr>
-                    <td class="table-id">{{ $p['id'] }}</td>
+                    <td class="table-id">{{ $p->sku }}</td>
                     <td>
-                        <div style="font-weight:600; font-size:13px">{{ $p['name'] }}</div>
-                        <span class="badge badge--{{ $p['tag']==='STAPLE' ? 'blue' : ($p['tag']==='LIQUID' ? 'purple' : ($p['tag']==='DRINK' ? 'green' : 'gray')) }}" style="margin-top:3px">
-                            {{ $p['tag'] }}
+                        <div style="font-weight:600; font-size:13px">{{ $p->name }}</div>
+                    </td>
+                    <td class="text-secondary">{{ $p->category }}</td>
+                    <td class="text-secondary">{{ $p->unit }}</td>
+                    <td>
+                        <span style="font-weight:700; color:{{ $p->qty == 0 ? 'var(--red-500)' : ($p->qty <= $p->threshold ? 'var(--amber-500)' : 'var(--text-primary)') }}">
+                            {{ $p->qty }}
                         </span>
                     </td>
-                    <td class="text-secondary">{{ $p['cat'] }}</td>
-                    <td class="text-secondary">{{ $p['unit'] }}</td>
+                    <td class="text-muted">{{ $p->threshold }}</td>
+                    <td class="text-secondary">Rp {{ number_format($p->buy_price, 0, ',', '.') }}</td>
+                    <td style="font-weight:600">Rp {{ number_format($p->sell_price, 0, ',', '.') }}</td>
                     <td>
-                        <span style="font-weight:700; color:{{ $p['qty'] <= $p['threshold'] ? 'var(--red-500)' : 'var(--text-primary)' }}">
-                            {{ $p['qty'] }}
-                        </span>
+                        @if($p->qty == 0)
+                            <span class="badge badge--red">Out of Stock</span>
+                        @elseif($p->qty <= $p->threshold)
+                            <span class="badge badge--yellow">Low Stock</span>
+                        @else
+                            <span class="badge badge--green">Healthy</span>
+                        @endif
                     </td>
-                    <td class="text-muted">{{ $p['threshold'] }}</td>
-                    <td class="text-secondary">{{ $p['buy'] }}</td>
-                    <td style="font-weight:600">{{ $p['sell'] }}</td>
                     <td>
                         <div style="display:flex; gap:4px">
-                            <button class="btn-icon" title="Edit">
+                            <a href="{{ route('inventory.edit', $p->id) }}" class="btn-icon" title="Edit">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                 </svg>
-                            </button>
-                            <button class="btn-icon" title="Quick restock">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.5 8M17 13l1.5 8M9 21h6"/>
-                                </svg>
-                            </button>
+                            </a>
+                            <form method="POST" action="{{ route('inventory.destroy', $p->id) }}"
+                                  onsubmit="return confirm('Hapus produk {{ addslashes($p->name) }}?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-icon" title="Delete" style="color:var(--red-500)">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        <path d="M10 11v6M14 11v6"/>
+                                        <path d="M9 6V4h6v2"/>
+                                    </svg>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="10" style="text-align:center; padding:32px; color:var(--text-muted)">
+                            No products found.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    <div class="pagination">
-        <span class="pagination-info">Showing 1–8 of 124 products</span>
-        <div class="pagination-controls">
-            <button class="page-btn" disabled>‹</button>
-            <button class="page-btn active">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn">3</button>
-            <button class="page-btn">›</button>
-        </div>
-    </div>
+    {{ $products->links('vendor.pagination.custom') }}
 </div>
 
 {{-- ===== SUPPLIER QUICK REFERENCE ===== --}}
@@ -286,17 +290,15 @@
     <div class="card-body">
         <div class="card-grid card-grid--3">
             @php
-            $suppliers = [
-                ['initials'=>'SJ','name'=>'Sembako Jaya',   'desc'=>'Rice, Flour, Staple Goods',  'phone'=>'+62 21 555-0123','last'=>'Oct 24, 2023','color'=>'var(--blue-600)'],
-                ['initials'=>'SM','name'=>'Sumber Makmur',  'desc'=>'Cooking Oil, Margarine',      'phone'=>'+62 21 555-0987','last'=>'Oct 21, 2023','color'=>'var(--green-500)'],
-                ['initials'=>'BP','name'=>'Bumbu Pusaka',   'desc'=>'Spices, Condiments',          'phone'=>'+62 21 555-0456','last'=>'Oct 18, 2023','color'=>'var(--amber-500)'],
-            ];
+                $supplierColors = ['var(--blue-600)', 'var(--green-500)', 'var(--amber-500)', 'var(--purple-500)', 'var(--red-500)'];
             @endphp
 
-            @foreach($suppliers as $s)
+            @foreach($suppliers as $i => $s)
             <div style="border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px">
                 <div style="display:flex; align-items:center; gap:10px">
-                    <div class="avatar" style="background:{{ $s['color'] }}; width:38px; height:38px; font-size:13px">{{ $s['initials'] }}</div>
+                    <div class="avatar" style="background:{{ $supplierColors[$i % count($supplierColors)] }}; width:38px; height:38px; font-size:13px">
+                        {{ $s['initials'] }}
+                    </div>
                     <div>
                         <div style="font-size:13.5px; font-weight:700">{{ $s['name'] }}</div>
                         <div style="font-size:12px; color:var(--text-muted)">{{ $s['desc'] }}</div>

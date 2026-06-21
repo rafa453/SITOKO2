@@ -5,27 +5,29 @@
 @section('page-subtitle', 'Manage cashier accounts, roles, and shift assignments.')
 
 @section('header-actions')
-    <div class="filter-bar">
+    <form method="GET" action="{{ route('staff.index') }}" class="filter-bar" id="staffFilterForm">
         <div class="search-input-wrapper" style="width:200px">
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input type="text" class="form-input" placeholder="Search staff...">
+            <input type="text" name="search" class="form-input" placeholder="Search staff..."
+                value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
-        <select class="form-select" style="width:130px">
-            <option>All Roles</option>
-            <option>Admin</option>
-            <option>Supervisor</option>
-            <option>Cashier</option>
+        <select name="role" class="form-select" style="width:130px" onchange="this.form.submit()">
+            <option value="">All Roles</option>
+            <option value="admin"      {{ request('role') == 'admin'      ? 'selected' : '' }}>Admin</option>
+            <option value="supervisor" {{ request('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
+            <option value="cashier"    {{ request('role') == 'cashier'    ? 'selected' : '' }}>Cashier</option>
         </select>
-        <select class="form-select" style="width:130px">
-            <option>All Status</option>
-            <option>Active</option>
-            <option>On Leave</option>
-            <option>Inactive</option>
+        <select name="status" class="form-select" style="width:130px" onchange="this.form.submit()">
+            <option value="">All Status</option>
+            <option value="active"   {{ request('status') == 'active'   ? 'selected' : '' }}>Active</option>
+            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
         </select>
-    </div>
-    <button class="btn btn--primary">
+    </form>
+
+    <button class="btn btn--primary"
+        onclick="document.getElementById('modalAddStaff').style.display='flex'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
@@ -34,6 +36,10 @@
 @endsection
 
 @section('content')
+
+@if(session('success'))
+    <div class="alert alert--success" style="margin-bottom:16px">{{ session('success') }}</div>
+@endif
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
@@ -49,8 +55,8 @@
                 </svg>
             </div>
         </div>
-        <div class="stat-card__value">23</div>
-        <div class="stat-card__meta text-muted text-sm">Active accounts</div>
+        <div class="stat-card__value">{{ $totalStaff }}</div>
+        <div class="stat-card__meta text-muted text-sm">Registered accounts</div>
     </div>
 
     <div class="stat-card">
@@ -58,7 +64,9 @@
             <span class="stat-card__label">On Duty Today</span>
             <span class="status-dot status-dot--green"></span>
         </div>
-        <div class="stat-card__value" style="color:var(--green-700)">04</div>
+        <div class="stat-card__value" style="color:var(--green-700)">
+            {{ str_pad($onDuty, 2, '0', STR_PAD_LEFT) }}
+        </div>
         <div class="stat-card__meta text-sm" style="color:var(--green-700); font-weight:600">Currently clocked in</div>
     </div>
 
@@ -71,17 +79,22 @@
                 </svg>
             </div>
         </div>
-        <div style="font-size:22px; font-weight:800; letter-spacing:-.5px">Pagi</div>
-        <div class="stat-card__meta text-muted text-sm">07.00 – 14.00 WIB</div>
+        @php
+            $hour = now()->hour;
+            if ($hour >= 7 && $hour < 15)       { $shiftName = 'Pagi';  $shiftHours = '07.00 – 15.00 WIB'; }
+            elseif ($hour >= 15 && $hour < 23)  { $shiftName = 'Siang'; $shiftHours = '15.00 – 23.00 WIB'; }
+            else                                 { $shiftName = 'Malam'; $shiftHours = '23.00 – 07.00 WIB'; }
+        @endphp
+        <div style="font-size:22px; font-weight:800; letter-spacing:-.5px">{{ $shiftName }}</div>
+        <div class="stat-card__meta text-muted text-sm">{{ $shiftHours }}</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-card__header">
             <span class="stat-card__label">Avg. Trans / Today</span>
-            <span class="badge-trend badge-trend--up">↑ 12% vs Yesterday</span>
         </div>
-        <div class="stat-card__value">42</div>
-        <div class="stat-card__meta text-muted text-sm">per staff</div>
+        <div class="stat-card__value">{{ $avgTrans }}</div>
+        <div class="stat-card__meta text-muted text-sm">per active cashier</div>
     </div>
 
 </div>
@@ -103,35 +116,49 @@
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:10px">
             @php
-            $shifts = [
-                ['shift'=>'Pagi',  'hours'=>'07.00 – 14.00','initial'=>'SR','name'=>'Siti Rahayu',  'status'=>'active'],
-                ['shift'=>'Siang', 'hours'=>'14.00 – 21.00','initial'=>'BS','name'=>'Budi Santoso',  'status'=>'scheduled'],
-                ['shift'=>'Malam', 'hours'=>'21.00 – 07.00','initial'=>null,'name'=>null,             'status'=>'vacant'],
-            ];
+                $shiftConfig = [
+                    'pagi'  => ['label' => 'Pagi',  'hours' => '07.00 – 15.00'],
+                    'siang' => ['label' => 'Siang', 'hours' => '15.00 – 23.00'],
+                    'malam' => ['label' => 'Malam', 'hours' => '23.00 – 07.00'],
+                ];
+                $currentShiftType = strtolower($shiftName);
             @endphp
 
-            @foreach($shifts as $s)
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border:1px solid var(--border); border-radius:var(--radius); background:{{ $s['status']==='active' ? 'var(--border-light)' : 'var(--surface)' }}">
-                <div>
-                    <div style="font-size:14px; font-weight:700">{{ $s['shift'] }}</div>
-                    <div style="font-size:12px; color:var(--text-muted)">{{ $s['hours'] }}</div>
-                </div>
-                <div style="display:flex; align-items:center; gap:10px">
-                    @if($s['name'])
-                        <div class="avatar avatar--blue">{{ $s['initial'] }}</div>
-                        <span style="font-size:13px; font-weight:600">{{ $s['name'] }}</span>
+            @foreach($shiftConfig as $type => $config)
+                @php
+                    $shiftStaff = $todayShifts->get($type);
+                    $isActive   = $type === $currentShiftType;
+                @endphp
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px;
+                            border:1px solid var(--border); border-radius:var(--radius);
+                            background:{{ $isActive ? 'var(--border-light)' : 'var(--surface)' }}">
+                    <div>
+                        <div style="font-size:14px; font-weight:700">{{ $config['label'] }}</div>
+                        <div style="font-size:12px; color:var(--text-muted)">{{ $config['hours'] }}</div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px">
+                        @if($shiftStaff && $shiftStaff->count() > 0)
+                            @php $sh = $shiftStaff->first(); @endphp
+                            <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
+                                {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
+                            </div>
+                            <span style="font-size:13px; font-weight:600">
+                                {{ $sh->user->name ?? '—' }}
+                            </span>
+                        @else
+                            <span style="color:var(--text-muted); font-size:13px">✗ No assignment yet</span>
+                        @endif
+                    </div>
+
+                    @if($isActive)
+                        <span class="badge badge--green">Active</span>
+                    @elseif($shiftStaff && $shiftStaff->count() > 0)
+                        <span class="badge badge--blue">Scheduled</span>
                     @else
-                        <span style="color:var(--text-muted); font-size:13px">✗ No assignment yet</span>
+                        <span class="badge badge--gray">Vacant</span>
                     @endif
                 </div>
-                @if($s['status']==='active')
-                    <span class="badge badge--green">Active</span>
-                @elseif($s['status']==='scheduled')
-                    <span class="badge badge--blue">Scheduled</span>
-                @else
-                    <span class="badge badge--gray">Vacant</span>
-                @endif
-            </div>
             @endforeach
         </div>
     </div>
@@ -140,30 +167,38 @@
     <div class="card">
         <div class="card-header">
             <div class="card-title">Top Performers</div>
+            <span class="card-subtitle">TODAY</span>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
             @php
-            $performers = [
-                ['rank'=>1,'initial'=>'SR','name'=>'Siti Rahayu',   'role'=>'ADMIN',      'trx'=>142,'rev'=>'Rp 12.4M','color'=>'avatar--blue'],
-                ['rank'=>2,'initial'=>'BS','name'=>'Budi Santoso',  'role'=>'SUPERVISOR', 'trx'=>128,'rev'=>'Rp 10.1M','color'=>'avatar--green'],
-                ['rank'=>3,'initial'=>'RW','name'=>'Rina Wulandari','role'=>'CASHIER',    'trx'=>115,'rev'=>'Rp 8.9M', 'color'=>'avatar--amber'],
-            ];
+                $avatarColors = ['avatar--blue', 'avatar--green', 'avatar--amber'];
             @endphp
 
-            @foreach($performers as $p)
+            @forelse($topPerformers as $i => $p)
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-light)">
-                <div style="font-size:11px; font-weight:700; color:var(--text-muted); width:20px">#{{ $p['rank'] }}</div>
-                <div class="avatar {{ $p['color'] }}">{{ $p['initial'] }}</div>
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); width:20px">#{{ $i + 1 }}</div>
+                <div class="avatar {{ $avatarColors[$i % 3] }}">
+                    {{ strtoupper(substr($p->name, 0, 2)) }}
+                </div>
                 <div style="flex:1">
-                    <div style="font-weight:700; font-size:13px">{{ $p['name'] }}</div>
-                    <span class="badge badge--{{ $p['role']==='ADMIN' ? 'blue' : ($p['role']==='SUPERVISOR' ? 'purple' : 'gray') }}" style="margin-top:2px">{{ $p['role'] }}</span>
+                    <div style="font-weight:700; font-size:13px">{{ $p->name }}</div>
+                    <span class="badge badge--{{ $p->role === 'admin' ? 'blue' : ($p->role === 'supervisor' ? 'purple' : 'gray') }}" style="margin-top:2px">
+                        {{ strtoupper($p->role) }}
+                    </span>
                 </div>
                 <div style="text-align:right">
-                    <div style="font-weight:700; font-size:13px">{{ $p['trx'] }} <span class="text-muted" style="font-weight:400">Trans</span></div>
-                    <div style="font-size:12px; color:var(--blue-600); font-weight:600">{{ $p['rev'] }}</div>
+                    <div style="font-weight:700; font-size:13px">
+                        {{ $p->trx_today ?? 0 }}
+                        <span class="text-muted" style="font-weight:400">Trans</span>
+                    </div>
+                    <div style="font-size:12px; color:var(--blue-600); font-weight:600">
+                        Rp {{ number_format($p->revenue_today ?? 0, 0, ',', '.') }}
+                    </div>
                 </div>
             </div>
-            @endforeach
+            @empty
+                <p class="text-muted text-sm">No transaction data for today.</p>
+            @endforelse
         </div>
     </div>
 
@@ -173,19 +208,6 @@
 <div class="card">
     <div class="card-header">
         <div class="card-title">Staff Directory</div>
-        <div style="display:flex; gap:6px">
-            <button class="btn-icon" title="Filter">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-            </button>
-            <button class="btn-icon" title="Export">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-            </button>
-        </div>
     </div>
 
     <div class="data-table-wrapper" style="border:none; border-radius:0">
@@ -198,49 +220,38 @@
                     <th>Assigned Shift</th>
                     <th>Phone Number</th>
                     <th>Date Joined</th>
-                    <th>Total Shifts</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @php
-                $staff = [
-                    ['id'=>'M01-023','initial'=>'SR','name'=>'Siti Rahayu',   'role'=>'ADMIN',   'shift'=>'Pagi', 'phone'=>'0812-9922-1100','joined'=>'12 Jan 2023','shifts'=>24,'status'=>'active'],
-                    ['id'=>'M01-045','initial'=>'DA','name'=>'Dewi Anggraini','role'=>'CASHIER', 'shift'=>'Malam','phone'=>'0856-2244-8899','joined'=>'05 Mar 2023','shifts'=>12,'status'=>'leave'],
-                    ['id'=>'M01-082','initial'=>'FN','name'=>'Fajar Nugroho', 'role'=>'CASHIER', 'shift'=>'Pagi', 'phone'=>'0821-4433-2211','joined'=>'15 May 2023','shifts'=>22,'status'=>'active'],
-                    ['id'=>'M01-012','initial'=>'AP','name'=>'Agus Prasetyo', 'role'=>'CASHIER', 'shift'=>'Malam','phone'=>'0818-0099-7788','joined'=>'20 Dec 2022','shifts'=>0, 'status'=>'inactive'],
-                ];
-                @endphp
-
-                @foreach($staff as $s)
+                @forelse($staff as $s)
                 <tr>
-                    <td class="table-id">{{ $s['id'] }}</td>
+                    <td class="table-id">#{{ str_pad($s->id, 4, '0', STR_PAD_LEFT) }}</td>
                     <td>
                         <div style="display:flex; align-items:center; gap:8px">
-                            <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">{{ $s['initial'] }}</div>
-                            <span style="font-weight:600">{{ $s['name'] }}</span>
+                            <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
+                                {{ strtoupper(substr($s->name, 0, 2)) }}
+                            </div>
+                            <div>
+                                <div style="font-weight:600; font-size:13px">{{ $s->name }}</div>
+                                <div style="font-size:11px; color:var(--text-muted)">{{ $s->email }}</div>
+                            </div>
                         </div>
                     </td>
                     <td>
-                        <span class="badge {{ $s['role']==='ADMIN' ? 'badge--blue' : ($s['role']==='SUPERVISOR' ? 'badge--purple' : 'badge--gray') }}">
-                            {{ $s['role'] }}
+                        <span class="badge {{ $s->role === 'admin' ? 'badge--blue' : ($s->role === 'supervisor' ? 'badge--purple' : 'badge--gray') }}">
+                            {{ strtoupper($s->role) }}
                         </span>
                     </td>
-                    <td class="text-secondary">{{ $s['shift'] }}</td>
-                    <td class="text-secondary font-mono" style="font-size:12px">{{ $s['phone'] }}</td>
-                    <td class="text-secondary">{{ $s['joined'] }}</td>
-                    <td style="font-weight:600">{{ $s['shifts'] }}</td>
+                    <td class="text-secondary">{{ ucfirst($s->shift) }}</td>
+                    <td class="text-secondary" style="font-size:12px">{{ $s->phone ?? '—' }}</td>
+                    <td class="text-secondary">{{ $s->created_at->format('d M Y') }}</td>
                     <td>
-                        @if($s['status']==='active')
+                        @if($s->status === 'active')
                             <div style="display:flex; align-items:center; gap:5px">
                                 <span class="status-dot status-dot--green"></span>
                                 <span style="font-size:12.5px; color:var(--green-700); font-weight:600">Active</span>
-                            </div>
-                        @elseif($s['status']==='leave')
-                            <div style="display:flex; align-items:center; gap:5px">
-                                <span class="status-dot status-dot--amber"></span>
-                                <span style="font-size:12.5px; color:var(--amber-700); font-weight:600">On Leave</span>
                             </div>
                         @else
                             <div style="display:flex; align-items:center; gap:5px">
@@ -251,30 +262,53 @@
                     </td>
                     <td>
                         <div style="display:flex; gap:4px">
-                            <button class="btn-icon" title="View"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                            <button class="btn-icon" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            <button class="btn-icon" title="Deactivate" style="color:var(--red-500)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>
+                            {{-- Edit --}}
+                            <button class="btn-icon" title="Edit"
+                                onclick="openEditModal({{ $s->id }}, '{{ addslashes($s->name) }}', '{{ $s->role }}', '{{ $s->phone }}', '{{ $s->shift }}')">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+
+                            {{-- Deactivate --}}
+                            @if($s->status === 'active')
+                            <form method="POST" action="{{ route('staff.destroy', $s->id) }}"
+                                  onsubmit="return confirm('Nonaktifkan {{ addslashes($s->name) }}?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-icon" title="Deactivate" style="color:var(--red-500)">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                    </svg>
+                                </button>
+                            </form>
+                            @endif
                         </div>
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                    <tr>
+                        <td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted)">
+                            No staff found.
+                        </td>
+                    </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
 
-    <div class="pagination">
-        <span class="pagination-info">Showing 1–8 of 23 staff</span>
-        <div class="pagination-controls">
-            <button class="page-btn" disabled>Previous</button>
-            <button class="page-btn">Next</button>
-        </div>
+    <div style="padding:0 20px">
+        {{ $staff->links() }}
     </div>
 </div>
 
-{{-- ===== RECENT ACTIVITY LOG ===== --}}
+{{-- ===== RECENT ACTIVITY LOG (hardcode sementara) ===== --}}
 <div class="card">
     <div class="card-header">
         <div class="card-title">Recent Activity Log</div>
+        <span class="card-subtitle">STATIC — WILL BE DYNAMIC</span>
     </div>
     <div class="data-table-wrapper" style="border:none; border-radius:0">
         <table class="data-table">
@@ -290,7 +324,7 @@
             <tbody>
                 @php
                 $logs = [
-                    ['ts'=>'2023-10-30 07:02:11','staff'=>'Siti Rahayu',   'action'=>'Clocked In – Shift Pagi','type'=>'SHIFT_EVENT','by'=>'System Auto'],
+                    ['ts'=>'2023-10-30 07:02:11','staff'=>'Siti Rahayu',   'action'=>'Clocked In – Shift Pagi', 'type'=>'SHIFT_EVENT','by'=>'System Auto'],
                     ['ts'=>'2023-10-29 16:45:30','staff'=>'Dewi Anggraini','action'=>'Requested Leave (1–3 Nov)','type'=>'HR_REQUEST', 'by'=>'Budi Santoso'],
                     ['ts'=>'2023-10-29 09:12:05','staff'=>'Fajar Nugroho', 'action'=>'Password Reset',           'type'=>'SECURITY',   'by'=>'Siti Rahayu'],
                 ];
@@ -312,5 +346,118 @@
         </table>
     </div>
 </div>
+
+{{-- ===== MODAL: ADD STAFF ===== --}}
+<div id="modalAddStaff" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+     z-index:999; align-items:center; justify-content:center">
+    <div style="background:var(--surface); border-radius:var(--radius-lg); padding:28px; width:440px; max-width:95vw">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+            <div style="font-size:15px; font-weight:700">Add New Staff</div>
+            <button onclick="document.getElementById('modalAddStaff').style.display='none'"
+                    style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px">✕</button>
+        </div>
+        <form method="POST" action="{{ route('staff.store') }}" style="display:flex; flex-direction:column; gap:14px">
+            @csrf
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Full Name</label>
+                <input type="text" name="name" class="form-input w-full" required placeholder="e.g. Budi Santoso">
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Email</label>
+                <input type="email" name="email" class="form-input w-full" required placeholder="email@example.com">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                <div>
+                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
+                    <select name="role" class="form-select w-full" required>
+                        <option value="cashier">Cashier</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Shift</label>
+                    <select name="shift" class="form-select w-full" required>
+                        <option value="pagi">Pagi</option>
+                        <option value="siang">Siang</option>
+                        <option value="malam">Malam</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Phone</label>
+                <input type="text" name="phone" class="form-input w-full" placeholder="0812-xxxx-xxxx">
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Password</label>
+                <input type="password" name="password" class="form-input w-full" required minlength="8" placeholder="Min. 8 characters">
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:4px">
+                <button type="button" class="btn btn--secondary"
+                    onclick="document.getElementById('modalAddStaff').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn--primary">Add Staff</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- ===== MODAL: EDIT STAFF ===== --}}
+<div id="modalEditStaff" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+     z-index:999; align-items:center; justify-content:center">
+    <div style="background:var(--surface); border-radius:var(--radius-lg); padding:28px; width:440px; max-width:95vw">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+            <div style="font-size:15px; font-weight:700">Edit Staff</div>
+            <button onclick="document.getElementById('modalEditStaff').style.display='none'"
+                    style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px">✕</button>
+        </div>
+        <form id="editStaffForm" method="POST" style="display:flex; flex-direction:column; gap:14px">
+            @csrf
+            @method('PATCH')
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Full Name</label>
+                <input type="text" id="editName" name="name" class="form-input w-full" required>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                <div>
+                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
+                    <select id="editRole" name="role" class="form-select w-full" required>
+                        <option value="cashier">Cashier</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Shift</label>
+                    <select id="editShift" name="shift" class="form-select w-full" required>
+                        <option value="pagi">Pagi</option>
+                        <option value="siang">Siang</option>
+                        <option value="malam">Malam</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Phone</label>
+                <input type="text" id="editPhone" name="phone" class="form-input w-full">
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:4px">
+                <button type="button" class="btn btn--secondary"
+                    onclick="document.getElementById('modalEditStaff').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn--primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, name, role, phone, shift) {
+    const form = document.getElementById('editStaffForm');
+    form.action = '/staff/' + id;
+    document.getElementById('editName').value  = name;
+    document.getElementById('editPhone').value = phone || '';
+    document.getElementById('editRole').value  = role;
+    document.getElementById('editShift').value = shift;
+    document.getElementById('modalEditStaff').style.display = 'flex';
+}
+</script>
 
 @endsection

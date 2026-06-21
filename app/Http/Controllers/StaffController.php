@@ -47,7 +47,8 @@ class StaffController extends Controller
         $todayShifts = Shift::with('user')
             ->whereDate('started_at', $today)
             ->get()
-            ->groupBy('type');
+            ->groupBy('type')
+            ->map(fn($group) => $group->take(1));
 
         // Top 3 performers hari ini
         $topPerformers = User::withCount([
