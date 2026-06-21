@@ -3,8 +3,33 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\PaymentMethod;
 
 class Transaction extends Model
 {
-    //
+    protected $fillable = [
+        'code',
+        'cashier_id',
+        'total',
+        'amount_paid',
+        'change',
+        'payment_method',
+        'status',
+        'notes',
+    ];
+
+    public function cashier()
+    {
+        return $this->belongsTo(User::class, 'cashier_id');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(TransactionItem::class);
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'payment_method', 'name');
+    }
 }

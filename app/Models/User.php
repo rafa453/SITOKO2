@@ -29,4 +29,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function transactions()
+    {
+        return $this->hasMany(\App\Models\Transaction::class, 'cashier_id');
+    }
 }

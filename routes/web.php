@@ -3,11 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\SettingController;
+use App\Http\Controllers\PaymentMethodController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,7 +30,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Inventory
-    Route::resource('inventory', InventoryController::class);
+    Route::resource('inventory', ProductController::class);
 
     // Transactions
     Route::resource('transactions', TransactionController::class);
@@ -45,10 +45,21 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/reports/generate',[ReportController::class, 'generate'])->name('reports.generate');
 
     // Settings — Payment Methods
-    Route::get('/settings',                   [SettingController::class, 'index'])->name('settings.index');
-    Route::get('/settings/payment-methods',   [SettingController::class, 'paymentMethods'])->name('settings.payment-methods');
-    Route::post('/settings/payment-methods',  [SettingController::class, 'storePaymentMethod'])->name('settings.payment-methods.store');
-    Route::patch('/settings/payment-methods/{id}/toggle', [SettingController::class, 'togglePaymentMethod'])->name('settings.payment-methods.toggle');
+    Route::get('/settings',                   [PaymentMethodController::class, 'index'])->name('settings.index');
+    Route::get('/settings/payment-methods',   [PaymentMethodController::class, 'paymentMethods'])->name('settings.payment-methods');
+    Route::post('/settings/payment-methods',  [PaymentMethodController::class, 'storePaymentMethod'])->name('settings.payment-methods.store');
+    Route::patch('/settings/payment-methods/{id}/toggle', [PaymentMethodController::class, 'togglePaymentMethod'])->name('settings.payment-methods.toggle');
+
+    // Admin — kelola shift
+    Route::resource('shifts', ShiftController::class)->except(['show', 'edit', 'create']);
+
+    // Kasir — clock in / clock out
+    Route::post('/shifts/clock-in',  [ShiftController::class, 'clockIn'])->name('shifts.clock-in');
+    Route::post('/shifts/clock-out', [ShiftController::class, 'clockOut'])->name('shifts.clock-out');
+
+    // Laporan shift (dipanggil via AJAX dari Reports page)
+    Route::get('/shifts/summary', [ShiftController::class, 'summary'])->name('shifts.summary');
+
 
 });
 
