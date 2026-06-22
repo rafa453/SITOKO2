@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+use App\Models\ActivityLog;
 
 class StaffController extends Controller
 {
@@ -63,9 +64,14 @@ class StaffController extends Controller
             ->limit(3)
             ->get();
 
+        $activityLogs = ActivityLog::with('user')
+        ->latest()
+        ->limit(20)
+        ->get();
+
         return view('pages.staff', compact(
             'staff', 'totalStaff', 'onDuty', 'avgTrans',
-            'todayShifts', 'topPerformers'
+            'todayShifts', 'topPerformers','activityLogs'
         ));
     }
 

@@ -778,6 +778,10 @@ a { text-decoration: none; color: inherit; }
     width: 100%;
 }
 
+.card--overflow-x {
+    overflow: visible;
+}
+
 /* ============================================================
    ALERT ITEM (stock alerts, etc)
    ============================================================ */
@@ -947,6 +951,28 @@ a { text-decoration: none; color: inherit; }
 .w-full { width: 100%; }
 
 .currency::before { content: 'Rp '; font-size: .85em; font-weight: 600; color: var(--text-muted); }
+
+.product-tile {
+    padding: 12px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.product-tile:hover {
+    border-color: var(--blue-600);
+    background: #EFF6FF;
+}
+.product-tile--disabled {
+    padding: 12px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.product-tile__name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.product-tile__sku  { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+.product-tile__price { font-size: 13px; font-weight: 700; color: var(--blue-600); }
 
 /* ============================================================
    RESPONSIVE (breakpoint: tablet ≥ 1024px assumed for admin)

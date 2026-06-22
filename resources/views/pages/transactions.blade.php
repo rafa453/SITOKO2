@@ -5,27 +5,52 @@
 @section('page-subtitle', 'Monitor, search, and review all sales transactions.')
 
 @section('header-actions')
-    <div class="filter-bar">
+    <form method="GET" action="{{ route('transactions.index') }}" class="filter-bar" id="filterForm">
         <div class="search-input-wrapper" style="width:200px">
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input type="text" class="form-input" placeholder="Search...">
+            <input type="text" name="search" class="form-input" placeholder="Search ID..."
+                value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
-        <button class="btn btn--secondary btn--sm" style="font-size:12.5px">Today</button>
-        <button class="btn btn--secondary btn--sm" style="font-size:12.5px">Methods</button>
-        <button class="btn btn--secondary btn--sm" style="font-size:12.5px">Status</button>
-    </div>
-    <button class="btn btn--primary btn--sm">
+
+        <select name="date" class="form-select" style="width:120px" onchange="this.form.submit()">
+            <option value="">All Dates</option>
+            <option value="today" {{ request('date')==='today' ? 'selected' : '' }}>Today</option>
+        </select>
+
+        <select name="method" class="form-select" style="width:140px" onchange="this.form.submit()">
+            <option value="">All Methods</option>
+            @foreach($paymentBreakdown as $pm)
+                <option value="{{ $pm->payment_method }}" {{ request('method')===$pm->payment_method ? 'selected' : '' }}>
+                    {{ $pm->payment_method }}
+                </option>
+            @endforeach
+        </select>
+
+        <select name="status" class="form-select" style="width:130px" onchange="this.form.submit()">
+            <option value="">All Status</option>
+            <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Completed</option>
+            <option value="voided"    {{ request('status')==='voided'    ? 'selected' : '' }}>Voided</option>
+        </select>
+    </form>
+
+    @if(auth()->user()->role === 'admin')
+    <button class="btn btn--secondary btn--sm">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
         Export CSV
     </button>
+    @endif
 @endsection
 
 @section('content')
+
+@if(session('success'))
+    <div class="alert alert--success" style="margin-bottom:16px">{{ session('success') }}</div>
+@endif
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
@@ -33,43 +58,44 @@
     <div class="stat-card">
         <div class="stat-card__header">
             <span class="stat-card__label">Total Transactions</span>
-            <span class="badge-trend badge-trend--up">↑ +12%</span>
         </div>
-        <div class="stat-card__value">1,248</div>
-        <div class="stat-card__meta text-muted text-sm">Since 07:00 AM</div>
+        <div class="stat-card__value">{{ number_format($totalTransactions) }}</div>
+        <div class="stat-card__meta text-muted text-sm">Today</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-card__header">
             <span class="stat-card__label">Total Revenue</span>
-            <span class="badge-trend badge-trend--up">↑ +8.4%</span>
         </div>
         <div>
             <div class="stat-card__rp">Rp</div>
-            <div class="stat-card__value">42.8M</div>
+            <div class="stat-card__value">{{ number_format($totalRevenue, 0, ',', '.') }}</div>
         </div>
-        <div class="stat-card__meta text-muted text-sm">Real-time daily gross</div>
+        <div class="stat-card__meta text-muted text-sm">Completed only</div>
     </div>
 
     <div class="stat-card" style="border-color:#FEE2E2; background:#FEF2F2">
         <div class="stat-card__header">
             <span class="stat-card__label" style="color:#991B1B">Voided</span>
-            <span class="badge badge--red">Action Req.</span>
+            @if($voidedCount > 0)
+                <span class="badge badge--red">Action Req.</span>
+            @endif
         </div>
-        <div class="stat-card__value" style="color:#EF4444">14</div>
-        <div class="stat-card__meta text-sm" style="color:#991B1B">Value: Rp 2.450.000</div>
+        <div class="stat-card__value" style="color:#EF4444">{{ $voidedCount }}</div>
+        <div class="stat-card__meta text-sm" style="color:#991B1B">
+            Value: Rp {{ number_format($voidedValue, 0, ',', '.') }}
+        </div>
     </div>
 
     <div class="stat-card">
         <div class="stat-card__header">
             <span class="stat-card__label">Avg. Basket Size</span>
-            <span class="text-muted text-sm">— Steady</span>
         </div>
         <div>
             <div class="stat-card__rp">Rp</div>
-            <div class="stat-card__value">34.3k</div>
+            <div class="stat-card__value">{{ number_format($avgBasket, 0, ',', '.') }}</div>
         </div>
-        <div class="stat-card__meta text-muted text-sm">vs Weekly Avg: Rp 32.1k</div>
+        <div class="stat-card__meta text-muted text-sm">Today's average</div>
     </div>
 
 </div>
@@ -84,9 +110,6 @@
                 <div class="card-title">Hourly Transaction Volume</div>
                 <div class="card-subtitle">Daily activity patterns (07.00 – 21.00)</div>
             </div>
-            <span class="badge badge--blue" style="font-size:11px">
-                ☆ Peak: 12.00 (38 trx)
-            </span>
         </div>
         <div class="card-body">
             <div class="chart-wrapper" style="height:180px">
@@ -102,59 +125,41 @@
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
             @php
-            $methods = [
-                ['label'=>'E-Wallet', 'trx'=>642,  'amount'=>'Rp 22.4M', 'pct'=>54, 'color'=>'#2563EB'],
-                ['label'=>'Debit Card','trx'=>410,  'amount'=>'Rp 15.2M', 'pct'=>35, 'color'=>'#6366F1'],
-                ['label'=>'Cash',      'trx'=>196,  'amount'=>'Rp 5.2M',  'pct'=>11, 'color'=>'#22C55E'],
-            ];
+                $totalTrx = $paymentBreakdown->sum('trx_count') ?: 1;
+                $colors   = ['#2563EB','#6366F1','#22C55E','#F59E0B','#EF4444'];
             @endphp
 
-            @foreach($methods as $m)
+            @forelse($paymentBreakdown as $i => $pm)
+            @php $pct = round($pm->trx_count / $totalTrx * 100); @endphp
             <div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px; align-items:center">
                     <div style="display:flex; align-items:center; gap:8px">
-                        <span class="status-dot" style="background:{{ $m['color'] }}"></span>
-                        <span style="font-weight:600; font-size:13px">{{ $m['label'] }}</span>
-                        <span class="text-muted text-sm">{{ $m['trx'] }}</span>
+                        <span class="status-dot" style="background:{{ $colors[$i % count($colors)] }}"></span>
+                        <span style="font-weight:600; font-size:13px">{{ $pm->payment_method }}</span>
+                        <span class="text-muted text-sm">{{ $pm->trx_count }} trx</span>
                     </div>
-                    <span style="font-weight:700; font-size:13px">{{ $m['amount'] }}</span>
+                    <span style="font-weight:700; font-size:13px">Rp {{ number_format($pm->revenue, 0, ',', '.') }}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-bar__fill" style="width:{{ $m['pct'] }}%; background:{{ $m['color'] }}"></div>
+                    <div class="progress-bar__fill" style="width:{{ $pct }}%; background:{{ $colors[$i % count($colors)] }}"></div>
                 </div>
             </div>
-            @endforeach
-
-            {{-- Conversion Rate --}}
-            <div style="margin-top:8px; background:var(--border-light); border-radius:var(--radius); padding:14px 16px; display:flex; align-items:center; justify-content:space-between">
-                <span style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted)">Conversion Rate</span>
-                <span style="font-size:22px; font-weight:800; color:var(--blue-600)">94.2%</span>
-            </div>
+            @empty
+                <p class="text-muted text-sm">No transactions today.</p>
+            @endforelse
         </div>
     </div>
 
 </div>
 
 {{-- ===== TRANSACTION LOG + DETAIL PANEL ===== --}}
-<div class="card-grid" style="grid-template-columns: 1fr 380px" x-data="{ selected: 'TRX-20240521-0042' }">
+<div class="card-grid" style="grid-template-columns:1fr 380px"
+     x-data="{ selectedId: null, selected: null, loadDetail(trx) { this.selectedId = trx.id; this.selected = trx; } }">
 
     {{-- Detailed Log --}}
-    <div class="card">
+    <div class="card card--overflow-x">
         <div class="card-header">
             <div class="card-title">Detailed Log</div>
-            <div style="display:flex; gap:6px">
-                <button class="btn-icon" title="Filter">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                    </svg>
-                </button>
-                <button class="btn-icon" title="Refresh">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                    </svg>
-                </button>
-            </div>
         </div>
 
         <div class="data-table-wrapper" style="border:none; border-radius:0">
@@ -164,7 +169,6 @@
                         <th>Transaction ID</th>
                         <th>Timestamp</th>
                         <th>Cashier</th>
-                        <th>Shift</th>
                         <th>Items</th>
                         <th>Method</th>
                         <th>Total</th>
@@ -173,38 +177,48 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @forelse($transactions as $trx)
                     @php
-                    $transactions = [
-                        ['id'=>'TRX-20240521-0042','time'=>'21/05 14:32:10','cashier'=>'BA','name'=>'Budi A.','shift'=>'Morning','items'=>8, 'method'=>'QRIS',  'total'=>'Rp 435.500',   'status'=>'completed'],
-                        ['id'=>'TRX-20240521-0041','time'=>'21/05 14:28:45','cashier'=>'LS','name'=>'Lestari S.','shift'=>'Morning','items'=>2,'method'=>'CASH', 'total'=>'Rp 25.000',    'status'=>'completed'],
-                        ['id'=>'TRX-20240521-0040','time'=>'21/05 14:15:22','cashier'=>'BA','name'=>'Budi A.','shift'=>'Morning','items'=>15,'method'=>'DEBIT', 'total'=>'Rp 1.250.000', 'status'=>'completed'],
-                        ['id'=>'TRX-20240521-0039','time'=>'21/05 14:02:11','cashier'=>'DS','name'=>'Dewi S.','shift'=>'Morning','items'=>4, 'method'=>'G-PAY', 'total'=>'Rp 88.200',    'status'=>'completed'],
-                        ['id'=>'TRX-20240521-0038','time'=>'21/05 13:58:30','cashier'=>'BA','name'=>'Budi A.','shift'=>'Morning','items'=>1, 'method'=>'CASH',  'total'=>'Rp 12.500',    'status'=>'voided'],
-                    ];
+                        $trxData = json_encode([
+                            'id'             => $trx->id,
+                            'code'           => $trx->code,
+                            'status'         => $trx->status,
+                            'created_at'     => $trx->created_at->format('d M Y • H:i'),
+                            'cashier'        => $trx->cashier?->name ?? '-',
+                            'payment_method' => $trx->payment_method,
+                            'total'          => $trx->total,
+                            'amount_paid'    => $trx->amount_paid,
+                            'change'         => $trx->change,
+                            'items'          => $trx->items->map(fn($i) => [
+                                'name'     => $i->product?->name ?? 'Produk Dihapus',
+                                'qty'      => $i->qty,
+                                'price'    => $i->price,
+                                'subtotal' => $i->subtotal,
+                            ]),
+                        ]);
                     @endphp
-
-                    @foreach($transactions as $t)
-                    <tr style="cursor:pointer" @click="selected = '{{ $t['id'] }}'">
+                    <tr style="cursor:pointer" @click="loadDetail({{ $trxData }})">
                         <td>
-                            <span style="font-weight:600; font-size:12.5px; color:var(--blue-600)">{{ $t['id'] }}</span>
-                        </td>
-                        <td class="table-id">{{ $t['time'] }}</td>
-                        <td>
-                            <div style="display:flex; align-items:center; gap:7px">
-                                <div class="avatar avatar--blue" style="width:26px; height:26px; font-size:10px">{{ $t['cashier'] }}</div>
-                                <span style="font-size:12.5px">{{ $t['name'] }}</span>
-                            </div>
-                        </td>
-                        <td class="text-secondary">{{ $t['shift'] }}</td>
-                        <td class="text-secondary">{{ $t['items'] }} items</td>
-                        <td>
-                            <span class="badge {{ $t['method']==='CASH' ? 'badge--green' : ($t['method']==='QRIS' ? 'badge--blue' : ($t['method']==='DEBIT' ? 'badge--purple' : 'badge--amber')) }}">
-                                {{ $t['method'] }}
+                            <span style="font-weight:600; font-size:12.5px; color:var(--blue-600)">
+                                {{ $trx->code }}
                             </span>
                         </td>
-                        <td style="font-weight:600">{{ $t['total'] }}</td>
+                        <td class="table-id">{{ $trx->created_at->format('d/m H:i:s') }}</td>
                         <td>
-                            @if($t['status']==='completed')
+                            <div style="display:flex; align-items:center; gap:7px">
+                                <div class="avatar avatar--blue" style="width:26px; height:26px; font-size:10px">
+                                    {{ strtoupper(substr($trx->cashier?->name ?? '?', 0, 2)) }}
+                                </div>
+                                <span style="font-size:12.5px">{{ $trx->cashier?->name ?? '-' }}</span>
+                            </div>
+                        </td>
+                        <td class="text-secondary">{{ $trx->items->count() }} items</td>
+                        <td>
+                            <span class="badge badge--blue">{{ $trx->payment_method }}</span>
+                        </td>
+                        <td style="font-weight:600">Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                        <td>
+                            @if($trx->status === 'completed')
                                 <span class="badge badge--green">COMPLETED</span>
                             @else
                                 <span class="badge badge--red">VOIDED</span>
@@ -214,114 +228,124 @@
                             <button class="btn-icon" style="font-size:11px; width:24px; height:24px">›</button>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted)">
+                            No transactions found.
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
 
-        <div class="pagination">
-            <span class="pagination-info">Showing 1 to 10 of 1,248 entries</span>
-            <div class="pagination-controls">
-                <button class="page-btn" disabled>‹</button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn">3</button>
-                <span class="page-btn" style="border:none; background:none">...</span>
-                <button class="page-btn">125</button>
-                <button class="page-btn">›</button>
-            </div>
+        <div style="padding:12px 16px">
+            {{ $transactions->withQueryString()->links() }}
         </div>
     </div>
 
-    {{-- Transaction Detail Panel --}}
-    <div class="card" style="align-self:start; position:sticky; top:90px">
-        <div class="card-header" style="padding:14px 18px">
+    {{-- Detail Panel --}}
+    <div class="card" style="align-self:start; position:sticky; top:90px" x-show="selected" x-transition>
+        <template x-if="selected">
             <div>
-                <span class="badge badge--green" style="margin-bottom:6px; display:inline-flex">COMPLETED</span>
-                <div style="font-size:14px; font-weight:700; font-family:var(--font-mono); letter-spacing:-.5px">TRX-20240521-0042</div>
-            </div>
-            <button class="btn-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-        </div>
-
-        {{-- Meta --}}
-        <div style="padding:12px 18px; border-bottom:1px solid var(--border-light); display:grid; grid-template-columns:1fr 1fr; gap:12px">
-            <div>
-                <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Date & Time</div>
-                <div style="font-size:12.5px; font-weight:600">May 21, 2024 • 14:32:18</div>
-            </div>
-            <div>
-                <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Cashier</div>
-                <div style="font-size:12.5px; font-weight:600">Budi Ardiansyah (Morning)</div>
-            </div>
-        </div>
-
-        {{-- Itemized Receipt --}}
-        <div style="padding:14px 18px">
-            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:10px">Itemized Receipt</div>
-
-            <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12px; margin-bottom:4px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px">
-                <span>Item</span><span>Qty</span><span>Price</span><span>Subtotal</span>
-            </div>
-
-            @php
-            $items = [
-                ['name'=>'Premium Arabica Beans 500g','qty'=>1,'price'=>'185.000','sub'=>'185.000'],
-                ['name'=>'Organic Whole Milk 1L',      'qty'=>2,'price'=>'32.000', 'sub'=>'64.000'],
-                ['name'=>'Avocado Butter (Local)',      'qty'=>3,'price'=>'45.000', 'sub'=>'135.000'],
-                ['name'=>'Cinnamon Sticks Pack',        'qty'=>1,'price'=>'22.500', 'sub'=>'22.500'],
-                ['name'=>'Reusable Eco Bag (M)',        'qty'=>1,'price'=>'29.000', 'sub'=>'29.000'],
-            ];
-            @endphp
-
-            @foreach($items as $item)
-            <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--border-light); align-items:center">
-                <span style="font-weight:500">{{ $item['name'] }}</span>
-                <span class="text-muted">{{ $item['qty'] }}</span>
-                <span class="text-secondary">{{ $item['price'] }}</span>
-                <span style="font-weight:600">{{ $item['sub'] }}</span>
-            </div>
-            @endforeach
-
-            {{-- Totals --}}
-            <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:12.5px">
-                <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
-                    <span>Subtotal</span><span>435.500</span>
+                <div class="card-header" style="padding:14px 18px">
+                    <div>
+                        <span class="badge" :class="selected.status === 'completed' ? 'badge--green' : 'badge--red'"
+                              style="margin-bottom:6px; display:inline-flex"
+                              x-text="selected.status.toUpperCase()"></span>
+                        <div style="font-size:14px; font-weight:700; font-family:var(--font-mono); letter-spacing:-.5px"
+                             x-text="selected.code"></div>
+                    </div>
+                    <button class="btn-icon" @click="selected = null; selectedId = null">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
                 </div>
-                <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
-                    <span>Tax (11% PPN)</span><span>0.00 (Incl.)</span>
+
+                <div style="padding:12px 18px; border-bottom:1px solid var(--border-light); display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                    <div>
+                        <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Date & Time</div>
+                        <div style="font-size:12.5px; font-weight:600" x-text="selected.created_at"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Cashier</div>
+                        <div style="font-size:12.5px; font-weight:600" x-text="selected.cashier"></div>
+                    </div>
                 </div>
-                <div class="divider"></div>
-                <div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px">
-                    <span>Total Amount</span>
-                    <span style="color:var(--blue-600)">Rp 435.500</span>
+
+                {{-- Items --}}
+                <div style="padding:14px 18px">
+                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:10px">Itemized Receipt</div>
+
+                    <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12px; margin-bottom:4px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px">
+                        <span>Item</span><span>Qty</span><span>Price</span><span>Sub</span>
+                    </div>
+
+                    <template x-for="item in selected.items" :key="item.name">
+                        <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--border-light); align-items:center">
+                            <span style="font-weight:500" x-text="item.name"></span>
+                            <span class="text-muted" x-text="item.qty"></span>
+                            <span class="text-secondary" x-text="Number(item.price).toLocaleString('id-ID')"></span>
+                            <span style="font-weight:600" x-text="Number(item.subtotal).toLocaleString('id-ID')"></span>
+                        </div>
+                    </template>
+
+                    {{-- Totals --}}
+                    <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:12.5px">
+                        <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
+                            <span>Subtotal</span>
+                            <span x-text="Number(selected.total).toLocaleString('id-ID')"></span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px">
+                            <span>Total</span>
+                            <span style="color:var(--blue-600)" x-text="'Rp ' + Number(selected.total).toLocaleString('id-ID')"></span>
+                        </div>
+                        <template x-if="selected.payment_method === 'Tunai'">
+                            <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
+                                <span>Bayar</span>
+                                <span x-text="'Rp ' + Number(selected.amount_paid).toLocaleString('id-ID')"></span>
+                            </div>
+                        </template>
+                        <template x-if="selected.payment_method === 'Tunai' && selected.change > 0">
+                            <div style="display:flex; justify-content:space-between; color:#16A34A; font-weight:700">
+                                <span>Kembalian</span>
+                                <span x-text="'Rp ' + Number(selected.change).toLocaleString('id-ID')"></span>
+                            </div>
+                        </template>
+                    </div>
+
+                    {{-- Payment method --}}
+                    <div style="margin-top:12px; padding:10px 12px; background:var(--border-light); border-radius:var(--radius-sm); display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600">
+                        <span class="badge badge--blue" x-text="selected.payment_method"></span>
+                        <span x-text="'Paid via ' + selected.payment_method"></span>
+                    </div>
+                </div>
+
+                {{-- Actions --}}
+                <div style="padding:12px 18px 16px; display:flex; gap:8px; border-top:1px solid var(--border-light)">
+                    <button class="btn btn--secondary" style="flex:1; justify-content:center; font-size:12.5px">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 6 2 18 2 18 9"/>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                            <rect x="6" y="14" width="12" height="8"/>
+                        </svg>
+                        Print Receipt
+                    </button>
+                    @if(auth()->user()->role === 'admin')
+                    <form method="POST" :action="`{{ url('transactions') }}/${selected.id}/void`">
+                        @csrf
+                        <button type="submit" class="btn btn--danger"
+                                style="font-size:12.5px"
+                                x-show="selected.status === 'completed'"
+                                onclick="return confirm('Void transaksi ini?')">
+                            Void
+                        </button>
+                    </form>
+                    @endif
                 </div>
             </div>
-
-            {{-- Payment method --}}
-            <div style="margin-top:12px; padding:10px 12px; background:var(--border-light); border-radius:var(--radius-sm); display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600">
-                <span class="badge badge--blue">QRIS</span>
-                <span>Paid via QRIS</span>
-                <span class="text-muted" style="margin-left:auto; font-size:11px">Ref: ID-8821992</span>
-            </div>
-        </div>
-
-        {{-- Actions --}}
-        <div style="padding:12px 18px 16px; display:flex; gap:8px; border-top:1px solid var(--border-light)">
-            <button class="btn btn--secondary" style="flex:1; justify-content:center; font-size:12.5px">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                    <rect x="6" y="14" width="12" height="8"/>
-                </svg>
-                Print Receipt
-            </button>
-            <button class="btn btn--danger" style="flex:0 0 auto; font-size:12.5px">
-                Void
-            </button>
-        </div>
+        </template>
     </div>
 
 </div>
@@ -334,8 +358,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('hourlyChart');
     if (!ctx) return;
 
+    const hourlyData = @json($hourlyVolume);
     const hours = ['07','08','09','10','11','12','13','14','15','16','17','18','19','20','21'];
-    const data  = [12, 18, 22, 25, 31, 38, 29, 35, 27, 24, 20, 18, 15, 11, 8];
+    const data  = hours.map((h, i) => hourlyData[parseInt(h)] ?? 0);
 
     new Chart(ctx, {
         type: 'line',

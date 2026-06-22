@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\ActivityLog;
 
 class ProductController extends Controller
 {
@@ -82,6 +83,7 @@ class ProductController extends Controller
         ]);
 
         Product::create($validated);
+        ActivityLog::record('PRODUCT', 'Produk ditambahkan', $product->name);
 
         return redirect()->route('inventory.index')
             ->with('success', 'Produk berhasil ditambahkan.');
@@ -107,6 +109,7 @@ class ProductController extends Controller
         ]);
 
         $product->update($validated);
+        ActivityLog::record('PRODUCT', 'Produk diperbarui', $product->name);
 
         return redirect()->route('inventory.index')
             ->with('success', 'Produk berhasil diperbarui.');
@@ -114,6 +117,12 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        // Cek apakah produk pernah dipakai di transaksi
+        if ($product->transactionItems()->exists()) {
+            return redirect()->route('inventory.index')
+                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena memiliki riwayat transaksi.");
+        }
+
         $product->delete();
         return redirect()->route('inventory.index')
             ->with('success', 'Produk berhasil dihapus.');
@@ -124,6 +133,12 @@ class ProductController extends Controller
     {
         $request->validate(['qty' => 'required|integer|min:1']);
         $product->increment('qty', $request->qty);
+        ActivityLog::record(
+            'RESTOCK',
+            'Restock produk',
+            $product->name,
+            ['qty_added' => $request->qty]
+        );
         return back()->with('success', "Restock {$product->name} berhasil.");
     }
 }

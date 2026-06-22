@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\ActivityLog;
 
 class TransactionController extends Controller
 {
@@ -16,8 +17,11 @@ class TransactionController extends Controller
     {
         $today = Carbon::today();
 
-        $query = Transaction::with(['cashier', 'items'])
-            ->latest();
+        $query = Transaction::with(['cashier', 'items'])->latest();
+
+        if (auth()->user()->role === 'cashier') {
+            $query->where('cashier_id', auth()->id());
+        }
 
         if ($request->filled('search')) {
             $query->where('id', 'like', '%' . $request->search . '%');
@@ -57,10 +61,10 @@ class TransactionController extends Controller
 
         // Hourly volume (07.00–21.00)
         $hourlyVolume = Transaction::whereDate('created_at', $today)
-            ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
-            ->groupBy('hour')
-            ->orderBy('hour')
-            ->pluck('count', 'hour');
+        ->selectRaw('HOUR(CONVERT_TZ(created_at, "+00:00", "+07:00")) as hour, COUNT(*) as count')
+        ->groupBy('hour')
+        ->orderBy('hour')
+        ->pluck('count', 'hour');
 
         return view('pages.transactions', compact(
             'transactions',
@@ -87,45 +91,57 @@ class TransactionController extends Controller
             'amount_paid'    => 'required|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $total = 0;
-            $itemsToCreate = [];
+        try {
+            DB::transaction(function () use ($request) {
+                $total = 0;
+                $itemsToCreate = [];
 
-            foreach ($request->items as $item) {
-                $product = Product::lockForUpdate()->findOrFail($item['id']);
+                foreach ($request->items as $item) {
+                    $product = Product::lockForUpdate()->findOrFail($item['id']);
 
-                if ($product->qty < $item['qty']) {
-                    throw new \Exception("Stok {$product->name} tidak cukup.");
+                    if ($product->qty < $item['qty']) {
+                        throw new \Exception("Stok {$product->name} tidak cukup.");
+                    }
+
+                    $subtotal = $product->sell_price * $item['qty'];
+                    $total   += $subtotal;
+
+                    $itemsToCreate[] = [
+                        'product_id' => $product->id,
+                        'qty'        => $item['qty'],
+                        'price'      => $product->sell_price,
+                        'subtotal'   => $subtotal,
+                    ];
+
+                    $product->decrement('qty', $item['qty']);
                 }
 
-                $subtotal = $product->sell_price * $item['qty'];
-                $total   += $subtotal;
+                $transaction = Transaction::create([
+                    'code'           => 'TRX-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5)),
+                    'cashier_id'     => auth()->id(),
+                    'total'          => $total,
+                    'amount_paid'    => $request->amount_paid,
+                    'change'         => $request->amount_paid - $total,
+                    'payment_method' => $request->payment_method,
+                    'status'         => 'completed',
+                ]);
 
-                $itemsToCreate[] = [
-                    'product_id' => $product->id,
-                    'qty'        => $item['qty'],
-                    'price'      => $product->sell_price,
-                    'subtotal'   => $subtotal,
-                ];
+                $transaction->items()->createMany($itemsToCreate);
 
-                // Kurangi stok
-                $product->decrement('qty', $item['qty']);
-            }
+                // Logging di sini, setelah semua data tersedia
+                ActivityLog::record(
+                    'TRANSACTION',
+                    'Transaksi baru dibuat',
+                    $transaction->code,
+                    ['total' => $total, 'payment_method' => $request->payment_method, 'items_count' => count($itemsToCreate)]
+                );
+            });
 
-            $transaction = Transaction::create([
-                'cashier_id'     => auth()->id(),
-                'total'          => $total,
-                'amount_paid'    => $request->amount_paid,
-                'change'         => $request->amount_paid - $total,
-                'payment_method' => $request->payment_method,
-                'status'         => 'completed',
-            ]);
+            return response()->json(['success' => true, 'redirect' => route('transactions.index')]);
 
-            $transaction->items()->createMany($itemsToCreate);
-        });
-
-        return redirect()->route('transactions.index')
-            ->with('success', 'Transaksi berhasil disimpan.');
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     public function show(Transaction $transaction)
@@ -147,6 +163,13 @@ class TransactionController extends Controller
             }
 
             $transaction->update(['status' => 'voided']);
+
+            ActivityLog::record(
+                'VOID',
+                'Transaksi di-void',
+                $transaction->code,
+                ['total' => $transaction->total]
+            );
         });
 
         return back()->with('success', 'Transaksi berhasil di-void.');

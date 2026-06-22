@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\ActivityLog;
 
 class ShiftController extends Controller
 {
@@ -69,6 +70,8 @@ class ShiftController extends Controller
             'type'       => $request->type,
             'started_at' => now(),
         ]);
+        ActivityLog::record('SHIFT', 'Clock in shift ' . $request->type, auth()->user()->name);
+
 
         return back()->with('success', 'Clock in berhasil. Shift dimulai.');
     }
@@ -103,6 +106,12 @@ class ShiftController extends Controller
             'revenue'    => $shiftRevenue,
             'trx_count'  => $shiftTrxCount,
         ]);
+        ActivityLog::record(
+            'SHIFT',
+            'Clock out shift',
+            auth()->user()->name,
+            ['revenue' => $shiftRevenue, 'trx_count' => $shiftTrxCount]
+        );
 
         return back()->with('success', "Shift selesai. Total: {$shiftTrxCount} transaksi, Rp " . number_format($shiftRevenue));
     }

@@ -304,44 +304,61 @@
     </div>
 </div>
 
-{{-- ===== RECENT ACTIVITY LOG (hardcode sementara) ===== --}}
+{{-- ===== RECENT ACTIVITY LOG ===== --}}
 <div class="card">
     <div class="card-header">
         <div class="card-title">Recent Activity Log</div>
-        <span class="card-subtitle">STATIC — WILL BE DYNAMIC</span>
+        <span class="card-subtitle">Last 20 activities</span>
     </div>
     <div class="data-table-wrapper" style="border:none; border-radius:0">
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Timestamp</th>
-                    <th>Staff Name</th>
+                    <th>Staff</th>
                     <th>Action</th>
+                    <th>Subject</th>
                     <th>Type</th>
-                    <th>Performed By</th>
+                    <th>IP</th>
                 </tr>
             </thead>
             <tbody>
-                @php
-                $logs = [
-                    ['ts'=>'2023-10-30 07:02:11','staff'=>'Siti Rahayu',   'action'=>'Clocked In – Shift Pagi', 'type'=>'SHIFT_EVENT','by'=>'System Auto'],
-                    ['ts'=>'2023-10-29 16:45:30','staff'=>'Dewi Anggraini','action'=>'Requested Leave (1–3 Nov)','type'=>'HR_REQUEST', 'by'=>'Budi Santoso'],
-                    ['ts'=>'2023-10-29 09:12:05','staff'=>'Fajar Nugroho', 'action'=>'Password Reset',           'type'=>'SECURITY',   'by'=>'Siti Rahayu'],
-                ];
-                @endphp
-                @foreach($logs as $log)
+                @forelse($activityLogs as $log)
                 <tr>
-                    <td class="table-id">{{ $log['ts'] }}</td>
-                    <td style="font-weight:600">{{ $log['staff'] }}</td>
-                    <td class="text-secondary">{{ $log['action'] }}</td>
+                    <td class="table-id">{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
                     <td>
-                        <span class="badge {{ $log['type']==='SHIFT_EVENT' ? 'badge--green' : ($log['type']==='SECURITY' ? 'badge--red' : 'badge--blue') }}">
-                            {{ $log['type'] }}
-                        </span>
+                        <div style="display:flex; align-items:center; gap:7px">
+                            <div class="avatar avatar--blue" style="width:26px; height:26px; font-size:10px">
+                                {{ strtoupper(substr($log->user?->name ?? '?', 0, 2)) }}
+                            </div>
+                            <span style="font-size:12.5px; font-weight:600">{{ $log->user?->name ?? 'System' }}</span>
+                        </div>
                     </td>
-                    <td class="text-secondary">{{ $log['by'] }}</td>
+                    <td class="text-secondary">{{ $log->action }}</td>
+                    <td class="text-secondary">{{ $log->subject ?? '—' }}</td>
+                    <td>
+                        @php
+                            $badgeClass = match($log->type) {
+                                'LOGIN'       => 'badge--blue',
+                                'TRANSACTION' => 'badge--green',
+                                'VOID'        => 'badge--red',
+                                'RESTOCK'     => 'badge--amber',
+                                'PRODUCT'     => 'badge--purple',
+                                'SHIFT'       => 'badge--green',
+                                default       => 'badge--blue',
+                            };
+                        @endphp
+                        <span class="badge {{ $badgeClass }}">{{ $log->type }}</span>
+                    </td>
+                    <td class="table-id">{{ $log->ip ?? '—' }}</td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted)">
+                        No activity recorded yet.
+                    </td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

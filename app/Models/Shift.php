@@ -24,4 +24,11 @@ class Shift extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'cashier_id', 'user_id')
+            ->where('created_at', '>=', $this->started_at)
+            ->where('created_at', '<=', $this->ended_at ?? now());
+    }
 }
