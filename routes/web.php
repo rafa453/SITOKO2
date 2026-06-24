@@ -9,6 +9,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SupplierController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
     Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
+    Route::get('/transactions/{transaction}/receipt', [TransactionController::class, 'receipt'])->name('transactions.receipt'); 
 
     // Shift kasir
     Route::post('/shifts/clock-in',  [ShiftController::class, 'clockIn'])->name('shifts.clock-in');
@@ -61,9 +63,14 @@ Route::middleware(['auth'])->group(function () {
         // Staff
         Route::resource('staff', StaffController::class);
 
+        // Suppliers
+        Route::resource('suppliers', SupplierController::class)->except(['show']);
+        Route::patch('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])->name('suppliers.toggle-active');
+
         // Reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+        Route::get('/reports/export-custom', [ReportController::class, 'exportCustom'])->name('reports.export-custom');
         Route::post('/reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
 
         // Settings

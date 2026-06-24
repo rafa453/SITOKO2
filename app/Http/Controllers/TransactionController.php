@@ -17,16 +17,22 @@ class TransactionController extends Controller
     {
         $today = Carbon::today();
 
-        $query = Transaction::with(['cashier', 'items'])->latest();
+        $query = Transaction::with(['cashier', 'items.product'])->latest();
 
         if (auth()->user()->role === 'cashier') {
             $query->where('cashier_id', auth()->id());
         }
 
         if ($request->filled('search')) {
-            $query->where('id', 'like', '%' . $request->search . '%');
+            $query->where('code', 'like', '%' . $request->search . '%');
         }
 
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
         if ($request->get('date') === 'today') {
             $query->whereDate('created_at', $today);
         }
@@ -61,7 +67,7 @@ class TransactionController extends Controller
 
         // Hourly volume (07.00–21.00)
         $hourlyVolume = Transaction::whereDate('created_at', $today)
-        ->selectRaw('HOUR(CONVERT_TZ(created_at, "+00:00", "+07:00")) as hour, COUNT(*) as count')
+        ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
         ->groupBy('hour')
         ->orderBy('hour')
         ->pluck('count', 'hour');
@@ -109,6 +115,7 @@ class TransactionController extends Controller
                     $itemsToCreate[] = [
                         'product_id' => $product->id,
                         'qty'        => $item['qty'],
+                        'unit'       => $product->unit,
                         'price'      => $product->sell_price,
                         'subtotal'   => $subtotal,
                     ];
@@ -173,5 +180,16 @@ class TransactionController extends Controller
         });
 
         return back()->with('success', 'Transaksi berhasil di-void.');
+    }
+
+    public function receipt(Transaction $transaction)
+    {
+        // Kasir hanya bisa cetak struk milik sendiri
+        if (auth()->user()->role === 'cashier' && $transaction->cashier_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $transaction->load(['cashier', 'items.product']);
+        return view('pages.receipt', compact('transaction'));
     }
 }

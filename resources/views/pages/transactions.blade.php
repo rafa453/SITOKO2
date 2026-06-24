@@ -14,10 +14,25 @@
                 value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
 
-        <select name="date" class="form-select" style="width:120px" onchange="this.form.submit()">
-            <option value="">All Dates</option>
-            <option value="today" {{ request('date')==='today' ? 'selected' : '' }}>Today</option>
-        </select>
+        <div style="display:flex; align-items:center; gap:6px">
+            <input
+                type="date"
+                name="date_from"
+                class="form-input"
+                style="width:145px"
+                value="{{ request('date_from') }}"
+                onchange="this.form.submit()"
+            >
+            <span style="font-size:12px; color:var(--text-muted)">—</span>
+            <input
+                type="date"
+                name="date_to"
+                class="form-input"
+                style="width:145px"
+                value="{{ request('date_to') }}"
+                onchange="this.form.submit()"
+            >
+        </div>
 
         <select name="method" class="form-select" style="width:140px" onchange="this.form.submit()">
             <option value="">All Methods</option>
@@ -154,7 +169,14 @@
 
 {{-- ===== TRANSACTION LOG + DETAIL PANEL ===== --}}
 <div class="card-grid" style="grid-template-columns:1fr 380px"
-     x-data="{ selectedId: null, selected: null, loadDetail(trx) { this.selectedId = trx.id; this.selected = trx; } }">
+     x-data="{
+         selectedId: null,
+         selected: null,
+         loadDetail(trx) {
+             this.selectedId = trx.id;
+             this.selected = JSON.parse(JSON.stringify(trx));
+         }
+     }">
 
     {{-- Detailed Log --}}
     <div class="card card--overflow-x">
@@ -189,15 +211,18 @@
                             'total'          => $trx->total,
                             'amount_paid'    => $trx->amount_paid,
                             'change'         => $trx->change,
-                            'items'          => $trx->items->map(fn($i) => [
-                                'name'     => $i->product?->name ?? 'Produk Dihapus',
-                                'qty'      => $i->qty,
-                                'price'    => $i->price,
-                                'subtotal' => $i->subtotal,
-                            ]),
-                        ]);
+                            'items' => $trx->items->map(fn($i) => [
+                            'name'     => $i->product?->name ?? 'Produk Dihapus',
+                            'unit'     => $i->unit ?? '-',
+                            'qty'      => $i->qty,
+                            'price'    => $i->price,
+                            'subtotal' => $i->subtotal,
+                        ]),
+                        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                     @endphp
-                    <tr style="cursor:pointer" @click="loadDetail({{ $trxData }})">
+                    <tr style="cursor:pointer"
+                        data-trx="{{ $trxData }}"
+                        @click="loadDetail(JSON.parse($el.dataset.trx))">
                         <td>
                             <span style="font-weight:600; font-size:12.5px; color:var(--blue-600)">
                                 {{ $trx->code }}
@@ -283,11 +308,15 @@
                     </div>
 
                     <template x-for="item in selected.items" :key="item.name">
-                        <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--border-light); align-items:center">
-                            <span style="font-weight:500" x-text="item.name"></span>
-                            <span class="text-muted" x-text="item.qty"></span>
-                            <span class="text-secondary" x-text="Number(item.price).toLocaleString('id-ID')"></span>
-                            <span style="font-weight:600" x-text="Number(item.subtotal).toLocaleString('id-ID')"></span>
+                        <div style="display:flex; justify-content:space-between; align-items:start;
+                                    padding:8px 0; border-bottom:1px solid var(--border-light); font-size:13px">
+                            <div>
+                                <div style="font-weight:500" x-text="item.name"></div>
+                                <div style="font-size:11.5px; color:var(--text-muted)"
+                                    x-text="`${item.qty} ${item.unit} × Rp ${Number(item.price).toLocaleString('id-ID')}`"></div>
+                            </div>
+                            <div style="font-weight:600; flex-shrink:0; margin-left:12px"
+                                x-text="`Rp ${Number(item.subtotal).toLocaleString('id-ID')}`"></div>
                         </div>
                     </template>
 
@@ -324,7 +353,9 @@
 
                 {{-- Actions --}}
                 <div style="padding:12px 18px 16px; display:flex; gap:8px; border-top:1px solid var(--border-light)">
-                    <button class="btn btn--secondary" style="flex:1; justify-content:center; font-size:12.5px">
+                    <button class="btn btn--secondary"
+                            style="flex:1; justify-content:center; font-size:12.5px"
+                            @click="window.open(`{{ url('transactions') }}/${selected.id}/receipt`, '_blank', 'width=420,height=700,scrollbars=yes')">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="6 9 6 2 18 2 18 9"/>
                             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>

@@ -299,93 +299,108 @@
 
 </div>
 
-{{-- ===== SCHEDULED REPORTS + CUSTOM BUILDER (hardcode) ===== --}}
-<div class="card-grid card-grid--2">
-
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">
-                <svg width="14" height="14" style="display:inline; margin-right:5px; vertical-align:middle"
-                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                Saved / Scheduled Reports
-            </div>
-        </div>
-        <div class="card-body" style="display:flex; flex-direction:column; gap:8px">
-            @php
-            $saved = [
-                ['icon'=>'📄','title'=>'Monthly Sales Summary',       'sub'=>'Scheduled: 1st of every month'],
-                ['icon'=>'⚠️','title'=>'Low Stock Alert Report',      'sub'=>'Frequency: Daily at 08:00 AM'],
-                ['icon'=>'💰','title'=>'Staff Incentive Calculation', 'sub'=>'Last Generated: 2 days ago'],
-            ];
-            @endphp
-            @foreach($saved as $r)
-            <div style="display:flex; align-items:center; gap:12px; padding:12px 14px;
-                        border:1px solid var(--border); border-radius:var(--radius);
-                        cursor:pointer; transition:background .15s"
-                 onmouseover="this.style.background='var(--border-light)'"
-                 onmouseout="this.style.background=''">
-                <span style="font-size:18px">{{ $r['icon'] }}</span>
-                <div>
-                    <div style="font-size:13px; font-weight:600">{{ $r['title'] }}</div>
-                    <div style="font-size:12px; color:var(--text-muted)">{{ $r['sub'] }}</div>
-                </div>
-            </div>
-            @endforeach
-        </div>
+{{-- ===== CUSTOM REPORT BUILDER ===== --}}
+<div class="card"
+     x-data="{
+         type: 'sales',
+         range: 'this_month',
+         groupBy: 'product',
+         validGroups: {
+             sales:     ['category', 'product', 'cashier', 'shift'],
+             inventory: ['product', 'category'],
+             staff:     ['cashier', 'shift'],
+         },
+         isValid(g) { return this.validGroups[this.type].includes(g); },
+         onTypeChange() {
+             if (!this.isValid(this.groupBy)) {
+                 this.groupBy = this.validGroups[this.type][0];
+             }
+         },
+         buildUrl() {
+             return `{{ route('reports.export-custom') }}?type=${this.type}&range=${this.range}&group_by=${this.groupBy}`;
+         }
+     }">
+    <div class="card-header">
+        <div class="card-title">✦ Custom Report Builder</div>
     </div>
+    <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
 
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">✦ Custom Report Builder</div>
-        </div>
-        <div class="card-body" style="display:flex; flex-direction:column; gap:12px">
-            <div class="card-grid card-grid--2" style="gap:10px">
-                <div class="form-group">
-                    <label class="form-label">Report Type</label>
-                    <select class="form-select">
-                        <option>Sales Analysis</option>
-                        <option>Inventory</option>
-                        <option>Staff</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Date Range</label>
-                    <select class="form-select">
-                        <option>Last 30 Days</option>
-                        <option>Last 7 Days</option>
-                        <option>This Month</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Group By</label>
-                    <select class="form-select">
-                        <option>Category</option>
-                        <option>Product</option>
-                        <option>Cashier</option>
-                        <option>Shift</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Format</label>
-                    <select class="form-select">
-                        <option>PDF (.pdf)</option>
-                        <option>Excel (.xlsx)</option>
-                        <option>CSV (.csv)</option>
-                    </select>
-                </div>
+        <div class="card-grid card-grid--2" style="gap:10px">
+
+            {{-- Report Type --}}
+            <div class="form-group">
+                <label class="form-label">Report Type</label>
+                <select class="form-select" x-model="type" @change="onTypeChange()">
+                    <option value="sales">Sales Analysis</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="staff">Staff</option>
+                </select>
             </div>
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:500">
-                <input type="checkbox" checked style="accent-color:var(--blue-600)">
-                Include Visualization Charts
-            </label>
-            <button class="btn btn--primary w-full" style="justify-content:center; padding:11px">
-                Generate Report
-            </button>
-        </div>
-    </div>
 
+            {{-- Date Range --}}
+            <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <select class="form-select" x-model="range">
+                    <option value="this_month">This Month</option>
+                    <option value="last_month">Last Month</option>
+                    <option value="last_7">Last 7 Days</option>
+                    <option value="today">Today</option>
+                </select>
+            </div>
+
+            {{-- Group By --}}
+            <div class="form-group">
+                <label class="form-label">Group By</label>
+                <select class="form-select" x-model="groupBy">
+                    <option value="category" :disabled="!isValid('category')"
+                            :style="!isValid('category') ? 'color:var(--text-muted)' : ''">
+                        Category
+                    </option>
+                    <option value="product" :disabled="!isValid('product')"
+                            :style="!isValid('product') ? 'color:var(--text-muted)' : ''">
+                        Product
+                    </option>
+                    <option value="cashier" :disabled="!isValid('cashier')"
+                            :style="!isValid('cashier') ? 'color:var(--text-muted)' : ''">
+                        Cashier
+                    </option>
+                    <option value="shift" :disabled="!isValid('shift')"
+                            :style="!isValid('shift') ? 'color:var(--text-muted)' : ''">
+                        Shift
+                    </option>
+                </select>
+            </div>
+
+            {{-- Format — CSV only untuk sekarang --}}
+            <div class="form-group">
+                <label class="form-label">Format</label>
+                <select class="form-select" disabled>
+                    <option>CSV (.csv)</option>
+                </select>
+                <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block">
+                    PDF & Excel coming soon
+                </span>
+            </div>
+
+        </div>
+
+        {{-- Preview label --}}
+        <div style="font-size:12px; color:var(--text-muted); padding:10px 12px;
+                    background:var(--border-light); border-radius:var(--radius-sm)">
+            Output:
+            <span style="font-weight:600; color:var(--text-primary)"
+                  x-text="`report_${type}_${groupBy}_{{ now()->format('Ymd') }}.csv`"></span>
+        </div>
+
+        <a :href="buildUrl()" class="btn btn--primary" style="justify-content:center; padding:11px; text-decoration:none; display:flex; align-items:center; gap:8px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download CSV
+        </a>
+
+    </div>
 </div>
 
 @endsection

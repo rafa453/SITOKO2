@@ -16,7 +16,6 @@
         <select name="role" class="form-select" style="width:130px" onchange="this.form.submit()">
             <option value="">All Roles</option>
             <option value="admin"      {{ request('role') == 'admin'      ? 'selected' : '' }}>Admin</option>
-            <option value="supervisor" {{ request('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
             <option value="cashier"    {{ request('role') == 'cashier'    ? 'selected' : '' }}>Cashier</option>
         </select>
         <select name="status" class="form-select" style="width:130px" onchange="this.form.submit()">
@@ -310,6 +309,35 @@
         <div class="card-title">Recent Activity Log</div>
         <span class="card-subtitle">Last 20 activities</span>
     </div>
+        <div style="padding:12px 20px; border-bottom:1px solid var(--border-light)">
+        <form method="GET" action="{{ route('staff.index') }}" style="display:flex; align-items:center; gap:8px">
+            {{-- Pertahankan filter staff yang sudah ada --}}
+            <input type="hidden" name="search" value="{{ request('search') }}">
+            <input type="hidden" name="role" value="{{ request('role') }}">
+            <input type="hidden" name="status" value="{{ request('status') }}">
+
+            <span style="font-size:12px; font-weight:600; color:var(--text-secondary)">Filter Log:</span>
+            <input
+                type="date"
+                name="log_from"
+                class="form-input"
+                style="width:145px"
+                value="{{ request('log_from') }}"
+            >
+            <span style="font-size:12px; color:var(--text-muted)">—</span>
+            <input
+                type="date"
+                name="log_to"
+                class="form-input"
+                style="width:145px"
+                value="{{ request('log_to') }}"
+            >
+            <button type="submit" class="btn btn--secondary btn--sm">Apply</button>
+            @if(request('log_from') || request('log_to'))
+                <a href="{{ route('staff.index') }}" class="btn btn--secondary btn--sm">Reset</a>
+            @endif
+        </form>
+    </div>
     <div class="data-table-wrapper" style="border:none; border-radius:0">
         <table class="data-table">
             <thead>
@@ -388,7 +416,6 @@
                     <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
                     <select name="role" class="form-select w-full" required>
                         <option value="cashier">Cashier</option>
-                        <option value="supervisor">Supervisor</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
@@ -439,7 +466,6 @@
                     <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
                     <select id="editRole" name="role" class="form-select w-full" required>
                         <option value="cashier">Cashier</option>
-                        <option value="supervisor">Supervisor</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>

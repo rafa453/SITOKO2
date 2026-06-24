@@ -10,6 +10,7 @@ class TransactionItem extends Model
         'transaction_id',
         'product_id',
         'qty',
+        'unit',
         'price',
         'subtotal',
     ];
@@ -23,4 +24,6 @@ class TransactionItem extends Model
     {
         return $this->belongsTo(Transaction::class);
     }
+
+    
 }

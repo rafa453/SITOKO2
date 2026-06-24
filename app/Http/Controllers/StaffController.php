@@ -64,10 +64,16 @@ class StaffController extends Controller
             ->limit(3)
             ->get();
 
-        $activityLogs = ActivityLog::with('user')
-        ->latest()
-        ->limit(20)
-        ->get();
+       $activityQuery = ActivityLog::with('user')->latest();
+
+        if ($request->filled('log_from')) {
+            $activityQuery->whereDate('created_at', '>=', $request->log_from);
+        }
+        if ($request->filled('log_to')) {
+            $activityQuery->whereDate('created_at', '<=', $request->log_to);
+        }
+
+        $activityLogs = $activityQuery->limit(20)->get();
 
         return view('pages.staff', compact(
             'staff', 'totalStaff', 'onDuty', 'avgTrans',
