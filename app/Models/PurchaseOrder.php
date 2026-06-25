@@ -55,7 +55,14 @@ class PurchaseOrder extends Model
 
     public function canBeReceived(): bool
     {
-        return $this->status === 'ordered';
+        // Bisa di-receive jika status ordered DAN masih ada item yang belum penuh
+        if ($this->status !== 'ordered') {
+            return false;
+        }
+
+        return $this->items->some(
+            fn($item) => $item->qty_received < $item->qty_ordered
+        );
     }
 
     public function canBeCancelled(): bool

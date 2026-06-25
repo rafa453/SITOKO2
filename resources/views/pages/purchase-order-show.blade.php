@@ -90,12 +90,44 @@
                 @endif
 
                 @if($purchaseOrder->canBeReceived())
-                <form method="POST" action="{{ route('purchase-orders.update-status', $purchaseOrder) }}"
-                      onsubmit="return confirm('Tandai PO ini sebagai diterima? Stok produk akan otomatis bertambah.')">
+                <form method="POST" action="{{ route('purchase-orders.update-status', $purchaseOrder) }}">
                     @csrf
                     <input type="hidden" name="action" value="receive">
-                    <button type="submit" class="btn btn--primary w-full" style="justify-content:center; background:var(--green-700)">
-                        ✓ Tandai Diterima — Stok Akan Diupdate
+
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px">
+                        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em">
+                            Qty Diterima per Item
+                        </div>
+
+                        @foreach($purchaseOrder->items as $item)
+                        @php
+                            $sisa = $item->qty_ordered - $item->qty_received;
+                        @endphp
+                        @if($sisa > 0)
+                        <div style="display:flex; align-items:center; gap:10px; font-size:13px">
+                            <span style="flex:1; font-weight:500">
+                                {{ $item->product?->name ?? 'Produk Dihapus' }}
+                                <span style="color:var(--text-muted); font-size:11px">
+                                    (sudah: {{ $item->qty_received }}/{{ $item->qty_ordered }})
+                                </span>
+                            </span>
+                            <input type="number"
+                                name="received_qtys[{{ $item->id }}]"
+                                class="form-input"
+                                style="width:90px; padding:5px 8px; font-size:13px"
+                                min="0"
+                                max="{{ $sisa }}"
+                                value="{{ $sisa }}"
+                                placeholder="0">
+                        </div>
+                        @endif
+                        @endforeach
+                    </div>
+
+                    <button type="submit" class="btn btn--primary w-full"
+                            style="justify-content:center; background:var(--green-700)"
+                            onclick="return confirm('Konfirmasi penerimaan barang? Stok akan diupdate sesuai qty yang diisi.')">
+                        ✓ Terima Barang — Update Stok
                     </button>
                 </form>
                 @endif

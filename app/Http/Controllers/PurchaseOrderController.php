@@ -181,10 +181,10 @@ class PurchaseOrderController extends Controller
         $action = $request->get('action');
 
         match ($action) {
-            'order'    => $this->markOrdered($purchaseOrder),
-            'receive'  => $this->markReceived($purchaseOrder),
-            'cancel'   => $this->markCancelled($purchaseOrder),
-            default    => abort(422, 'Aksi tidak valid.'),
+            'order'   => $this->markOrdered($purchaseOrder),
+            'receive' => $this->markReceived($purchaseOrder, $request->input('received_qtys', [])),
+            'cancel'  => $this->markCancelled($purchaseOrder),
+            default   => abort(422, 'Aksi tidak valid.'),
         };
 
         return back()->with('success', 'Status Purchase Order berhasil diupdate.');
@@ -199,28 +199,51 @@ class PurchaseOrderController extends Controller
         ActivityLog::record('PURCHASE_ORDER', 'PO dikonfirmasi ordered', $po->code);
     }
 
-    private function markReceived(PurchaseOrder $po): void
+    private function markReceived(PurchaseOrder $po, array $receivedQtys): void
     {
         abort_if(!$po->canBeReceived(), 422, 'PO tidak bisa diubah ke status received.');
 
-        DB::transaction(function () use ($po) {
-            // Naikkan stok produk
+        DB::transaction(function () use ($po, $receivedQtys) {
+            $allFulfilled = true;
+
             foreach ($po->items as $item) {
-                $item->product->increment('qty', $item->qty_ordered);
-                $item->update(['qty_received' => $item->qty_ordered]);
+                $inputQty = (int) ($receivedQtys[$item->id] ?? 0);
+
+                if ($inputQty <= 0) {
+                    // item ini tidak diterima sekarang, skip
+                    if ($item->qty_received < $item->qty_ordered) {
+                        $allFulfilled = false;
+                    }
+                    continue;
+                }
+
+                // Maksimal yang bisa diterima = sisa yang belum diterima
+                $maxReceivable = $item->qty_ordered - $item->qty_received;
+                $actualQty     = min($inputQty, $maxReceivable);
+
+                if ($actualQty > 0) {
+                    $item->product->increment('qty', $actualQty);
+                    $item->increment('qty_received', $actualQty);
+                }
+
+                if ($item->fresh()->qty_received < $item->qty_ordered) {
+                    $allFulfilled = false;
+                }
             }
 
+            $newStatus = $allFulfilled ? 'received' : 'ordered';
+
             $po->update([
-                'status'      => 'received',
-                'received_at' => now(),
-                'received_by' => auth()->id(),
+                'status'      => $newStatus,
+                'received_at' => $allFulfilled ? now() : $po->received_at,
+                'received_by' => $allFulfilled ? auth()->id() : $po->received_by,
             ]);
 
             ActivityLog::record(
                 'PURCHASE_ORDER',
-                'PO diterima — stok diupdate',
+                $allFulfilled ? 'PO diterima penuh — stok diupdate' : 'PO diterima parsial — stok diupdate',
                 $po->code,
-                ['total' => $po->total, 'items_count' => $po->items->count()]
+                ['fulfilled' => $allFulfilled]
             );
         });
     }
