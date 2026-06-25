@@ -82,7 +82,7 @@ class ProductController extends Controller
             'sell_price' => 'required|numeric|min:0',
         ]);
 
-        Product::create($validated);
+        $product = Product::create($validated);
         ActivityLog::record('PRODUCT', 'Produk ditambahkan', $product->name);
 
         return redirect()->route('inventory.index')

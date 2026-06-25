@@ -69,12 +69,22 @@
                 <a href="{{ route('suppliers.index') }}" class="btn btn--ghost">Batal</a>
 
                 @if(isset($supplier) && !$supplier->purchaseOrders()->exists())
-                <form method="POST" action="{{ route('suppliers.destroy', $supplier) }}" style="margin-left:auto"
-                      onsubmit="return confirm('Hapus supplier ini?')">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="btn btn--danger">Hapus Supplier</button>
-                </form>
+                <div style="margin-left:auto">
+                    {{-- placeholder, form hapus dipindah ke luar --}}
+                </div>
                 @endif
+            </div>
+
+        </form>
+        {{-- Form hapus HARUS di luar form edit --}}
+        @if(isset($supplier) && !$supplier->purchaseOrders()->exists())
+        <form method="POST" action="{{ route('suppliers.destroy', $supplier) }}"
+              style="margin-top:10px"
+              onsubmit="return confirm('Hapus supplier ini?')">
+            @csrf @method('DELETE')
+            <button type="submit" class="btn btn--danger">Hapus Supplier</button>
+        </form>
+        @endif
             </div>
 
         </form>

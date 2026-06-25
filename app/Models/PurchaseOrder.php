@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PurchaseOrder extends Model
+{
+    protected $fillable = [
+        'code',
+        'supplier_id',
+        'created_by',
+        'received_by',
+        'status',
+        'expected_at',
+        'received_at',
+        'total',
+        'notes',
+    ];
+
+    protected $casts = [
+        'expected_at' => 'date',
+        'received_at' => 'datetime',
+    ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function canBeEdited(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    public function canBeOrdered(): bool
+    {
+        return $this->status === 'draft' && $this->items()->exists();
+    }
+
+    public function canBeReceived(): bool
+    {
+        return $this->status === 'ordered';
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, ['draft', 'ordered']);
+    }
+}
