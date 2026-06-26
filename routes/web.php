@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\SupplierReturnController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -85,6 +86,13 @@ Route::middleware(['auth'])->group(function () {
         // Shifts management — /summary DULU sebelum resource wildcard
         Route::get('/shifts/summary', [ShiftController::class, 'summary'])->name('shifts.summary');
         Route::resource('shifts', ShiftController::class)->except(['show', 'edit', 'create']);
+
+        // Supplier Returns
+        Route::get('/supplier-returns', [SupplierReturnController::class, 'index'])->name('supplier-returns.index');
+        Route::get('/supplier-returns/create', [SupplierReturnController::class, 'create'])->name('supplier-returns.create');
+        Route::post('/supplier-returns', [SupplierReturnController::class, 'store'])->name('supplier-returns.store');
+        Route::post('/supplier-returns/{supplierReturn}/status', [SupplierReturnController::class, 'updateStatus'])->name('supplier-returns.update-status');
+        Route::get('/supplier-returns/{supplierReturn}', [SupplierReturnController::class, 'show'])->name('supplier-returns.show')->whereNumber('supplierReturn');
     });
 
 });

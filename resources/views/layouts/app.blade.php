@@ -108,6 +108,14 @@
                     Purchase Orders
                 </a>
 
+                <a href="{{ route('supplier-returns.index') }}" class="nav-item {{ request()->routeIs('supplier-returns.*') ? 'active' : '' }}">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+                    </svg>
+                    Retur Supplier
+                </a>
+
                 <a href="{{ route('settings.index') }}" class="nav-item {{ request()->routeIs('settings.*') ? 'active' : '' }}">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>

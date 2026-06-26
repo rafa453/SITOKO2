@@ -66,7 +66,7 @@
         </div>
 
         {{-- Action buttons --}}
-        @if($purchaseOrder->canBeOrdered() || $purchaseOrder->canBeReceived() || $purchaseOrder->canBeCancelled())
+        @if($purchaseOrder->canBeOrdered() || $purchaseOrder->canBeReceived() || $purchaseOrder->canBeCancelled() || $purchaseOrder->status === 'received')
         <div class="card">
             <div class="card-header">
                 <div class="card-title">Update Status</div>
@@ -84,25 +84,21 @@
                 @endif
 
                 @if($purchaseOrder->canBeEdited())
-                    <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="btn btn--secondary">
-                        Edit PO
-                    </a>
+                <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="btn btn--secondary">
+                    Edit PO
+                </a>
                 @endif
 
                 @if($purchaseOrder->canBeReceived())
                 <form method="POST" action="{{ route('purchase-orders.update-status', $purchaseOrder) }}">
                     @csrf
                     <input type="hidden" name="action" value="receive">
-
                     <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px">
                         <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em">
                             Qty Diterima per Item
                         </div>
-
                         @foreach($purchaseOrder->items as $item)
-                        @php
-                            $sisa = $item->qty_ordered - $item->qty_received;
-                        @endphp
+                        @php $sisa = $item->qty_ordered - $item->qty_received; @endphp
                         @if($sisa > 0)
                         <div style="display:flex; align-items:center; gap:10px; font-size:13px">
                             <span style="flex:1; font-weight:500">
@@ -112,18 +108,14 @@
                                 </span>
                             </span>
                             <input type="number"
-                                name="received_qtys[{{ $item->id }}]"
-                                class="form-input"
-                                style="width:90px; padding:5px 8px; font-size:13px"
-                                min="0"
-                                max="{{ $sisa }}"
-                                value="{{ $sisa }}"
-                                placeholder="0">
+                                   name="received_qtys[{{ $item->id }}]"
+                                   class="form-input"
+                                   style="width:90px; padding:5px 8px; font-size:13px"
+                                   min="0" max="{{ $sisa }}" value="{{ $sisa }}" placeholder="0">
                         </div>
                         @endif
                         @endforeach
                     </div>
-
                     <button type="submit" class="btn btn--primary w-full"
                             style="justify-content:center; background:var(--green-700)"
                             onclick="return confirm('Konfirmasi penerimaan barang? Stok akan diupdate sesuai qty yang diisi.')">
@@ -141,6 +133,13 @@
                         ✗ Batalkan PO
                     </button>
                 </form>
+                @endif
+
+                @if($purchaseOrder->status === 'received')
+                <a href="{{ route('supplier-returns.create', ['purchase_order_id' => $purchaseOrder->id]) }}"
+                   class="btn btn--secondary w-full" style="justify-content:center">
+                    ↩ Buat Retur ke Supplier
+                </a>
                 @endif
 
             </div>
