@@ -93,7 +93,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/supplier-returns', [SupplierReturnController::class, 'store'])->name('supplier-returns.store');
         Route::post('/supplier-returns/{supplierReturn}/status', [SupplierReturnController::class, 'updateStatus'])->name('supplier-returns.update-status');
         Route::get('/supplier-returns/{supplierReturn}', [SupplierReturnController::class, 'show'])->name('supplier-returns.show')->whereNumber('supplierReturn');
-    });
+
+        // routes/web.php — tambahkan di grup admin
+        Route::resource('brands', BrandController::class)->only(['index', 'store', 'update', 'destroy']);
+
+        // API endpoint untuk PO form — ambil produk berdasarkan supplier
+        Route::get('/api/suppliers/{supplier}/products', [ProductController::class, 'bySupplier'])->name('api.supplier.products');
+            });
 
 });
 

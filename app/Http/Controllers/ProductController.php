@@ -72,21 +72,52 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'       => 'required|string|max:255',
-            'sku'        => 'required|string|unique:products,sku',
-            'category'   => 'required|string|max:100',
-            'unit'       => 'required|string|max:50',
-            'qty'        => 'required|integer|min:0',
-            'threshold'  => 'required|integer|min:0',
-            'buy_price'  => 'required|numeric|min:0',
-            'sell_price' => 'required|numeric|min:0',
+            'name'        => 'required|string|max:255',
+            'brand_id'    => 'nullable|exists:brands,id',
+            'category'    => 'required|string|max:100',
+            'unit'        => 'required|string|max:50',
+            'price'       => 'required|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            // supplier pivot fields
+            'supplier_ids'   => 'nullable|array',
+            'supplier_ids.*' => 'exists:suppliers,id',
+            'supplier_prices' => 'nullable|array',
+            'supplier_prices.*' => 'nullable|numeric|min:0',
         ]);
 
-        $product = Product::create($validated);
-        ActivityLog::record('PRODUCT', 'Produk ditambahkan', $product->name);
+        // Generate SKU
+        $brandName = $validated['brand_id']
+            ? \App\Models\Brand::find($validated['brand_id'])->name
+            : 'NOBRAND';
 
-        return redirect()->route('inventory.index')
-            ->with('success', 'Produk berhasil ditambahkan.');
+        $validated['sku'] = \App\Models\Product::generateSku(
+            $validated['category'],
+            $brandName
+        );
+
+        $product = Product::create($validated);
+
+        // Attach suppliers dengan supplier_sku
+        if (!empty($validated['supplier_ids'])) {
+            foreach ($validated['supplier_ids'] as $index => $supplierId) {
+                $supplier = \App\Models\Supplier::find($supplierId);
+                $supplierSku = \App\Models\Product::generateSupplierSku(
+                    $validated['category'],
+                    $brandName,
+                    $supplier->name
+                );
+
+                $product->suppliers()->attach($supplierId, [
+                    'supplier_sku' => $supplierSku,
+                    'price'        => $validated['supplier_prices'][$index] ?? 0,
+                ]);
+            }
+        }
+
+        activity()->log("Tambah produk: {$product->name} (SKU: {$product->sku})");
+
+        return redirect()->route('inventory.index')->with('success', 'Produk berhasil ditambahkan.');
     }
 
     public function edit(Product $product)
@@ -95,24 +126,55 @@ class ProductController extends Controller
         return view('pages.inventory-form', compact('product', 'categories'));
     }
 
-    public function update(Request $request, Product $product)
+   public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name'       => 'required|string|max:255',
-            'sku'        => 'required|string|unique:products,sku,' . $product->id,
-            'category'   => 'required|string|max:100',
-            'unit'       => 'required|string|max:50',
-            'qty'        => 'required|integer|min:0',
-            'threshold'  => 'required|integer|min:0',
-            'buy_price'  => 'required|numeric|min:0',
-            'sell_price' => 'required|numeric|min:0',
+            'name'        => 'required|string|max:255',
+            'brand_id'    => 'nullable|exists:brands,id',
+            'category'    => 'required|string|max:100',
+            'unit'        => 'required|string|max:50',
+            'price'       => 'required|numeric|min:0',
+            'stock'       => 'required|integer|min:0',
+            'description' => 'nullable|string',
+            'supplier_ids'    => 'nullable|array',
+            'supplier_ids.*'  => 'exists:suppliers,id',
+            'supplier_prices' => 'nullable|array',
+            'supplier_prices.*' => 'nullable|numeric|min:0',
         ]);
 
         $product->update($validated);
-        ActivityLog::record('PRODUCT', 'Produk diperbarui', $product->name);
 
-        return redirect()->route('inventory.index')
-            ->with('success', 'Produk berhasil diperbarui.');
+        // Sync suppliers — supplier baru dapat supplier_sku baru
+        $syncData = [];
+        if (!empty($validated['supplier_ids'])) {
+            $brandName = $validated['brand_id']
+                ? \App\Models\Brand::find($validated['brand_id'])->name
+                : 'NOBRAND';
+
+            foreach ($validated['supplier_ids'] as $index => $supplierId) {
+                // Cek apakah relasi sudah ada (preserve supplier_sku lama)
+                $existing = $product->suppliers()->wherePivot('supplier_id', $supplierId)->first();
+
+                $supplierSku = $existing
+                    ? $existing->pivot->supplier_sku
+                    : \App\Models\Product::generateSupplierSku(
+                        $validated['category'],
+                        $brandName,
+                        \App\Models\Supplier::find($supplierId)->name
+                    );
+
+                $syncData[$supplierId] = [
+                    'supplier_sku' => $supplierSku,
+                    'price'        => $validated['supplier_prices'][$index] ?? 0,
+                ];
+            }
+        }
+
+        $product->suppliers()->sync($syncData);
+
+        activity()->log("Update produk: {$product->name}");
+
+        return redirect()->route('inventory.index')->with('success', 'Produk berhasil diupdate.');
     }
 
     public function destroy(Product $product)
@@ -140,5 +202,22 @@ class ProductController extends Controller
             ['qty_added' => $request->qty]
         );
         return back()->with('success', "Restock {$product->name} berhasil.");
+    }
+
+    public function bySupplier(\App\Models\Supplier $supplier)
+    {
+        $products = $supplier->products()
+            ->select('products.id', 'products.name', 'products.unit')
+            ->withPivot(['supplier_sku', 'price'])
+            ->get()
+            ->map(fn($p) => [
+                'id'           => $p->id,
+                'name'         => $p->name,
+                'unit'         => $p->unit,
+                'supplier_sku' => $p->pivot->supplier_sku,
+                'price'        => $p->pivot->price,
+            ]);
+
+        return response()->json($products);
     }
 }

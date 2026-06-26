@@ -22,4 +22,11 @@ class Supplier extends Model
     {
         return $this->hasMany(PurchaseOrder::class);
     }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'product_supplier')
+                    ->withPivot(['supplier_sku', 'price'])
+                    ->withTimestamps();
+    }
 }
