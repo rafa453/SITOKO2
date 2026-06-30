@@ -47,12 +47,23 @@
                 </span>
             </div>
 
+             {{-- Brand --}}
+            <div class="form-group">
+                <label class="form-label">Nama Brand</label>
+                <input type="text" name="brand" class="form-input"
+                    value="{{ old('brand', $supplier->brand ?? '') }}"
+                    placeholder="Indomie, Aqua, Beras Cap Jago">
+                <span style="font-size:11.5px; color:var(--text-muted); margin-top:4px; display:block">
+                    Pisahkan dengan koma jika lebih dari satu brand.
+                </span>
+            </div>
+
             {{-- Telepon --}}
             <div class="form-group">
                 <label class="form-label">Nomor Telepon</label>
                 <input type="text" name="phone" class="form-input"
-                       value="{{ old('phone', $supplier->phone ?? '') }}"
-                       placeholder="0812-xxxx-xxxx">
+                    value="{{ old('phone', $supplier->phone ?? '') }}"
+                    placeholder="0812-xxxx-xxxx">
             </div>
 
             {{-- Alamat --}}
@@ -61,6 +72,10 @@
                 <textarea name="address" class="form-input" rows="3"
                           placeholder="Jl. Contoh No. 1, Bogor">{{ old('address', $supplier->address ?? '') }}</textarea>
             </div>
+
+           
+
+           
 
             <div style="display:flex; gap:10px; margin-top:8px">
                 <button type="submit" class="btn btn--primary">

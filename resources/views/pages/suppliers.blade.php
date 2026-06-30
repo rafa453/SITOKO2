@@ -44,6 +44,7 @@
                 <tr>
                     <th>Nama Supplier</th>
                     <th>Kategori</th>
+                    <th>Brand</th>
                     <th>Telepon</th>
                     <th>Alamat</th>
                     <th>Status</th>
@@ -61,6 +62,13 @@
                             <span class="text-muted">—</span>
                         @endif
                     </td>
+                    <td>
+                        @if($s->brand)
+                            <span class="badge badge--blue">{{ $s->brand }}</span>
+                        @else
+                            <span class="text-muted">—</span>
+                        @endif
+                    </td>
                     <td class="text-secondary">{{ $s->phone ?? '—' }}</td>
                     <td class="text-secondary" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
                         {{ $s->address ?? '—' }}
@@ -73,7 +81,7 @@
                     <td>
                         <div style="display:flex; gap:6px; align-items:center">
                             <a href="{{ route('suppliers.edit', $s) }}"
-                               class="btn btn--secondary" style="padding:5px 10px; font-size:12px">
+                            class="btn btn--secondary" style="padding:5px 10px; font-size:12px">
                                 Edit
                             </a>
                             <form method="POST" action="{{ route('suppliers.toggle-active', $s) }}" style="margin:0">
@@ -85,7 +93,7 @@
                             </form>
                             @if(!$s->purchaseOrders()->exists())
                             <form method="POST" action="{{ route('suppliers.destroy', $s) }}" style="margin:0"
-                                  onsubmit="return confirm('Hapus supplier {{ addslashes($s->name) }}?')">
+                                onsubmit="return confirm('Hapus supplier {{ addslashes($s->name) }}?')">
                                 @csrf @method('DELETE')
                                 <button type="submit"
                                         class="btn btn--danger" style="padding:5px 10px; font-size:12px">
@@ -98,7 +106,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted)">
+                    <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted)">
                         Belum ada supplier.
                     </td>
                 </tr>

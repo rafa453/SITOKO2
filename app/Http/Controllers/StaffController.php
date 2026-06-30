@@ -16,7 +16,7 @@ class StaffController extends Controller
     {
         $today = Carbon::today();
 
-        $query = User::query();
+        $query = User::where('role', 'cashier'); // ← filter cashier saja
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -33,16 +33,17 @@ class StaffController extends Controller
         $staff = $query->paginate(8)->withQueryString();
 
         // Stat cards
-        $totalStaff  = User::count();
-        $onDuty      = Shift::whereDate('started_at', $today)->whereNull('ended_at')->count();
-        $avgTrans = 0;
+        $totalStaff    = User::where('role', 'cashier')->count(); // ← filter cashier
+        $onDuty        = Shift::whereDate('started_at', $today)->whereNull('ended_at')->count();
+        $avgTrans      = 0;
         $trxPerCashier = Transaction::whereDate('created_at', $today)
             ->selectRaw('cashier_id, COUNT(*) as cnt')
             ->groupBy('cashier_id')
             ->pluck('cnt');
 
         if ($trxPerCashier->count() > 0) {
-            $avgTrans = round($trxPerCashier->avg());}
+            $avgTrans = round($trxPerCashier->avg());
+        }
 
         // Shift hari ini
         $todayShifts = Shift::with('user')
@@ -52,7 +53,8 @@ class StaffController extends Controller
             ->map(fn($group) => $group->take(1));
 
         // Top 3 performers hari ini
-        $topPerformers = User::withCount([
+        $topPerformers = User::where('role', 'cashier') // ← filter cashier
+            ->withCount([
                 'transactions as trx_today' => fn($q) =>
                     $q->whereDate('created_at', $today)->where('status', 'completed')
             ])
@@ -64,7 +66,7 @@ class StaffController extends Controller
             ->limit(3)
             ->get();
 
-       $activityQuery = ActivityLog::with('user')->latest();
+        $activityQuery = ActivityLog::with('user')->latest();
 
         if ($request->filled('log_from')) {
             $activityQuery->whereDate('created_at', '>=', $request->log_from);
@@ -77,7 +79,7 @@ class StaffController extends Controller
 
         return view('pages.staff', compact(
             'staff', 'totalStaff', 'onDuty', 'avgTrans',
-            'todayShifts', 'topPerformers','activityLogs'
+            'todayShifts', 'topPerformers', 'activityLogs'
         ));
     }
 
@@ -86,7 +88,7 @@ class StaffController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'role'     => 'required|in:admin,cashier,supervisor',
+            'role'     => 'required|in:admin,cashier',
             'phone'    => 'nullable|string|max:20',
             'shift'    => 'required|in:pagi,siang,malam',
             'password' => 'required|string|min:8',
@@ -121,7 +123,6 @@ class StaffController extends Controller
 
     public function destroy(User $user)
     {
-        // Soft deactivate, bukan delete permanen
         $user->update(['status' => 'inactive']);
         return back()->with('success', 'Staff berhasil dinonaktifkan.');
     }

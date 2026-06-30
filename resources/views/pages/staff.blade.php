@@ -13,11 +13,11 @@
             <input type="text" name="search" class="form-input" placeholder="Search staff..."
                 value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
-        <select name="role" class="form-select" style="width:130px" onchange="this.form.submit()">
+        {{-- <select name="role" class="form-select" style="width:130px" onchange="this.form.submit()">
             <option value="">All Roles</option>
             <option value="admin"      {{ request('role') == 'admin'      ? 'selected' : '' }}>Admin</option>
             <option value="cashier"    {{ request('role') == 'cashier'    ? 'selected' : '' }}>Cashier</option>
-        </select>
+        </select> --}}
         <select name="status" class="form-select" style="width:130px" onchange="this.form.submit()">
             <option value="">All Status</option>
             <option value="active"   {{ request('status') == 'active'   ? 'selected' : '' }}>Active</option>
@@ -416,7 +416,6 @@
                     <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
                     <select name="role" class="form-select w-full" required>
                         <option value="cashier">Cashier</option>
-                        <option value="admin">Admin</option>
                     </select>
                 </div>
                 <div>

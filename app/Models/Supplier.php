@@ -12,6 +12,7 @@ class Supplier extends Model
         'address',
         'category',
         'is_active',
+        'brand',
     ];
 
     protected $casts = [
