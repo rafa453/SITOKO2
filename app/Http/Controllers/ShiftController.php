@@ -177,7 +177,7 @@ class ShiftController extends Controller
     {
         $date = $request->get('date', Carbon::today()->toDateString());
 
-        $summary = Shift::with(['user', 'transactions'])
+        $summary = Shift::with(['user'])
             ->whereDate('started_at', $date)
             ->get()
             ->groupBy('type')

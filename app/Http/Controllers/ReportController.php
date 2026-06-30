@@ -102,6 +102,10 @@ class ReportController extends Controller
             ->join('shifts', fn($j) =>
                 $j->on('transactions.cashier_id', '=', 'shifts.user_id')
                   ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                  ->where(function($q) {
+                      $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                        ->orWhereNull('shifts.ended_at');
+                  })
             )
             ->selectRaw('shifts.type as shift, COUNT(DISTINCT shifts.user_id) as staff_count,
                          COUNT(transactions.id) as trx_count, SUM(transactions.total) as revenue')
@@ -233,6 +237,10 @@ private function exportSales($out, string $groupBy, $startDate, $endDate): void
             ->join('shifts', fn($j) =>
                 $j->on('transactions.cashier_id', '=', 'shifts.user_id')
                   ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                  ->where(function($q) {
+                      $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                        ->orWhereNull('shifts.ended_at');
+                  })
             )
             ->selectRaw('shifts.type as shift,
                          COUNT(DISTINCT transactions.id) as jumlah_trx,
@@ -338,6 +346,10 @@ private function exportStaff($out, string $groupBy, $startDate, $endDate): void
             ->join('shifts', fn($j) =>
                 $j->on('transactions.cashier_id', '=', 'shifts.user_id')
                   ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                  ->where(function($q) {
+                      $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                        ->orWhereNull('shifts.ended_at');
+                  })
             )
             ->selectRaw('shifts.type as shift,
                          COUNT(DISTINCT shifts.user_id) as jumlah_staff,

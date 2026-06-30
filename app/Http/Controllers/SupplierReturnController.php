@@ -151,7 +151,16 @@ class SupplierReturnController extends Controller
         DB::transaction(function () use ($return) {
             // Kurangi stok saat confirmed — barang sudah keluar gudang
             foreach ($return->items as $item) {
-                $item->product->decrement('qty', $item->qty_returned);
+                // 1. LOCK row produk terlebih dahulu
+                $product = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
+
+                // 2. VALIDASI kecukupan stok setelah data ter-lock
+                if ($product->qty < $item->qty_returned) {
+                    throw new \Exception("Stok produk {$product->name} tidak cukup untuk diretur (Stok saat ini: {$product->qty}, Butuh: {$item->qty_returned}).");
+                }
+
+                // 3. OPERASI decrement stok
+                $product->decrement('qty', $item->qty_returned);
             }
 
             $return->update([

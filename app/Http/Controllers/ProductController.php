@@ -72,34 +72,30 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'brand_id'    => 'nullable|exists:brands,id',
-            'category'    => 'required|string|max:100',
-            'unit'        => 'required|string|max:50',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'description' => 'nullable|string',
-            // supplier pivot fields
-            'supplier_ids'   => 'nullable|array',
-            'supplier_ids.*' => 'exists:suppliers,id',
-            'supplier_prices' => 'nullable|array',
+            'name'              => 'required|string|max:255',
+            'sku'               => 'required|string|max:100|unique:products,sku',
+            'brand_id'          => 'nullable|exists:brands,id',
+            'category'          => 'required|string|max:100',
+            'unit'              => 'required|string|max:50',
+            'buy_price'         => 'required|numeric|min:0',
+            'sell_price'        => 'required|numeric|min:0',
+            'qty'               => 'required|integer|min:0',
+            'threshold'         => 'required|integer|min:0',
+            'description'       => 'nullable|string',
+            'supplier_ids'      => 'nullable|array',
+            'supplier_ids.*'    => 'exists:suppliers,id',
+            'supplier_prices'   => 'nullable|array',
             'supplier_prices.*' => 'nullable|numeric|min:0',
         ]);
-
-        // Generate SKU
-        $brandName = $validated['brand_id']
-            ? \App\Models\Brand::find($validated['brand_id'])->name
-            : 'NOBRAND';
-
-        $validated['sku'] = \App\Models\Product::generateSku(
-            $validated['category'],
-            $brandName
-        );
 
         $product = Product::create($validated);
 
         // Attach suppliers dengan supplier_sku
         if (!empty($validated['supplier_ids'])) {
+            $brandName = $validated['brand_id']
+                ? \App\Models\Brand::find($validated['brand_id'])->name
+                : 'NOBRAND';
+
             foreach ($validated['supplier_ids'] as $index => $supplierId) {
                 $supplier = \App\Models\Supplier::find($supplierId);
                 $supplierSku = \App\Models\Product::generateSupplierSku(
@@ -126,19 +122,22 @@ class ProductController extends Controller
         return view('pages.inventory-form', compact('product', 'categories'));
     }
 
-   public function update(Request $request, Product $product)
+    public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'brand_id'    => 'nullable|exists:brands,id',
-            'category'    => 'required|string|max:100',
-            'unit'        => 'required|string|max:50',
-            'price'       => 'required|numeric|min:0',
-            'stock'       => 'required|integer|min:0',
-            'description' => 'nullable|string',
-            'supplier_ids'    => 'nullable|array',
-            'supplier_ids.*'  => 'exists:suppliers,id',
-            'supplier_prices' => 'nullable|array',
+            'name'              => 'required|string|max:255',
+            'sku'               => 'required|string|max:100|unique:products,sku,' . $product->id,
+            'brand_id'          => 'nullable|exists:brands,id',
+            'category'          => 'required|string|max:100',
+            'unit'              => 'required|string|max:50',
+            'buy_price'         => 'required|numeric|min:0',
+            'sell_price'        => 'required|numeric|min:0',
+            'qty'               => 'required|integer|min:0',
+            'threshold'         => 'required|integer|min:0',
+            'description'       => 'nullable|string',
+            'supplier_ids'      => 'nullable|array',
+            'supplier_ids.*'    => 'exists:suppliers,id',
+            'supplier_prices'   => 'nullable|array',
             'supplier_prices.*' => 'nullable|numeric|min:0',
         ]);
 
@@ -179,10 +178,12 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        // Cek apakah produk pernah dipakai di transaksi
-        if ($product->transactionItems()->exists()) {
+        // Cek apakah produk pernah dipakai di transaksi, pemesanan, atau retur
+        if ($product->transactionItems()->exists() || 
+            $product->purchaseOrderItems()->exists() || 
+            $product->supplierReturnItems()->exists()) {
             return redirect()->route('inventory.index')
-                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena memiliki riwayat transaksi.");
+                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena memiliki riwayat transaksi, pemesanan (PO), atau retur supplier.");
         }
 
         $product->delete();

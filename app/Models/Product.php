@@ -23,6 +23,16 @@ class Product extends Model
         return $this->hasMany(\App\Models\TransactionItem::class);
     }
 
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(\App\Models\PurchaseOrderItem::class);
+    }
+
+    public function supplierReturnItems()
+    {
+        return $this->hasMany(\App\Models\SupplierReturnItem::class);
+    }
+
     public function brand()
     {
         return $this->belongsTo(Brand::class);

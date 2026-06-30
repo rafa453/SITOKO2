@@ -222,7 +222,11 @@ class PurchaseOrderController extends Controller
                 $actualQty     = min($inputQty, $maxReceivable);
 
                 if ($actualQty > 0) {
-                    $item->product->increment('qty', $actualQty);
+                    // 1. LOCK row produk terlebih dahulu
+                    $product = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
+                    // 2. OPERASI increment stok
+                    $product->increment('qty', $actualQty);
+                    
                     $item->increment('qty_received', $actualQty);
                 }
 

@@ -100,9 +100,9 @@ class SupplierController extends Controller
 
     public function destroy(Supplier $supplier)
     {
-        // Proteksi: supplier yang punya PO tidak bisa dihapus
-        if ($supplier->purchaseOrders()->exists()) {
-            return back()->with('error', 'Supplier tidak bisa dihapus karena memiliki riwayat Purchase Order.');
+        // Proteksi: supplier yang punya PO atau Retur tidak bisa dihapus
+        if ($supplier->purchaseOrders()->exists() || $supplier->supplierReturns()->exists()) {
+            return back()->with('error', 'Supplier tidak bisa dihapus karena memiliki riwayat Purchase Order atau Retur.');
         }
 
         ActivityLog::record(
