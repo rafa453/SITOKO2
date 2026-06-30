@@ -8,6 +8,9 @@ use App\Models\Product;
 use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\TransactionCreatedNotification;
+use App\Models\User;
 use Carbon\Carbon;
 use App\Models\ActivityLog;
 
@@ -98,7 +101,7 @@ class TransactionController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request) {
+            $transaction = DB::transaction(function () use ($request) {
                 $total = 0;
                 $itemsToCreate = [];
 
@@ -142,7 +145,13 @@ class TransactionController extends Controller
                     $transaction->code,
                     ['total' => $total, 'payment_method' => $request->payment_method, 'items_count' => count($itemsToCreate)]
                 );
+
+                return $transaction;
             });
+
+            // Kirim notifikasi ke semua admin SETELAH DB transaction commit berhasil
+            $admins = User::where('role', 'admin')->get();
+            Notification::send($admins, new TransactionCreatedNotification($transaction));
 
             return response()->json(['success' => true, 'redirect' => route('transactions.index')]);
 

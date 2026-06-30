@@ -19,6 +19,162 @@
     <link rel="stylesheet" href="{{ asset('css/sitoko.css') }}">
 
     @stack('styles')
+    
+    <style>
+        .notification-dropdown-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--red-500);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 9999px;
+            min-width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            border: 2px solid var(--surface);
+            pointer-events: none;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            width: 320px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .notification-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .btn-mark-all-read {
+            font-size: 12px;
+            color: var(--blue-600);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-mark-all-read:hover {
+            text-decoration: underline;
+        }
+
+        .notification-list {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: background 0.15s ease;
+        }
+
+        .notification-item:hover {
+            background: var(--border-light);
+        }
+
+        .notification-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .notification-item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .notification-item-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .notification-item-body {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .notification-item-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .notification-action-link {
+            font-size: 12px;
+            color: var(--blue-600);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .notification-action-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-mark-single-read {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            padding: 0;
+        }
+
+        .btn-mark-single-read:hover {
+            color: var(--text-secondary);
+            text-decoration: underline;
+        }
+
+        .notification-empty {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .notification-loading {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
 
@@ -175,6 +331,73 @@
             <div class="page-header-right">
                 @yield('header-actions')
 
+                @if(auth()->user()?->isAdmin())
+                <!-- Notification Bell -->
+                <div class="notification-dropdown-wrapper" x-data="notificationDropdown()" x-init="init()">
+                    <!-- Bell Button -->
+                    <button class="btn-icon" @click="toggleDropdown()" title="Notifications">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <!-- Unread Badge -->
+                        <span x-show="unreadCount > 0" class="notification-badge" x-text="unreadCount" x-cloak></span>
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div class="notification-dropdown" x-show="isOpen" @click.outside="isOpen = false" 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         style="display: none;"
+                         x-cloak>
+                        <!-- Header -->
+                        <div class="notification-header">
+                            <span class="notification-header-title">Notifikasi Baru</span>
+                            <button x-show="unreadCount > 0" @click="markAllAsRead()" class="btn-mark-all-read">
+                                Tandai semua dibaca
+                            </button>
+                        </div>
+
+                        <!-- List -->
+                        <div class="notification-list">
+                            <!-- Loading -->
+                            <div x-show="isLoading" class="notification-loading">
+                                Memuat...
+                            </div>
+                            
+                            <!-- Empty State -->
+                            <div x-show="!isLoading && notifications.length === 0" class="notification-empty">
+                                Tidak ada notifikasi baru.
+                            </div>
+
+                            <!-- Items -->
+                            <template x-for="item in notifications" :key="item.id">
+                                <div class="notification-item">
+                                    <div class="notification-item-header">
+                                        <span class="notification-item-title" x-text="'Transaksi Baru: ' + item.data.code"></span>
+                                        <span class="notification-item-time" x-text="item.created_at"></span>
+                                    </div>
+                                    <div class="notification-item-body">
+                                        Total: <strong style="color: var(--blue-600);">Rp <span x-text="formatNumber(item.data.total)"></span></strong> oleh <span x-text="item.data.cashier_name"></span>
+                                    </div>
+                                    <div class="notification-item-actions">
+                                        <a :href="'/transactions/' + item.data.transaction_id" class="notification-action-link">
+                                            Detail
+                                        </a>
+                                        <button @click="markAsRead(item.id)" class="btn-mark-single-read">
+                                            Tandai dibaca
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <!-- User Avatar -->
                 <div class="user-avatar" title="{{ auth()->user()->name ?? 'Admin' }}">
                     {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
@@ -201,6 +424,80 @@
     </main>
 
 </div>
+
+@if(auth()->user()?->isAdmin())
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('notificationDropdown', () => ({
+            isOpen: false,
+            isLoading: false,
+            unreadCount: 0,
+            notifications: [],
+            init() {
+                this.fetchNotifications();
+                // Poll every 5 seconds as per revised requirement
+                setInterval(() => {
+                    this.fetchNotifications();
+                }, 5000);
+            },
+            toggleDropdown() {
+                this.isOpen = !this.isOpen;
+                if (this.isOpen) {
+                    this.fetchNotifications();
+                }
+            },
+            fetchNotifications() {
+                fetch('{{ route("notifications.index") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.notifications = data.notifications;
+                            this.unreadCount = data.unread_count;
+                        }
+                    })
+                    .catch(err => console.error('Gagal mengambil notifikasi:', err));
+            },
+            markAsRead(id) {
+                fetch(`/api/notifications/${id}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.notifications = this.notifications.filter(n => n.id !== id);
+                        this.unreadCount = Math.max(0, this.unreadCount - 1);
+                    }
+                })
+                .catch(err => console.error('Gagal menandai dibaca:', err));
+            },
+            markAllAsRead() {
+                fetch('{{ route("notifications.read-all") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.notifications = [];
+                        this.unreadCount = 0;
+                    }
+                })
+                .catch(err => console.error('Gagal menandai semua dibaca:', err));
+            },
+            formatNumber(num) {
+                return new Intl.NumberFormat('id-ID').format(num);
+            }
+        }));
+    });
+</script>
+@endif
 
 @stack('scripts')
 </body>

@@ -12,6 +12,8 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SupplierReturnController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\BrandController;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
@@ -99,7 +101,12 @@ Route::middleware(['auth'])->group(function () {
 
         // API endpoint untuk PO form — ambil produk berdasarkan supplier
         Route::get('/api/suppliers/{supplier}/products', [ProductController::class, 'bySupplier'])->name('api.supplier.products');
-            });
+
+        // API Notifications
+        Route::get('/api/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/api/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    });
 
 });
 

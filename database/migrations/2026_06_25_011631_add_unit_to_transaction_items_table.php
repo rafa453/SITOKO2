@@ -14,12 +14,20 @@ return new class extends Migration
         });
 
         // Backfill dari products.unit berdasarkan product_id
-        DB::statement('
-            UPDATE transaction_items ti
-            JOIN products p ON ti.product_id = p.id
-            SET ti.unit = p.unit
-            WHERE ti.unit IS NULL
-        ');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('
+                UPDATE transaction_items
+                SET unit = (SELECT unit FROM products WHERE products.id = transaction_items.product_id)
+                WHERE unit IS NULL
+            ');
+        } else {
+            DB::statement('
+                UPDATE transaction_items ti
+                JOIN products p ON ti.product_id = p.id
+                SET ti.unit = p.unit
+                WHERE ti.unit IS NULL
+            ');
+        }
     }
 
     public function down(): void
