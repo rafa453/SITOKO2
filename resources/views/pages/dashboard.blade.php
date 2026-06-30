@@ -4,6 +4,56 @@
 @section('page-title', 'Dashboard')
 @section('page-subtitle', 'Live store overview and key metrics.')
 
+@push('styles')
+<style>
+.stat-card--clickable {
+    cursor: pointer;
+    position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.stat-card--clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.dash-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.dash-modal-overlay.is-open { display: flex; }
+.dash-modal {
+    background: #fff;
+    border-radius: var(--radius, 10px);
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+.dash-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light, #F1F5F9);
+}
+.dash-modal__title { font-size: 15px; font-weight: 700; }
+.dash-modal__close {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; background: var(--border-light, #F1F5F9);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.dash-modal__body { padding: 18px 20px; overflow-y: auto; }
+</style>
+@endpush
+
 @section('header-actions')
     <div class="search-input-wrapper" style="width: 220px">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -19,7 +69,7 @@
 <div class="stats-grid">
 
     {{-- Today's Revenue --}}
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openDashModal('revenue')">
         <div class="stat-card__header">
             <span class="stat-card__label">Today's Revenue</span>
             <div class="stat-card__icon" style="background:#EFF6FF">
@@ -38,7 +88,7 @@
     </div>
 
     {{-- On-Shift Staff --}}
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openDashModal('staff')">
         <div class="stat-card__header">
             <span class="stat-card__label">On-Shift Staff</span>
             <div class="stat-card__icon" style="background:#F0FDF4">
@@ -58,7 +108,7 @@
     </div>
 
     {{-- Low Stock Items --}}
-    <div class="stat-card" style="border-color:#FEF3C7; background:#FFFBEB">
+    <div class="stat-card stat-card--clickable" onclick="openDashModal('stock')" style="border-color:#FEF3C7; background:#FFFBEB">
         <div class="stat-card__header">
             <span class="stat-card__label" style="color:#92400E">Low Stock Items</span>
             <div class="stat-card__icon" style="background:#FEF3C7">
@@ -76,7 +126,7 @@
     </div>
 
     {{-- Top Selling Item --}}
-    <div class="stat-card" style="background:var(--sidebar-bg); border-color:transparent">
+    <div class="stat-card stat-card--clickable" onclick="openDashModal('top')" style="background:var(--sidebar-bg); border-color:transparent">
         <div class="stat-card__header">
             <span class="stat-card__label" style="color:#475569">Top Selling Item Today</span>
             <div class="stat-card__icon" style="background:rgba(37,99,235,.25)">
@@ -235,4 +285,115 @@
 
 </div>
 
+{{-- ===== DASHBOARD DETAIL MODAL ===== --}}
+<div class="dash-modal-overlay" id="dashModalOverlay" onclick="if(event.target===this) closeDashModal()">
+    <div class="dash-modal">
+        <div class="dash-modal__header">
+            <div class="dash-modal__title" id="dashModalTitle">Detail</div>
+            <button type="button" class="dash-modal__close" onclick="closeDashModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="dash-modal__body" id="dashModalBody"></div>
+    </div>
+</div>
+
 @endsection
+
+@push('scripts')
+@php
+    // Disiapkan sebagai variabel dulu (bukan langsung di @json()),
+    // karena directive @json() Blade split argumennya pakai explode(','),
+    // jadi kalau ekspresinya punya banyak koma (array literal multi key)
+    // hasil compile-nya rusak. @json() di bawah hanya menerima 1 variabel.
+    $dashTransactionsData = $todayTransactions->map(fn($t) => [
+        'code'    => $t->code,
+        'cashier' => $t->cashier->name ?? '-',
+        'total'   => $t->total,
+        'time'    => $t->created_at->format('H:i'),
+    ]);
+
+    $dashStaffData = $onDutyShifts->map(fn($s) => [
+        'name'  => $s->user->name ?? '-',
+        'type'  => $s->type,
+        'start' => $s->started_at->format('H:i'),
+    ]);
+
+    $dashStockData = $stockAlertProducts->map(fn($p) => [
+        'name'   => $p->name,
+        'sku'    => $p->sku,
+        'qty'    => $p->qty.' '.$p->unit,
+        'status' => $p->qty == 0 ? 'Out of Stock' : 'Low Stock',
+    ]);
+
+    $dashTopData = $topProducts->map(fn($p) => [
+        'name'    => $p->name,
+        'qty'     => $p->qty_sold,
+        'revenue' => 'Rp '.number_format($p->revenue, 0, ',', '.'),
+    ]);
+@endphp
+<script>
+const dashTransactions = @json($dashTransactionsData);
+const dashStaff = @json($dashStaffData);
+const dashStock = @json($dashStockData);
+const dashTop = @json($dashTopData);
+
+function buildTable(headers, rows) {
+    let html = '<table class="data-table"><thead><tr>';
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += '</tr></thead><tbody>';
+    if (rows.length === 0) {
+        html += `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px; color:var(--text-muted)">No data.</td></tr>`;
+    } else {
+        rows.forEach(r => {
+            html += '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>';
+        });
+    }
+    html += '</tbody></table>';
+    return html;
+}
+
+function openDashModal(key) {
+    const titleEl = document.getElementById('dashModalTitle');
+    const bodyEl  = document.getElementById('dashModalBody');
+
+    if (key === 'revenue') {
+        titleEl.textContent = "Today's Transactions";
+        bodyEl.innerHTML = buildTable(
+            ['Kode', 'Kasir', 'Total', 'Jam'],
+            dashTransactions.map(t => [t.code, t.cashier, 'Rp ' + Number(t.total).toLocaleString('id-ID'), t.time])
+        );
+    } else if (key === 'staff') {
+        titleEl.textContent = 'On-Shift Staff';
+        bodyEl.innerHTML = buildTable(
+            ['Nama', 'Tipe Shift', 'Mulai'],
+            dashStaff.map(s => [s.name, s.type, s.start])
+        );
+    } else if (key === 'stock') {
+        titleEl.textContent = 'Stock Alerts';
+        bodyEl.innerHTML = buildTable(
+            ['Nama', 'SKU', 'Stok', 'Status'],
+            dashStock.map(p => [p.name, p.sku, p.qty, p.status])
+        );
+    } else if (key === 'top') {
+        titleEl.textContent = 'Top Selling Items Today';
+        bodyEl.innerHTML = buildTable(
+            ['Nama', 'Qty Terjual', 'Revenue'],
+            dashTop.map(p => [p.name, p.qty, p.revenue])
+        );
+    }
+
+    document.getElementById('dashModalOverlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeDashModal() {
+    document.getElementById('dashModalOverlay').classList.remove('is-open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDashModal(); });
+</script>
+@endpush
