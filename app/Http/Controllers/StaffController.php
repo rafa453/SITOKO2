@@ -36,6 +36,7 @@ class StaffController extends Controller
         $totalStaff    = User::where('role', 'cashier')->count(); // ← filter cashier
         $onDuty        = Shift::whereDate('started_at', $today)->whereNull('ended_at')->count();
         $avgTrans      = 0;
+        $onDutyShifts  = Shift::with('user')->whereNull('ended_at')->get();
         $trxPerCashier = Transaction::whereDate('created_at', $today)
             ->selectRaw('cashier_id, COUNT(*) as cnt')
             ->groupBy('cashier_id')
@@ -78,7 +79,7 @@ class StaffController extends Controller
         $activityLogs = $activityQuery->limit(20)->get();
 
         return view('pages.staff', compact(
-            'staff', 'totalStaff', 'onDuty', 'avgTrans',
+            'staff', 'totalStaff', 'onDuty', 'onDutyShifts', 'avgTrans',
             'todayShifts', 'topPerformers', 'activityLogs'
         ));
     }

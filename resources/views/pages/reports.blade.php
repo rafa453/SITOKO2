@@ -23,12 +23,117 @@
     </form>
 @endsection
 
+@push('styles')
+<style>
+.stat-card--clickable {
+    cursor: pointer;
+    position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.stat-card--clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    border-color: var(--blue-600, #2563EB);
+}
+.stat-card--clickable:active {
+    transform: translateY(0);
+}
+.stat-card--clickable .stat-card__goto {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--border-light, #F1F5F9);
+    color: var(--text-muted, #94A3B8);
+    transition: background .15s ease, color .15s ease, transform .15s ease;
+}
+.stat-card--clickable:hover .stat-card__goto {
+    background: var(--blue-600, #2563EB);
+    color: #fff;
+    transform: translateX(2px);
+}
+
+/* ── Report Detail Modal ── */
+.report-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.report-modal-overlay.is-open {
+    display: flex;
+}
+.report-modal {
+    background: #fff;
+    border-radius: var(--radius, 10px);
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    animation: report-modal-in .18s ease;
+}
+@keyframes report-modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.report-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light, #F1F5F9);
+}
+.report-modal__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary, #0F172A);
+}
+.report-modal__close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--border-light, #F1F5F9);
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s ease;
+}
+.report-modal__close:hover {
+    background: #E2E8F0;
+}
+.report-modal__body {
+    padding: 18px 20px;
+    overflow-y: auto;
+}
+
+</style>
+@endpush
+
 @section('content')
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
 
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openReportModal('daily-revenue-trend', 'Daily Revenue Trend')">
+        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">Total Revenue</span>
         </div>
@@ -41,7 +146,12 @@
         </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openReportModal('shift-summary', 'Shift Summary')">
+        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">Total Transactions</span>
         </div>
@@ -55,7 +165,12 @@
         </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openReportModal('top-products', 'Top Products')">
+        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">Best Selling Product</span>
         </div>
@@ -72,22 +187,31 @@
         @endif
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openReportModal('revenue-by-category', 'Revenue by Category')">
+        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
-            <span class="stat-card__label">Net Profit Estimate</span>
+            <span class="stat-card__label">Top Kategori</span>
         </div>
-        <div>
-            <div class="stat-card__rp">Rp</div>
-            <div class="stat-card__value" style="color:var(--green-700)">
-                {{ number_format($netProfit, 0, ',', '.') }}
+        @if($topCategory)
+            <div style="font-size:16px; font-weight:700; margin-top:4px; line-height:1.3; color:var(--green-700)">
+                {{ $topCategory->category }}
             </div>
-        </div>
+            <div class="stat-card__meta">
+                <span class="text-muted text-sm">Rp {{ number_format($topCategory->revenue, 0, ',', '.') }}</span>
+            </div>
+        @else
+            <div style="font-size:14px; color:var(--text-muted); margin-top:8px">No data</div>
+        @endif
     </div>
 
 </div>
 
 {{-- ===== DAILY REVENUE TREND CHART ===== --}}
-<div class="card">
+<div class="card" id="daily-revenue-trend">
     <div class="card-header">
         <div>
             <div class="card-title">Daily Revenue Trend</div>
@@ -119,7 +243,7 @@
 <div class="card-grid card-grid--3">
 
     {{-- Top Products --}}
-    <div class="card">
+    <div class="card" id="top-products">
         <div class="card-header">
             <div class="card-title">Top Products</div>
         </div>
@@ -145,7 +269,7 @@
     </div>
 
     {{-- Revenue by Category --}}
-    <div class="card">
+    <div class="card" id="revenue-by-category">
         <div class="card-header">
             <div class="card-title">Revenue by Category</div>
         </div>
@@ -257,7 +381,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="shift-summary">
         <div class="card-header">
             <div class="card-title">Shift Summary</div>
         </div>
@@ -403,17 +527,110 @@
     </div>
 </div>
 
+{{-- ===== REPORT DETAIL MODAL ===== --}}
+<div class="report-modal-overlay" id="reportModalOverlay" onclick="if(event.target === this) closeReportModal()">
+    <div class="report-modal">
+        <div class="report-modal__header">
+            <div class="report-modal__title" id="reportModalTitle">Detail</div>
+            <button type="button" class="report-modal__close" onclick="closeReportModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="report-modal__body" id="reportModalBody"></div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
+// ── Data dari controller (dipakai chart & modal) ──
+const reportDailyDates    = @json($dailyRevenue->pluck('date'));
+const reportDailyRevenues = @json($dailyRevenue->pluck('revenue'));
+const reportCatLabels     = @json($categoryRevenue->pluck('category'));
+const reportCatValues     = @json($categoryRevenue->pluck('revenue'));
+
+// ── Report Detail Modal: clone existing section into popup ──
+function buildSimpleTable(headers, rows) {
+    let html = '<table class="data-table"><thead><tr>';
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += '</tr></thead><tbody>';
+    if (rows.length === 0) {
+        html += `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px; color:var(--text-muted)">No data.</td></tr>`;
+    } else {
+        rows.forEach(r => {
+            html += '<tr>';
+            r.forEach(c => html += `<td>${c}</td>`);
+            html += '</tr>';
+        });
+    }
+    html += '</tbody></table>';
+    return html;
+}
+
+function openReportModal(sectionId, title) {
+    const modalBody  = document.getElementById('reportModalBody');
+    const modalTitle = document.getElementById('reportModalTitle');
+    modalTitle.textContent = title;
+    modalBody.innerHTML = '';
+
+    // Section dengan <canvas> (chart) butuh fallback tabel, karena canvas tidak bisa di-clone hasil render-nya
+    if (sectionId === 'daily-revenue-trend') {
+        const rows = reportDailyDates.map((d, i) => {
+            const dateLabel = new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            return [dateLabel, 'Rp ' + Number(reportDailyRevenues[i]).toLocaleString('id-ID')];
+        });
+        modalBody.innerHTML = buildSimpleTable(['Tanggal', 'Revenue'], rows);
+        document.getElementById('reportModalOverlay').classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        return;
+    }
+
+    if (sectionId === 'revenue-by-category') {
+        const total = reportCatValues.reduce((a, b) => a + b, 0) || 1;
+        const rows = reportCatLabels.map((c, i) => [
+            c,
+            'Rp ' + Number(reportCatValues[i]).toLocaleString('id-ID'),
+            Math.round(reportCatValues[i] / total * 100) + '%'
+        ]);
+        modalBody.innerHTML = buildSimpleTable(['Kategori', 'Revenue', '% dari Total'], rows);
+        document.getElementById('reportModalOverlay').classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        return;
+    }
+
+    // Section lain (tabel/list biasa) — clone langsung
+    const source = document.getElementById(sectionId);
+    if (!source) return;
+    const sourceBody = source.querySelector('.card-body, .data-table-wrapper');
+    if (sourceBody) {
+        modalBody.appendChild(sourceBody.cloneNode(true));
+    } else {
+        modalBody.innerHTML = '<p class="text-muted text-sm">No data available.</p>';
+    }
+
+    document.getElementById('reportModalOverlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeReportModal() {
+    document.getElementById('reportModalOverlay').classList.remove('is-open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeReportModal();
+});
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // ── Revenue Trend Chart (data dari controller) ──
     const revCanvas = document.getElementById('revenueChart');
     if (revCanvas) {
-        const rawDates    = @json($dailyRevenue->pluck('date'));
-        const rawRevenues = @json($dailyRevenue->pluck('revenue'));
+        const rawDates    = reportDailyDates;
+        const rawRevenues = reportDailyRevenues;
         const maxVal      = Math.max(...rawRevenues);
 
         new Chart(revCanvas, {
@@ -466,8 +683,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Category Donut Chart (data dari controller) ──
     const catCanvas = document.getElementById('categoryChart');
     if (catCanvas) {
-        const catLabels = @json($categoryRevenue->pluck('category'));
-        const catValues = @json($categoryRevenue->pluck('revenue'));
+        const catLabels = reportCatLabels;
+        const catValues = reportCatValues;
         const catColors = ['#2563EB','#F59E0B','#8B5CF6','#22C55E','#EF4444','#0EA5E9','#EC4899'];
 
         new Chart(catCanvas, {

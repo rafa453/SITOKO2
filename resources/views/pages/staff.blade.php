@@ -13,11 +13,6 @@
             <input type="text" name="search" class="form-input" placeholder="Search staff..."
                 value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
-        {{-- <select name="role" class="form-select" style="width:130px" onchange="this.form.submit()">
-            <option value="">All Roles</option>
-            <option value="admin"      {{ request('role') == 'admin'      ? 'selected' : '' }}>Admin</option>
-            <option value="cashier"    {{ request('role') == 'cashier'    ? 'selected' : '' }}>Cashier</option>
-        </select> --}}
         <select name="status" class="form-select" style="width:130px" onchange="this.form.submit()">
             <option value="">All Status</option>
             <option value="active"   {{ request('status') == 'active'   ? 'selected' : '' }}>Active</option>
@@ -43,7 +38,7 @@
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
 
-    <div class="stat-card">
+    <div class="stat-card" onclick="document.getElementById('staffDirectory').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
         <div class="stat-card__header">
             <span class="stat-card__label">Total Staff</span>
             <div class="stat-card__icon" style="background:#EFF6FF">
@@ -58,7 +53,7 @@
         <div class="stat-card__meta text-muted text-sm">Registered accounts</div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" onclick="document.getElementById('onDutyList').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
         <div class="stat-card__header">
             <span class="stat-card__label">On Duty Today</span>
             <span class="status-dot status-dot--green"></span>
@@ -69,7 +64,7 @@
         <div class="stat-card__meta text-sm" style="color:var(--green-700); font-weight:600">Currently clocked in</div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" onclick="document.getElementById('shiftSchedule').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
         <div class="stat-card__header">
             <span class="stat-card__label">Active Shift</span>
             <div class="stat-card__icon" style="background:#FFF7ED">
@@ -88,7 +83,7 @@
         <div class="stat-card__meta text-muted text-sm">{{ $shiftHours }}</div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" onclick="document.getElementById('topPerformers').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
         <div class="stat-card__header">
             <span class="stat-card__label">Avg. Trans / Today</span>
         </div>
@@ -102,7 +97,7 @@
 <div class="card-grid card-grid--60-40">
 
     {{-- Today's Shift Schedule --}}
-    <div class="card">
+    <div class="card" id="shiftSchedule">
         <div class="card-header">
             <div class="card-title">Today's Shift Schedule</div>
             <a href="#" class="card-action-link">
@@ -163,7 +158,7 @@
     </div>
 
     {{-- Top Performers --}}
-    <div class="card">
+    <div class="card" id="topPerformers">
         <div class="card-header">
             <div class="card-title">Top Performers</div>
             <span class="card-subtitle">TODAY</span>
@@ -181,7 +176,7 @@
                 </div>
                 <div style="flex:1">
                     <div style="font-weight:700; font-size:13px">{{ $p->name }}</div>
-                    <span class="badge badge--{{ $p->role === 'admin' ? 'blue' : ($p->role === 'supervisor' ? 'purple' : 'gray') }}" style="margin-top:2px">
+                    <span class="badge badge--gray" style="margin-top:2px">
                         {{ strtoupper($p->role) }}
                     </span>
                 </div>
@@ -203,8 +198,38 @@
 
 </div>
 
+{{-- ===== CURRENTLY ON DUTY ===== --}}
+<div class="card" id="onDutyList">
+    <div class="card-header">
+        <div class="card-title">Currently On Duty</div>
+        <span class="card-subtitle">{{ $shiftName }} Shift</span>
+    </div>
+    <div class="card-body" style="display:flex; flex-direction:column; gap:10px">
+        @php
+            $onDutyStaff = $todayShifts->get($currentShiftType);
+        @endphp
+
+        @if($onDutyStaff && $onDutyStaff->count() > 0)
+            @foreach($onDutyStaff as $sh)
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-light)">
+                <div class="avatar avatar--blue" style="width:32px; height:32px; font-size:11px">
+                    {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
+                </div>
+                <div style="flex:1">
+                    <div style="font-weight:700; font-size:13px">{{ $sh->user->name ?? '—' }}</div>
+                    <div style="font-size:11px; color:var(--text-muted)">{{ ucfirst($currentShiftType) }} Shift</div>
+                </div>
+                <span class="badge badge--green">On Duty</span>
+            </div>
+            @endforeach
+        @else
+            <p class="text-muted text-sm">No staff currently on duty.</p>
+        @endif
+    </div>
+</div>
+
 {{-- ===== STAFF DIRECTORY TABLE ===== --}}
-<div class="card">
+<div class="card" id="staffDirectory">
     <div class="card-header">
         <div class="card-title">Staff Directory</div>
     </div>
@@ -239,7 +264,7 @@
                         </div>
                     </td>
                     <td>
-                        <span class="badge {{ $s->role === 'admin' ? 'badge--blue' : ($s->role === 'supervisor' ? 'badge--purple' : 'badge--gray') }}">
+                        <span class="badge badge--gray">
                             {{ strtoupper($s->role) }}
                         </span>
                     </td>
@@ -261,7 +286,6 @@
                     </td>
                     <td>
                         <div style="display:flex; gap:4px">
-                            {{-- Edit --}}
                             <button class="btn-icon" title="Edit"
                                 onclick="openEditModal({{ $s->id }}, '{{ addslashes($s->name) }}', '{{ $s->role }}', '{{ $s->phone }}', '{{ $s->shift }}')">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -270,7 +294,6 @@
                                 </svg>
                             </button>
 
-                            {{-- Deactivate --}}
                             @if($s->status === 'active')
                             <form method="POST" action="{{ route('staff.destroy', $s->id) }}"
                                   onsubmit="return confirm('Nonaktifkan {{ addslashes($s->name) }}?')">
@@ -311,9 +334,7 @@
     </div>
         <div style="padding:12px 20px; border-bottom:1px solid var(--border-light)">
         <form method="GET" action="{{ route('staff.index') }}" style="display:flex; align-items:center; gap:8px">
-            {{-- Pertahankan filter staff yang sudah ada --}}
             <input type="hidden" name="search" value="{{ request('search') }}">
-            <input type="hidden" name="role" value="{{ request('role') }}">
             <input type="hidden" name="status" value="{{ request('status') }}">
 
             <span style="font-size:12px; font-weight:600; color:var(--text-secondary)">Filter Log:</span>

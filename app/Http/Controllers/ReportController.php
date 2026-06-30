@@ -63,6 +63,9 @@ class ReportController extends Controller
             ->orderByDesc('revenue')
             ->get();
 
+        // Top kategori (revenue tertinggi) — dipakai di stat card pengganti Net Profit
+        $topCategory = $categoryRevenue->first();
+
         // Cashier performance — withCount/withSum tidak pakai JOIN eksplisit
         $cashierPerformance = User::withCount([
                 'transactions as trx_count' => fn($q) =>
@@ -106,7 +109,7 @@ class ReportController extends Controller
             ->get();
 
         return view('pages.reports', compact(
-            'totalRevenue', 'totalTrx', 'netProfit', 'bestSeller',
+            'totalRevenue', 'totalTrx', 'netProfit', 'bestSeller', 'topCategory',
             'dailyRevenue', 'topProducts', 'categoryRevenue',
             'cashierPerformance', 'inventoryMovement', 'shiftSummary',
             'period'
