@@ -68,7 +68,10 @@
                     data-brand="{{ $s->brand ?? '—' }}"
                     data-phone="{{ $s->phone ?? '—' }}"
                     data-address="{{ $s->address ?? '—' }}"
-                    data-status="{{ $s->is_active ? 'Aktif' : 'Nonaktif' }}">
+                    data-status="{{ $s->is_active ? 'Aktif' : 'Nonaktif' }}"
+                    data-bank-name="{{ $s->bank_name ?? '—' }}"
+                    data-bank-account-number="{{ $s->bank_account_number ?? '—' }}"
+                    data-bank-account-holder="{{ $s->bank_account_holder ?? '—' }}">
                     <td style="font-weight:600; white-space:normal; word-break:break-word">{{ $s->name }}</td>
                     <td style="white-space:normal">
                         @if($s->category)
@@ -144,7 +147,7 @@
 <div id="supplierDetailOverlay"
      onclick="if(event.target===this) closeSupplierDetail()"
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px">
-    <div style="background:var(--bg-card, #fff); border-radius:12px; width:100%; max-width:440px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.25)">
+    <div style="background:var(--bg-card, #fff); border-radius:12px; width:100%; max-width:440px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.25); max-height:85vh; overflow-y:auto">
         <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px">
             <h3 id="sd-name" style="margin:0; font-size:18px; font-weight:700"></h3>
             <button type="button" onclick="closeSupplierDetail()"
@@ -174,6 +177,24 @@
                 <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Alamat</div>
                 <div id="sd-address" style="white-space:normal; word-break:break-word"></div>
             </div>
+
+            <hr style="border:none; border-top:1px solid var(--border-light,#eee); margin:4px 0">
+
+            <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); font-weight:600">
+                Informasi Rekening
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Bank</div>
+                <div id="sd-bank-name"></div>
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Nomor Rekening</div>
+                <div id="sd-bank-account-number" style="font-family:monospace"></div>
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Atas Nama</div>
+                <div id="sd-bank-account-holder"></div>
+            </div>
         </div>
 
         <div style="display:flex; justify-content:flex-end; margin-top:20px">
@@ -192,6 +213,10 @@
         document.getElementById('sd-brand').textContent    = row.dataset.brand;
         document.getElementById('sd-phone').textContent    = row.dataset.phone;
         document.getElementById('sd-address').textContent  = row.dataset.address;
+
+        document.getElementById('sd-bank-name').textContent            = row.dataset.bankName;
+        document.getElementById('sd-bank-account-number').textContent  = row.dataset.bankAccountNumber;
+        document.getElementById('sd-bank-account-holder').textContent  = row.dataset.bankAccountHolder;
 
         const statusEl = document.getElementById('sd-status');
         statusEl.textContent = row.dataset.status;

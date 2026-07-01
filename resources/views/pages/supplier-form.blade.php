@@ -73,24 +73,52 @@
                           placeholder="Jl. Contoh No. 1, Bogor">{{ old('address', $supplier->address ?? '') }}</textarea>
             </div>
 
-           
+            {{-- Informasi Rekening --}}
+            <div style="border-top:1px solid var(--border-light); margin:20px 0 16px; padding-top:16px">
+                <h4 style="margin:0 0 4px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted)">
+                    Informasi Rekening
+                </h4>
+                <p style="margin:0 0 12px; font-size:11.5px; color:var(--text-muted)">
+                    Opsional, isi jika pembayaran ke supplier ini dilakukan via transfer bank.
+                </p>
+            </div>
 
-           
+            {{-- Nama Bank --}}
+            <div class="form-group">
+                <label class="form-label">Nama Bank</label>
+                <input type="text" name="bank_name" class="form-input"
+                    value="{{ old('bank_name', $supplier->bank_name ?? '') }}"
+                    placeholder="BCA, BRI, Mandiri">
+            </div>
+
+            {{-- Nomor Rekening --}}
+            <div class="form-group">
+                <label class="form-label">Nomor Rekening</label>
+                <input type="text" name="bank_account_number" class="form-input"
+                    value="{{ old('bank_account_number', $supplier->bank_account_number ?? '') }}"
+                    placeholder="1234567890">
+            </div>
+
+            {{-- Atas Nama --}}
+            <div class="form-group">
+                <label class="form-label">Atas Nama</label>
+                <input type="text" name="bank_account_holder" class="form-input"
+                    value="{{ old('bank_account_holder', $supplier->bank_account_holder ?? '') }}"
+                    placeholder="Nama pemilik rekening">
+                <span style="font-size:11.5px; color:var(--text-muted); margin-top:4px; display:block">
+                    Sering berbeda dari nama usaha/toko.
+                </span>
+            </div>
 
             <div style="display:flex; gap:10px; margin-top:8px">
                 <button type="submit" class="btn btn--primary">
                     {{ isset($supplier) ? 'Simpan Perubahan' : 'Tambah Supplier' }}
                 </button>
                 <a href="{{ route('suppliers.index') }}" class="btn btn--ghost">Batal</a>
-
-                @if(isset($supplier) && !$supplier->purchaseOrders()->exists())
-                <div style="margin-left:auto">
-                    {{-- placeholder, form hapus dipindah ke luar --}}
-                </div>
-                @endif
             </div>
 
         </form>
+
         {{-- Form hapus HARUS di luar form edit --}}
         @if(isset($supplier) && !$supplier->purchaseOrders()->exists())
         <form method="POST" action="{{ route('suppliers.destroy', $supplier) }}"
@@ -100,9 +128,6 @@
             <button type="submit" class="btn btn--danger">Hapus Supplier</button>
         </form>
         @endif
-            </div>
-
-        </form>
     </div>
 </div>
 

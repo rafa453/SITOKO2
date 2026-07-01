@@ -38,11 +38,14 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'phone'    => 'nullable|string|max:20',
-            'address'  => 'nullable|string|max:500',
-            'category' => 'nullable|string|max:255',
-            'brand' => 'nullable|string|max:255',
+            'name'                 => 'required|string|max:255',
+            'phone'                => 'nullable|string|max:20',
+            'address'              => 'nullable|string|max:500',
+            'category'             => 'nullable|string|max:255',
+            'brand'                => 'nullable|string|max:255',
+            'bank_name'            => 'nullable|string|max:100',
+            'bank_account_number'  => 'nullable|string|max:50',
+            'bank_account_holder'  => 'nullable|string|max:255',
         ]);
 
         $supplier = Supplier::create($validated);
@@ -67,11 +70,14 @@ class SupplierController extends Controller
     public function update(Request $request, Supplier $supplier)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'phone'    => 'nullable|string|max:20',
-            'address'  => 'nullable|string|max:500',
-            'category' => 'nullable|string|max:255',
-            'brand' => 'nullable|string|max:255',
+            'name'                 => 'required|string|max:255',
+            'phone'                => 'nullable|string|max:20',
+            'address'              => 'nullable|string|max:500',
+            'category'             => 'nullable|string|max:255',
+            'brand'                => 'nullable|string|max:255',
+            'bank_name'            => 'nullable|string|max:100',
+            'bank_account_number'  => 'nullable|string|max:50',
+            'bank_account_holder'  => 'nullable|string|max:255',
         ]);
 
         $supplier->update($validated);

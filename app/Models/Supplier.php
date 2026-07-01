@@ -13,6 +13,9 @@ class Supplier extends Model
         'category',
         'is_active',
         'brand',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_holder',
     ];
 
     protected $casts = [
