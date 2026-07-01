@@ -18,6 +18,7 @@
             <option value="active"   {{ request('status') == 'active'   ? 'selected' : '' }}>Active</option>
             <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
         </select>
+        <button type="submit" style="display:none"></button>
     </form>
 
     <button class="btn btn--primary"
