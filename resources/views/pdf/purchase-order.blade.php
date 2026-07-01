@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     @php
-        $isNota = request('type') === 'nota';
+        $isNota = $isNota ?? false;
         $primaryColor = $isNota ? '#16A34A' : '#2563EB'; // Hijau vs Biru
         $darkColor = $isNota ? '#14532D' : '#1E3A8A';
         $docTitle = $isNota ? 'NOTA PEMBAYARAN' : 'PURCHASE ORDER';

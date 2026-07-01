@@ -121,7 +121,7 @@ class ShiftController extends Controller
     {
         $request->validate([
             'user_id'    => 'required|exists:users,id',
-            'type'       => 'required|in:pagi,siang,malam',
+            'type'       => 'required|in:pagi,siang',
             'started_at' => 'required|date',
         ]);
 
@@ -146,7 +146,7 @@ class ShiftController extends Controller
     public function update(Request $request, Shift $shift)
     {
         $request->validate([
-            'type'       => 'required|in:pagi,siang,malam',
+            'type'       => 'required|in:pagi,siang',
             'started_at' => 'required|date',
         ]);
 

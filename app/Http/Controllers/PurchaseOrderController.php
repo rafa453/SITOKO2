@@ -157,25 +157,32 @@ class PurchaseOrderController extends Controller
         return view('pages.purchase-order-show', compact('purchaseOrder'));
     }
 
-    public function downloadPdf(PurchaseOrder $purchaseOrder)
+    public function downloadPdf(PurchaseOrder $purchaseOrder, Request $request)
     {
-        // Authorization: hanya admin
         if (auth()->user()->role !== 'admin') {
             abort(403);
         }
 
-        // Eager load semua relasi yang dibutuhkan template
-        $purchaseOrder->load(['supplier', 'items.product']);
+        $requestedType = $request->query('type');
 
-        // Sanitasi nomor phone supplier
+        // GUARD: 'nota' hanya valid kalau payment_status benar-benar paid atau partial
+        // PO yang masih unpaid tidak boleh menghasilkan dokumen bertajuk nota pembayaran
+        if ($requestedType === 'nota' && $purchaseOrder->payment_status === 'unpaid') {
+            abort(422, 'PO ini belum memiliki pembayaran, tidak bisa dicetak sebagai nota.');
+        }
+
+        $isNota = $requestedType === 'nota' && $purchaseOrder->payment_status !== 'unpaid';
+
+        $purchaseOrder->load(['supplier', 'items.product']);
         $supplierPhone = ltrim($purchaseOrder->supplier->phone, '0+');
 
         $pdf = Pdf::loadView('pdf.purchase-order', [
             'purchaseOrder' => $purchaseOrder,
             'supplierPhone' => $supplierPhone,
+            'isNota'        => $isNota, // pass sebagai variabel eksplisit, bukan dihitung ulang di view
         ]);
 
-        $filename = 'PO-' . $purchaseOrder->code . '.pdf';
+        $filename = ($isNota ? 'NOTA-' : 'PO-') . $purchaseOrder->code . '.pdf';
 
         return $pdf->download($filename);
     }
@@ -210,6 +217,13 @@ class PurchaseOrderController extends Controller
                     'amount_paid'    => $request->amount_paid,
                 ]);
             }
+
+            ActivityLog::record(
+                'PURCHASE_ORDER',
+                $request->payment_type === 'full' ? 'Pembayaran PO lunas dicatat' : 'Pembayaran DP dicatat',
+                $purchaseOrder->code,
+                ['payment_type' => $request->payment_type, 'amount_paid' => $request->payment_type === 'full' ? $purchaseOrder->total : $request->amount_paid]
+            );
         });
 
         return redirect()->route('purchase-orders.show', $purchaseOrder)
@@ -225,10 +239,22 @@ class PurchaseOrderController extends Controller
         abort_if($purchaseOrder->payment_status !== 'partial', 422, 'Status pembayaran tidak valid untuk dilunasi.');
 
         DB::transaction(function () use ($purchaseOrder) {
-            $purchaseOrder->update([
+            // Lock row supaya check-then-act tidak race kalau ada 2 request nyaris bersamaan
+            $po = PurchaseOrder::where('id', $purchaseOrder->id)->lockForUpdate()->firstOrFail();
+
+            abort_if($po->payment_status !== 'partial', 422, 'Status pembayaran tidak valid untuk dilunasi.');
+
+            $po->update([
                 'payment_status' => 'paid',
-                'amount_paid'    => $purchaseOrder->total,
+                'amount_paid'    => $po->total,
             ]);
+
+            ActivityLog::record(
+                'PURCHASE_ORDER',
+                'PO dilunasi (settle payment)',
+                $po->code,
+                ['amount_settled' => $po->total - $po->getOriginal('amount_paid')]
+            );
         });
 
         return redirect()->route('purchase-orders.show', $purchaseOrder)
