@@ -49,7 +49,7 @@ class ShiftController extends Controller
     public function clockIn(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:pagi,siang,malam',
+            'type' => 'required|in:pagi,siang',
         ]);
 
         $userId = auth()->id();

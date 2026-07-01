@@ -189,9 +189,9 @@
         </div>
         @php
             $hour = now()->hour;
-            if ($hour >= 7 && $hour < 15)       { $shiftName = 'Pagi';  $shiftHours = '07.00 – 15.00 WIB'; }
-            elseif ($hour >= 15 && $hour < 23)  { $shiftName = 'Siang'; $shiftHours = '15.00 – 23.00 WIB'; }
-            else                                 { $shiftName = 'Malam'; $shiftHours = '23.00 – 07.00 WIB'; }
+            if ($hour >= 7 && $hour < 14)       { $shiftName = 'Pagi';  $shiftHours = '07.00 – 14.00 WIB'; }
+            elseif ($hour >= 14 && $hour < 20)  { $shiftName = 'Siang'; $shiftHours = '14.00 – 20.00 WIB'; }
+            else                                { $shiftName = 'Toko Tutup / Off Duty'; $shiftHours = '20.00 – 07.00 WIB'; }
         @endphp
         <div style="font-size:22px; font-weight:800; letter-spacing:-.5px">{{ $shiftName }}</div>
         <div class="stat-card__meta text-muted text-sm">{{ $shiftHours }}</div>
@@ -230,9 +230,8 @@
         <div class="card-body" style="display:flex; flex-direction:column; gap:10px">
             @php
                 $shiftConfig = [
-                    'pagi'  => ['label' => 'Pagi',  'hours' => '07.00 – 15.00'],
-                    'siang' => ['label' => 'Siang', 'hours' => '15.00 – 23.00'],
-                    'malam' => ['label' => 'Malam', 'hours' => '23.00 – 07.00'],
+                    'pagi'  => ['label' => 'Pagi',  'hours' => '07.00 – 14.00'],
+                    'siang' => ['label' => 'Siang', 'hours' => '14.00 – 20.00'],
                 ];
                 $currentShiftType = strtolower($shiftName);
             @endphp
@@ -582,7 +581,6 @@
                     <select name="shift" class="form-select w-full" required>
                         <option value="pagi">Pagi</option>
                         <option value="siang">Siang</option>
-                        <option value="malam">Malam</option>
                     </select>
                 </div>
             </div>
@@ -632,7 +630,6 @@
                     <select id="editShift" name="shift" class="form-select w-full" required>
                         <option value="pagi">Pagi</option>
                         <option value="siang">Siang</option>
-                        <option value="malam">Malam</option>
                     </select>
                 </div>
             </div>

@@ -93,7 +93,7 @@ class StaffController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'phone'    => 'nullable|string|max:20',
-            'shift'    => 'required|in:pagi,siang,malam',
+            'shift'    => 'required|in:pagi,siang',
             'password' => 'required|string|min:8',
         ]);
 
@@ -115,7 +115,7 @@ class StaffController extends Controller
         $request->validate([
             'name'   => 'required|string|max:255',
             'phone'  => 'nullable|string|max:20',
-            'shift'  => 'required|in:pagi,siang,malam',
+            'shift'  => 'required|in:pagi,siang',
             'status' => 'required|in:active,inactive',
         ]);
 
