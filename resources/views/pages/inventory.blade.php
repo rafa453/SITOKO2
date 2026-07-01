@@ -19,7 +19,25 @@
             <option value="">All Categories</option>
             @foreach($categories as $cat)
                 <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
-                    {{ $cat }}
+                    {{ $categoryLabels[$cat] ?? $cat }}
+                </option>
+            @endforeach
+        </select>
+
+        <select name="brand_id" class="form-select" style="width:140px" onchange="this.form.submit()">
+            <option value="">All Brands</option>
+            @foreach($filterBrands as $brand)
+                <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
+                    {{ $brand->name }}
+                </option>
+            @endforeach
+        </select>
+
+        <select name="supplier_id" class="form-select" style="width:140px" onchange="this.form.submit()">
+            <option value="">All Suppliers</option>
+            @foreach($filterSuppliers as $sup)
+                <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
+                    {{ $sup->name }}
                 </option>
             @endforeach
         </select>
@@ -341,6 +359,12 @@
                     </td>
                     <td>
                         <div style="display:flex; gap:4px">
+                            <button type="button" class="btn-icon" title="Detail" style="color:var(--blue-600)" x-data @click="$dispatch('open-detail', { id: {{ $p->id }} })">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
                             <a href="{{ route('inventory.edit', $p->id) }}" class="btn-icon" title="Edit">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -431,6 +455,86 @@
             </button>
         </div>
         <div class="inv-modal__body" id="invModalBody"></div>
+    </div>
+</div>
+
+{{-- Alpine Detail Modal --}}
+<div x-data="{
+        open: false,
+        loading: false,
+        detailData: null,
+        fetchDetail(id) {
+            this.open = true;
+            this.loading = true;
+            this.detailData = null;
+            fetch('/inventory/' + id + '/detail')
+                .then(res => res.json())
+                .then(data => {
+                    this.detailData = data;
+                    this.loading = false;
+                });
+        }
+    }"
+    @open-detail.window="fetchDetail($event.detail.id)"
+    x-show="open" 
+    class="inv-modal-overlay is-open" 
+    style="display: none;" 
+    x-transition>
+    <div class="inv-modal" @click.outside="open = false">
+        <div class="inv-modal__header">
+            <div class="inv-modal__title">Product Detail</div>
+            <button type="button" class="inv-modal__close" @click="open = false">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="inv-modal__body" style="padding: 20px;">
+            <div x-show="loading" class="text-center text-muted">Loading...</div>
+            <div x-show="!loading && detailData">
+                <div style="margin-bottom:16px;">
+                    <h3 style="margin:0 0 4px 0" x-text="detailData.name"></h3>
+                    <div class="text-sm text-muted" x-text="detailData.sku"></div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px">
+                    <div>
+                        <div class="text-sm text-muted">Brand</div>
+                        <div style="font-weight:600" x-text="detailData.brand || 'Tanpa Brand'"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-muted">Stock</div>
+                        <div style="font-weight:600" x-text="detailData.stock"></div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-muted">Sell Price</div>
+                        <div style="font-weight:600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(detailData.price)"></div>
+                    </div>
+                </div>
+                
+                <div class="card-title" style="margin-bottom:10px; font-size:14px">Suppliers</div>
+                <table class="data-table" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Supplier Name</th>
+                            <th>Supplier SKU</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="sup in detailData?.suppliers || []" :key="sup.supplier_sku">
+                            <tr>
+                                <td x-text="sup.name"></td>
+                                <td class="text-secondary" x-text="sup.supplier_sku"></td>
+                                <td style="font-weight:600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(sup.price)"></td>
+                            </tr>
+                        </template>
+                        <tr x-show="!detailData?.suppliers?.length">
+                            <td colspan="3" class="text-center text-muted" style="padding: 12px">No suppliers attached.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 

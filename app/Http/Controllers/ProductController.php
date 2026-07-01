@@ -29,6 +29,18 @@ class ProductController extends Controller
             };
         }
 
+        $query->with('brand');
+
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('supplier_id')) {
+            $query->whereHas('suppliers', function ($q) use ($request) {
+                $q->where('suppliers.id', $request->supplier_id);
+            });
+        }
+
         $products   = $query->paginate(10)->withQueryString();
         $categories = Product::select('category')->distinct()->pluck('category');
 
@@ -58,10 +70,23 @@ class ProductController extends Controller
             ['initials'=>'BP','name'=>'Bumbu Pusaka',  'desc'=>'Spices, Condiments',       'phone'=>'+62 21 555-0456','last'=>'Oct 18, 2023'],
         ]);
 
+        $filterBrands    = \App\Models\Brand::orderBy('name')->get();
+        $filterSuppliers = \App\Models\Supplier::orderBy('name')->get();
+        $categoryLabels = [
+            'BT' => 'Beras & Tepung',
+            'ML' => 'Minyak & Lemak',
+            'GG' => 'Gula & Garam',
+            'MP' => 'Mie & Pasta',
+            'BR' => 'Bumbu & Rempah',
+            'MN' => 'Minuman',
+            'KR' => 'Kebutuhan Rumah',
+        ];
+
         return view('pages.inventory', compact(
             'products', 'categories',
             'totalSkus', 'lowStockCount', 'outOfStockCount', 'stockValue',
-            'categoryBreakdown', 'stockValueByCategory', 'stockAlerts', 'suppliers'
+            'categoryBreakdown', 'stockValueByCategory', 'stockAlerts', 'suppliers',
+            'filterBrands', 'filterSuppliers', 'categoryLabels'
         ));
     }
 
@@ -243,5 +268,23 @@ class ProductController extends Controller
             ]);
 
         return response()->json($products);
+    }
+
+    public function detail(Product $product)
+    {
+        $product->load(['brand', 'suppliers']);
+
+        return response()->json([
+            'name'      => $product->name,
+            'sku'       => $product->sku,
+            'brand'     => $product->brand?->name,
+            'stock'     => $product->qty,
+            'price'     => $product->sell_price,
+            'suppliers' => $product->suppliers->map(fn($s) => [
+                'name'         => $s->name,
+                'supplier_sku' => $s->pivot->supplier_sku,
+                'price'        => $s->pivot->price,
+            ]),
+        ]);
     }
 }

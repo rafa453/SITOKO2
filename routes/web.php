@@ -53,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/inventory/{product}', [ProductController::class, 'update'])->name('inventory.update');
         Route::delete('/inventory/{product}', [ProductController::class, 'destroy'])->name('inventory.destroy');
         Route::post('/inventory/{product}/restock', [ProductController::class, 'restock'])->name('inventory.restock');
+        Route::get('/inventory/{product}/detail', [ProductController::class, 'detail'])->name('inventory.detail');
 
         // Transactions — void admin
         Route::post('/transactions/{transaction}/void', [TransactionController::class, 'void'])->name('transactions.void');
