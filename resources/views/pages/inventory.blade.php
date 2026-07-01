@@ -5,16 +5,6 @@
 @section('page-subtitle', 'Manage your stock, categories, and supplier data.')
 
 @section('header-actions')
-    <form method="GET" action="{{ route('inventory.index') }}" class="filter-bar" id="filterForm">
-        <div class="search-input-wrapper" style="width:250px">
-            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input type="text" name="search" class="form-input w-full" placeholder="Search product..."
-                value="{{ request('search') }}"
-                onchange="this.form.submit()">
-        </div>
-    </form>
 
     <a href="{{ route('inventory.create') }}" class="btn btn--primary">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -278,8 +268,19 @@
     <div class="card-header">
         <div class="card-title">Product Inventory</div>
         
-        <div style="position: relative;" x-data="{ showFilters: false }">
-            <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
+        <form method="GET" action="{{ route('inventory.index') }}" id="filterForm" style="display:flex; align-items:center; gap:8px;">
+            <div class="search-input-wrapper" style="width:250px">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" name="search" class="form-input w-full" placeholder="Search product..."
+                    value="{{ request('search') }}"
+                    onchange="this.form.submit()">
+            </div>
+            <button type="submit" style="display:none"></button>
+
+            <div style="position: relative;" x-data="{ showFilters: false }">
+                <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                 </svg>
@@ -330,6 +331,7 @@
             </div>
         </div>
         </div>
+        </form>
     </div>
 
     <div class="data-table-wrapper" style="border:none; border-radius:0">
