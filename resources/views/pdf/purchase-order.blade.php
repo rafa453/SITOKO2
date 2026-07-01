@@ -2,22 +2,28 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Purchase Order - {{ $purchaseOrder->code }}</title>
+    @php
+        $isNota = request('type') === 'nota';
+        $primaryColor = $isNota ? '#16A34A' : '#2563EB'; // Hijau vs Biru
+        $darkColor = $isNota ? '#14532D' : '#1E3A8A';
+        $docTitle = $isNota ? 'NOTA PEMBAYARAN' : 'PURCHASE ORDER';
+    @endphp
+    <title>{{ $docTitle }} - {{ $purchaseOrder->code }}</title>
     <style>
         body { font-family: sans-serif; font-size: 14px; color: #333; line-height: 1.4; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563EB; padding-bottom: 10px; }
-        .header h1 { margin: 0; color: #1E3A8A; font-size: 24px; }
-        .header h2 { margin: 5px 0 0 0; color: #2563EB; font-size: 18px; font-weight: normal; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid {{ $primaryColor }}; padding-bottom: 10px; }
+        .header h1 { margin: 0; color: {{ $darkColor }}; font-size: 24px; }
+        .header h2 { margin: 5px 0 0 0; color: {{ $primaryColor }}; font-size: 18px; font-weight: normal; }
         .info-table { width: 100%; margin-bottom: 30px; }
         .info-table td { vertical-align: top; width: 50%; }
         .info-box { padding: 15px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 4px; }
         .info-title { font-weight: bold; margin-bottom: 8px; color: #475569; font-size: 12px; text-transform: uppercase; }
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        .items-table th { background: #2563EB; color: #ffffff; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
+        .items-table th { background: {{ $primaryColor }}; color: #ffffff; padding: 10px; text-align: left; font-size: 12px; text-transform: uppercase; }
         .items-table td { padding: 10px; border-bottom: 1px solid #E2E8F0; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
-        .total-row td { font-weight: bold; background: #F8FAFC; border-top: 2px solid #2563EB; }
+        .total-row td { font-weight: bold; background: #F8FAFC; border-top: 2px solid {{ $primaryColor }}; }
         .footer { margin-top: 40px; font-size: 12px; color: #64748B; text-align: center; }
     </style>
 </head>
@@ -25,7 +31,7 @@
 
     <div class="header">
         <h1>SITOKO2</h1>
-        <h2>PURCHASE ORDER</h2>
+        <h2>{{ $docTitle }}</h2>
         <div style="margin-top:5px; font-size:16px; font-weight:bold;"># {{ $purchaseOrder->code }}</div>
     </div>
 
@@ -79,6 +85,20 @@
                 <td colspan="4" class="text-right" style="padding:12px 10px;">TOTAL KESELURUHAN</td>
                 <td class="text-right" style="padding:12px 10px;">Rp {{ number_format($purchaseOrder->total, 0, ',', '.') }}</td>
             </tr>
+            @if($purchaseOrder->payment_status !== 'unpaid')
+            <tr>
+                <td colspan="4" class="text-right" style="padding:8px 10px; color:#64748B;">Status Pembayaran</td>
+                <td class="text-right" style="padding:8px 10px; font-weight:bold; color:{{ $darkColor }};">{{ strtoupper($purchaseOrder->payment_status) }}</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="text-right" style="padding:8px 10px; color:#64748B;">Telah Dibayar</td>
+                <td class="text-right" style="padding:8px 10px;">Rp {{ number_format($purchaseOrder->amount_paid, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td colspan="4" class="text-right" style="padding:8px 10px; color:#64748B;">Sisa Tagihan</td>
+                <td class="text-right" style="padding:8px 10px; font-weight:bold; color:#DC2626;">Rp {{ number_format($purchaseOrder->total - $purchaseOrder->amount_paid, 0, ',', '.') }}</td>
+            </tr>
+            @endif
         </tbody>
     </table>
 

@@ -176,6 +176,52 @@
         </div>
         @endif
 
+        {{-- Payment Panel --}}
+        @if($purchaseOrder->status !== 'draft')
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+                <div class="card-title">Pembayaran</div>
+            </div>
+            <div class="card-body">
+                @if($purchaseOrder->payment_status === 'unpaid')
+                <div x-data="{ paymentType: 'full' }">
+                    <form method="POST" action="{{ route('purchase-orders.payment', $purchaseOrder) }}" style="display:flex; flex-direction:column; gap:8px;">
+                        @csrf
+                        <div class="form-group" style="margin-bottom:8px;">
+                            <select name="payment_type" class="form-input w-full" x-model="paymentType">
+                                <option value="full">Bayar Lunas</option>
+                                <option value="dp">Bayar DP</option>
+                            </select>
+                        </div>
+                        <div class="form-group" x-show="paymentType === 'dp'" style="margin-bottom:8px;">
+                            <input type="number" name="amount_paid" class="form-input w-full" placeholder="Nominal DP" min="1" max="{{ $purchaseOrder->total }}">
+                        </div>
+                        <button type="submit" class="btn btn--primary w-full" style="justify-content:center">Catat Pembayaran</button>
+                    </form>
+                </div>
+                @elseif($purchaseOrder->payment_status === 'partial')
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--text-muted)">Total Tagihan</span><span style="font-weight:600">Rp {{ number_format($purchaseOrder->total, 0, ',', '.') }}</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--text-muted)">Telah Dibayar</span><span style="font-weight:600">Rp {{ number_format($purchaseOrder->amount_paid, 0, ',', '.') }}</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed var(--border-light); padding-top:8px;"><span style="color:var(--text-muted)">Sisa</span><span style="font-weight:700; color:var(--red-600)">Rp {{ number_format($purchaseOrder->total - $purchaseOrder->amount_paid, 0, ',', '.') }}</span></div>
+                    <form method="POST" action="{{ route('purchase-orders.payment.settle', $purchaseOrder) }}" style="margin-top:8px;">
+                        @csrf
+                        <button type="submit" class="btn btn--primary w-full" style="justify-content:center">Lunasi Sisa</button>
+                    </form>
+                    <a href="{{ route('purchase-orders.pdf', ['purchaseOrder' => $purchaseOrder, 'type' => 'nota']) }}" target="_blank" class="btn btn--secondary w-full" style="justify-content:center; margin-top:4px;">Cetak Nota Pembayaran</a>
+                </div>
+                @elseif($purchaseOrder->payment_status === 'paid')
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--text-muted)">Total Tagihan</span><span style="font-weight:600">Rp {{ number_format($purchaseOrder->total, 0, ',', '.') }}</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:var(--text-muted)">Telah Dibayar</span><span style="font-weight:600">Rp {{ number_format($purchaseOrder->amount_paid, 0, ',', '.') }}</span></div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px dashed var(--border-light); padding-top:8px;"><span style="color:var(--text-muted)">Status</span><span style="font-weight:700; color:var(--green-700)">LUNAS</span></div>
+                    <a href="{{ route('purchase-orders.pdf', ['purchaseOrder' => $purchaseOrder, 'type' => 'nota']) }}" target="_blank" class="btn btn--secondary w-full" style="justify-content:center; margin-top:8px;">Cetak Nota Pembayaran</a>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
     </div>
 
     {{-- Kolom kanan: items --}}

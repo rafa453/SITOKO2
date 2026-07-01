@@ -26,6 +26,10 @@ class PurchaseOrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
         if ($request->filled('supplier_id')) {
             $query->where('supplier_id', $request->supplier_id);
         }
@@ -174,6 +178,61 @@ class PurchaseOrderController extends Controller
         $filename = 'PO-' . $purchaseOrder->code . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    public function storePayment(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        // Hanya admin
+        if (auth()->user()->role !== 'admin') abort(403);
+
+        // Guard: PO tidak boleh draft
+        abort_if($purchaseOrder->status === 'draft', 422, 'PO belum dikonfirmasi.');
+
+        // Guard: jangan proses kalau sudah ada payment
+        abort_if($purchaseOrder->payment_status !== 'unpaid', 422, 'Pembayaran sudah pernah dicatat.');
+
+        $request->validate([
+            'payment_type' => 'required|in:full,dp',
+            'amount_paid'  => 'required_if:payment_type,dp|nullable|numeric|min:1|max:' . $purchaseOrder->total,
+        ]);
+
+        DB::transaction(function () use ($request, $purchaseOrder) {
+            if ($request->payment_type === 'full') {
+                $purchaseOrder->update([
+                    'payment_type'   => 'full',
+                    'payment_status' => 'paid',
+                    'amount_paid'    => $purchaseOrder->total,
+                ]);
+            } else {
+                $purchaseOrder->update([
+                    'payment_type'   => 'dp',
+                    'payment_status' => 'partial',
+                    'amount_paid'    => $request->amount_paid,
+                ]);
+            }
+        });
+
+        return redirect()->route('purchase-orders.show', $purchaseOrder)
+            ->with('success', 'Pembayaran berhasil dicatat.');
+    }
+
+    public function settlePayment(PurchaseOrder $purchaseOrder)
+    {
+        // Hanya admin
+        if (auth()->user()->role !== 'admin') abort(403);
+
+        // Guard: hanya boleh dari status partial
+        abort_if($purchaseOrder->payment_status !== 'partial', 422, 'Status pembayaran tidak valid untuk dilunasi.');
+
+        DB::transaction(function () use ($purchaseOrder) {
+            $purchaseOrder->update([
+                'payment_status' => 'paid',
+                'amount_paid'    => $purchaseOrder->total,
+            ]);
+        });
+
+        return redirect()->route('purchase-orders.show', $purchaseOrder)
+            ->with('success', 'PO telah dilunasi.');
     }
 
     public function edit(PurchaseOrder $purchaseOrder)

@@ -16,11 +16,17 @@ class PurchaseOrder extends Model
         'received_at',
         'total',
         'notes',
+        'payment_type',
+        'payment_status',
+        'amount_paid',
     ];
 
     protected $casts = [
         'expected_at' => 'date',
         'received_at' => 'datetime',
+        'amount_paid' => 'decimal:2',
+        'payment_status' => 'string',
+        'payment_type' => 'string',
     ];
 
     public function supplier()
