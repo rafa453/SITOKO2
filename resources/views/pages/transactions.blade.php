@@ -67,56 +67,171 @@
     <div class="alert alert--success" style="margin-bottom:16px">{{ session('success') }}</div>
 @endif
 
-{{-- ===== STAT CARDS ===== --}}
-<div class="stats-grid">
+<div x-data="{ openModal: null }">
+    {{-- ===== STAT CARDS ===== --}}
+    <div class="stats-grid">
 
-    <div class="stat-card">
-        <div class="stat-card__header">
-            <span class="stat-card__label">Total Transactions</span>
+        <div class="stat-card" style="cursor:pointer" @click="openModal = 'all'">
+            <div class="stat-card__header">
+                <span class="stat-card__label">Total Transactions</span>
+            </div>
+            <div class="stat-card__value">{{ number_format($totalTransactions) }}</div>
+            <div class="stat-card__meta text-muted text-sm">Today</div>
         </div>
-        <div class="stat-card__value">{{ number_format($totalTransactions) }}</div>
-        <div class="stat-card__meta text-muted text-sm">Today</div>
+
+        <div class="stat-card" style="cursor:pointer" @click="openModal = 'revenue'">
+            <div class="stat-card__header">
+                <span class="stat-card__label">Total Revenue</span>
+            </div>
+            <div>
+                <div class="stat-card__rp">Rp</div>
+                <div class="stat-card__value">{{ number_format($totalRevenue, 0, ',', '.') }}</div>
+            </div>
+            <div class="stat-card__meta text-muted text-sm">Completed only</div>
+        </div>
+
+        <div class="stat-card" style="cursor:pointer; border-color:#FEE2E2; background:#FEF2F2" @click="openModal = 'voided'">
+            <div class="stat-card__header">
+                <span class="stat-card__label" style="color:#991B1B">Voided</span>
+                @if($voidedCount > 0)
+                    <span class="badge badge--red">Action Req.</span>
+                @endif
+            </div>
+            <div class="stat-card__value" style="color:#EF4444">{{ $voidedCount }}</div>
+            <div class="stat-card__meta text-sm" style="color:#991B1B">
+                Value: Rp {{ number_format($voidedValue, 0, ',', '.') }}
+            </div>
+        </div>
+
+        <div class="stat-card" style="cursor:pointer" @click="openModal = 'basket'">
+            <div class="stat-card__header">
+                <span class="stat-card__label">Avg. Basket Size</span>
+            </div>
+            <div>
+                <div class="stat-card__rp">Rp</div>
+                <div class="stat-card__value">{{ number_format($avgBasket, 0, ',', '.') }}</div>
+            </div>
+            <div class="stat-card__meta text-muted text-sm">Today's average</div>
+        </div>
+
     </div>
 
-    <div class="stat-card">
-        <div class="stat-card__header">
-            <span class="stat-card__label">Total Revenue</span>
-        </div>
-        <div>
-            <div class="stat-card__rp">Rp</div>
-            <div class="stat-card__value">{{ number_format($totalRevenue, 0, ',', '.') }}</div>
-        </div>
-        <div class="stat-card__meta text-muted text-sm">Completed only</div>
-    </div>
+    {{-- ===== POPUP MODALS ===== --}}
+    <div x-show="openModal" 
+         x-transition.opacity
+         style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;"
+         @click.self="openModal = null"
+         x-cloak>
 
-    <div class="stat-card" style="border-color:#FEE2E2; background:#FEF2F2">
-        <div class="stat-card__header">
-            <span class="stat-card__label" style="color:#991B1B">Voided</span>
-            @if($voidedCount > 0)
-                <span class="badge badge--red">Action Req.</span>
-            @endif
-        </div>
-        <div class="stat-card__value" style="color:#EF4444">{{ $voidedCount }}</div>
-        <div class="stat-card__meta text-sm" style="color:#991B1B">
-            Value: Rp {{ number_format($voidedValue, 0, ',', '.') }}
+        <div class="card" 
+             x-show="openModal"
+             x-transition.scale.85
+             style="width: 520px; max-width: 100%; max-height: 85vh; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); margin: auto;">
+            
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light)">
+                <div class="card-title" style="font-weight: 700; font-size: 16px;" x-text="
+                    openModal === 'all' ? 'All Transactions Today' :
+                    openModal === 'revenue' ? 'Completed Transactions' :
+                    openModal === 'voided' ? 'Voided Transactions' :
+                    'Avg. Basket Size Analysis'
+                "></div>
+                <button class="btn-icon" @click="openModal = null" style="background: none; border: none; cursor: pointer; color: var(--text-muted)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div style="overflow-y: auto; flex: 1; padding: 10px 0;">
+
+                <template x-if="openModal === 'all'">
+                    <div>
+                        @forelse($popupAllTx as $trx)
+                        <div style="display:flex; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--border-light); font-size:13px">
+                            <div>
+                                <div style="font-weight:600; color:var(--blue-600)">{{ $trx->code }}</div>
+                                <div class="text-muted text-sm">{{ $trx->created_at->format('H:i') }} • {{ $trx->cashier?->name ?? '-' }}</div>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-weight:600; margin-bottom: 4px;">Rp {{ number_format($trx->total, 0, ',', '.') }}</div>
+                                @if($trx->status === 'completed')
+                                    <span class="badge badge--green">COMPLETED</span>
+                                @else
+                                    <span class="badge badge--red">VOIDED</span>
+                                @endif
+                            </div>
+                        </div>
+                        @empty
+                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">No transactions today.</p>
+                        @endforelse
+                    </div>
+                </template>
+
+                <template x-if="openModal === 'revenue'">
+                    <div>
+                        @forelse($popupRevenueTx as $trx)
+                        <div style="display:flex; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--border-light); font-size:13px">
+                            <div>
+                                <div style="font-weight:600; color:var(--blue-600)">{{ $trx->code }}</div>
+                                <div class="text-muted text-sm">{{ $trx->created_at->format('H:i') }} • {{ $trx->cashier?->name ?? '-' }}</div>
+                            </div>
+                            <div style="font-weight:600; align-self: center;">Rp {{ number_format($trx->total, 0, ',', '.') }}</div>
+                        </div>
+                        @empty
+                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">No completed transactions today.</p>
+                        @endforelse
+                    </div>
+                </template>
+
+                <template x-if="openModal === 'voided'">
+                    <div>
+                        @forelse($popupVoidedTx as $trx)
+                        <div style="display:flex; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--border-light); font-size:13px">
+                            <div>
+                                <div style="font-weight:600; color:var(--blue-600)">{{ $trx->code }}</div>
+                                <div class="text-muted text-sm">{{ $trx->created_at->format('H:i') }} • {{ $trx->cashier?->name ?? '-' }}</div>
+                            </div>
+                            <div style="font-weight:600; color:#EF4444; align-self: center;">Rp {{ number_format($trx->total, 0, ',', '.') }}</div>
+                        </div>
+                        @empty
+                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">No voided transactions today.</p>
+                        @endforelse
+                    </div>
+                </template>
+
+                <template x-if="openModal === 'basket'">
+                    <div style="padding: 16px 20px;">
+                        <div style="text-align: center; padding: 20px 0; background: var(--border-light); border-radius: 6px; margin-bottom: 20px;">
+                            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Rata-rata Nilai per Transaksi</div>
+                            <div style="font-size: 28px; font-weight: 800; color: var(--blue-600); margin-top: 4px;">
+                                Rp {{ number_format($avgBasket, 0, ',', '.') }}
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13.5px;">
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-light)">
+                                <span style="color: var(--text-secondary)">Total Omset (Hari Ini)</span>
+                                <span style="font-weight: 600;">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-light)">
+                                <span style="color: var(--text-secondary)">Volume Transaksi Berhasil</span>
+                                <span style="font-weight: 600;">{{ $totalTransactions - $voidedCount }} Transaksi</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; padding: 12px; background: #EFF6FF; border-left: 4px solid #2563EB; border-radius: 4px; font-size: 12.5px; color: #1E40AF; line-height: 1.5;">
+                            <strong>💡 Metrik Basket Size:</strong> Nilai ini menunjukkan rata-rata jumlah uang yang dibelanjakan pelanggan dalam satu kali kunjungan ke kasir hari ini.
+                        </div>
+                    </div>
+                </template>
+
+            </div>
         </div>
     </div>
-
-    <div class="stat-card">
-        <div class="stat-card__header">
-            <span class="stat-card__label">Avg. Basket Size</span>
-        </div>
-        <div>
-            <div class="stat-card__rp">Rp</div>
-            <div class="stat-card__value">{{ number_format($avgBasket, 0, ',', '.') }}</div>
-        </div>
-        <div class="stat-card__meta text-muted text-sm">Today's average</div>
-    </div>
-
 </div>
 
 {{-- ===== CHART + PAYMENT BREAKDOWN ===== --}}
-<div class="card-grid card-grid--60-40">
+<div class="card-grid card-grid--60-40" style="margin-top: 24px;">
 
     {{-- Hourly Volume Chart --}}
     <div class="card">
@@ -168,7 +283,7 @@
 </div>
 
 {{-- ===== TRANSACTION LOG + DETAIL PANEL ===== --}}
-<div class="card-grid" style="grid-template-columns:1fr 380px"
+<div class="card-grid" style="grid-template-columns:1fr 380px; margin-top: 24px;"
      x-data="{
          selectedId: null,
          selected: null,
@@ -212,12 +327,12 @@
                             'amount_paid'    => $trx->amount_paid,
                             'change'         => $trx->change,
                             'items' => $trx->items->map(fn($i) => [
-                            'name'     => $i->product?->name ?? 'Produk Dihapus',
-                            'unit'     => $i->unit ?? '-',
-                            'qty'      => $i->qty,
-                            'price'    => $i->price,
-                            'subtotal' => $i->subtotal,
-                        ]),
+                                'name'     => $i->product?->name ?? 'Produk Dihapus',
+                                'unit'     => $i->unit ?? '-',
+                                'qty'      => $i->qty,
+                                'price'    => $i->price,
+                                'subtotal' => $i->subtotal,
+                            ]),
                         ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
                     @endphp
                     <tr style="cursor:pointer"

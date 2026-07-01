@@ -54,10 +54,8 @@ class TransactionController extends Controller
         $totalTransactions = Transaction::whereDate('created_at', $today)->count();
         $totalRevenue      = Transaction::whereDate('created_at', $today)
             ->where('status', 'completed')->sum('total');
-        $voidedCount       = Transaction::whereDate('created_at', $today)
-            ->where('status', 'voided')->count();
-        $voidedValue       = Transaction::whereDate('created_at', $today)
-            ->where('status', 'voided')->sum('total');
+        $voidedCount       = Transaction::where('status', 'voided')->count();
+        $voidedValue       = Transaction::where('status', 'voided')->sum('total');
         $avgBasket         = Transaction::whereDate('created_at', $today)
             ->where('status', 'completed')->avg('total') ?? 0;
 
@@ -75,11 +73,22 @@ class TransactionController extends Controller
         ->orderBy('hour')
         ->pluck('count', 'hour');
 
+         // ↓ TAMBAH DI SINI ↓
+        $todayQuery = Transaction::with(['cashier'])->whereDate('created_at', $today);
+        if (auth()->user()->role === 'cashier') {
+            $todayQuery->where('cashier_id', auth()->id());
+        }
+
+        $popupAllTx     = (clone $todayQuery)->latest()->get();
+        $popupRevenueTx = (clone $todayQuery)->where('status', 'completed')->latest()->get();
+        $popupVoidedTx  = (clone $todayQuery)->where('status', 'voided')->latest()->get();
+
         return view('pages.transactions', compact(
             'transactions',
             'totalTransactions', 'totalRevenue',
             'voidedCount', 'voidedValue', 'avgBasket',
-            'paymentBreakdown', 'hourlyVolume'
+            'paymentBreakdown', 'hourlyVolume',
+            'popupAllTx', 'popupRevenueTx', 'popupVoidedTx' 
         ));
     }
 

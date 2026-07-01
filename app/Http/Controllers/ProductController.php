@@ -31,25 +31,26 @@ class ProductController extends Controller
         $products   = $query->paginate(10)->withQueryString();
         $categories = Product::select('category')->distinct()->pluck('category');
 
-        // Stat cards
-        $totalSkus        = Product::count();
-        $lowStockCount    = Product::whereColumn('qty', '<=', 'threshold')->where('qty', '>', 0)->count();
-        $outOfStockCount  = Product::where('qty', 0)->count();
-        $stockValue       = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
+        $totalSkus       = Product::count();
+        $lowStockCount   = Product::whereColumn('qty', '<=', 'threshold')->where('qty', '>', 0)->count();
+        $outOfStockCount = Product::where('qty', 0)->count();
+        $stockValue      = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
 
-        // Category breakdown
         $categoryBreakdown = Product::selectRaw('category, COUNT(*) as count')
             ->groupBy('category')
             ->orderByDesc('count')
             ->get();
 
-        // Stock alerts (5 paling kritis)
+        $stockValueByCategory = Product::selectRaw('category, SUM(qty * sell_price) as value')
+            ->groupBy('category')
+            ->orderByDesc('value')
+            ->get();
+
         $stockAlerts = Product::whereColumn('qty', '<=', 'threshold')
             ->orderBy('qty')
             ->limit(5)
             ->get();
 
-        // Suppliers (nanti dari tabel suppliers, sementara hardcode)
         $suppliers = collect([
             ['initials'=>'SJ','name'=>'Sembako Jaya',  'desc'=>'Rice, Flour, Staple Goods','phone'=>'+62 21 555-0123','last'=>'Oct 24, 2023'],
             ['initials'=>'SM','name'=>'Sumber Makmur', 'desc'=>'Cooking Oil, Margarine',   'phone'=>'+62 21 555-0987','last'=>'Oct 21, 2023'],
@@ -59,7 +60,7 @@ class ProductController extends Controller
         return view('pages.inventory', compact(
             'products', 'categories',
             'totalSkus', 'lowStockCount', 'outOfStockCount', 'stockValue',
-            'categoryBreakdown', 'stockAlerts', 'suppliers'
+            'categoryBreakdown', 'stockValueByCategory', 'stockAlerts', 'suppliers'
         ));
     }
 
@@ -72,16 +73,15 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'              => 'required|string|max:255',
-            'sku'               => 'required|string|max:100|unique:products,sku',
-            'brand_id'          => 'nullable|exists:brands,id',
-            'category'          => 'required|string|max:100',
-            'unit'              => 'required|string|max:50',
-            'buy_price'         => 'required|numeric|min:0',
-            'sell_price'        => 'required|numeric|min:0',
-            'qty'               => 'required|integer|min:0',
-            'threshold'         => 'required|integer|min:0',
-            'description'       => 'nullable|string',
+            'name'        => 'required|string|max:255',
+            'brand_id'    => 'nullable|exists:brands,id',
+            'category'    => 'required|string|max:100',
+            'unit'        => 'required|string|max:50',
+            'buy_price'   => 'required|numeric|min:0',
+            'sell_price'  => 'required|numeric|min:0',
+            'qty'         => 'required|integer|min:0',
+            'threshold'   => 'required|integer|min:0',
+            'description' => 'nullable|string',
             'supplier_ids'      => 'nullable|array',
             'supplier_ids.*'    => 'exists:suppliers,id',
             'supplier_prices'   => 'nullable|array',
@@ -89,14 +89,19 @@ class ProductController extends Controller
         ]);
 
         $product = DB::transaction(function () use ($validated) {
+            $brandName = !empty($validated['brand_id'])
+                ? \App\Models\Brand::find($validated['brand_id'])->name
+                : 'NOBRAND';
+
+            $validated['sku'] = \App\Models\Product::generateSku(
+                $validated['category'],
+                $brandName
+            );
+
             $product = Product::create($validated);
 
             // Attach suppliers dengan supplier_sku
             if (!empty($validated['supplier_ids'])) {
-                $brandName = $validated['brand_id']
-                    ? \App\Models\Brand::find($validated['brand_id'])->name
-                    : 'NOBRAND';
-
                 foreach ($validated['supplier_ids'] as $index => $supplierId) {
                     $supplier = \App\Models\Supplier::find($supplierId);
                     $supplierSku = \App\Models\Product::generateSupplierSku(
@@ -115,7 +120,7 @@ class ProductController extends Controller
             return $product;
         });
 
-        activity()->log("Tambah produk: {$product->name} (SKU: {$product->sku})");
+        ActivityLog::record('PRODUCT', 'Tambah produk', $product->name);
 
         return redirect()->route('inventory.index')->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -129,16 +134,15 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name'              => 'required|string|max:255',
-            'sku'               => 'required|string|max:100|unique:products,sku,' . $product->id,
-            'brand_id'          => 'nullable|exists:brands,id',
-            'category'          => 'required|string|max:100',
-            'unit'              => 'required|string|max:50',
-            'buy_price'         => 'required|numeric|min:0',
-            'sell_price'        => 'required|numeric|min:0',
-            'qty'               => 'required|integer|min:0',
-            'threshold'         => 'required|integer|min:0',
-            'description'       => 'nullable|string',
+            'name'        => 'required|string|max:255',
+            'brand_id'    => 'nullable|exists:brands,id',
+            'category'    => 'required|string|max:100',
+            'unit'        => 'required|string|max:50',
+            'buy_price'   => 'required|numeric|min:0',
+            'sell_price'  => 'required|numeric|min:0',
+            'qty'         => 'required|integer|min:0',
+            'threshold'   => 'required|integer|min:0',
+            'description' => 'nullable|string',
             'supplier_ids'      => 'nullable|array',
             'supplier_ids.*'    => 'exists:suppliers,id',
             'supplier_prices'   => 'nullable|array',
@@ -154,7 +158,7 @@ class ProductController extends Controller
             // Sync suppliers — supplier baru dapat supplier_sku baru
             $syncData = [];
             if (!empty($validated['supplier_ids'])) {
-                $brandName = $validated['brand_id']
+                $brandName = !empty($validated['brand_id'])
                     ? \App\Models\Brand::find($validated['brand_id'])->name
                     : 'NOBRAND';
 
@@ -192,7 +196,7 @@ class ProductController extends Controller
                 ['old_qty' => $oldQty, 'new_qty' => $product->qty, 'diff' => $product->qty - $oldQty]
             );
         } else {
-            activity()->log("Update produk: {$product->name}");
+            ActivityLog::record('PRODUCT', 'Update produk', $product->name);
         }
 
         return redirect()->route('inventory.index')->with('success', 'Produk berhasil diupdate.');
@@ -200,12 +204,9 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        // Cek apakah produk pernah dipakai di transaksi, pemesanan, atau retur
-        if ($product->transactionItems()->exists() || 
-            $product->purchaseOrderItems()->exists() || 
-            $product->supplierReturnItems()->exists()) {
+        if ($product->transactionItems()->exists()) {
             return redirect()->route('inventory.index')
-                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena memiliki riwayat transaksi, pemesanan (PO), atau retur supplier.");
+                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena memiliki riwayat transaksi.");
         }
 
         $product->delete();
@@ -213,7 +214,6 @@ class ProductController extends Controller
             ->with('success', 'Produk berhasil dihapus.');
     }
 
-    // Restock langsung dari tabel
     public function restock(Request $request, Product $product)
     {
         $request->validate(['qty' => 'required|integer|min:1']);

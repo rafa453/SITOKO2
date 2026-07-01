@@ -226,25 +226,6 @@
                         Cancel
                     </a>
 
-                    @if(isset($product))
-                    <div style="border-top:1px solid var(--border-light); padding-top:10px; margin-top:4px">
-                        <form method="POST" action="{{ route('inventory.destroy', $product->id) }}"
-                              onsubmit="return confirm('Hapus produk ini? Tindakan tidak bisa dibatalkan.')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn--danger"
-                                    style="width:100%; justify-content:center; padding:11px; font-size:12.5px">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6l-1 14H6L5 6"/>
-                                    <path d="M10 11v6M14 11v6"/>
-                                    <path d="M9 6V4h6v2"/>
-                                </svg>
-                                Delete Product
-                            </button>
-                        </form>
-                    </div>
-                    @endif
                 </div>
             </div>
 
@@ -252,6 +233,32 @@
 
     </div>
 
-</form>
+</form>{{-- ← form UPDATE ditutup di sini, SEBELUM form DELETE --}}
+
+                    @if(isset($product))
+                    <div style="position:sticky; top:20px; margin-top:-16px; padding: 0 0 20px 0; display:flex; flex-direction:column; gap:0">
+                        <div class="card">
+                            <div class="card-body" style="padding-top:0; border-top:1px solid var(--border-light)">
+                                <div style="border-top:1px solid var(--border-light); padding-top:10px; margin-top:4px">
+                                    <form method="POST" action="{{ route('inventory.destroy', $product->id) }}"
+                                          onsubmit="return confirm('Hapus produk ini? Tindakan tidak bisa dibatalkan.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn--danger"
+                                                style="width:100%; justify-content:center; padding:11px; font-size:12.5px">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6l-1 14H6L5 6"/>
+                                                <path d="M10 11v6M14 11v6"/>
+                                                <path d="M9 6V4h6v2"/>
+                                            </svg>
+                                            Delete Product
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
 @endsection
