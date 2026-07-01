@@ -59,7 +59,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/transactions/{transaction}/void', [TransactionController::class, 'void'])->name('transactions.void');
 
         // Staff
-        Route::resource('staff', StaffController::class);
+        Route::resource('staff', StaffController::class)->except(['destroy']);
 
         // Suppliers
         Route::resource('suppliers', SupplierController::class)->except(['show']);

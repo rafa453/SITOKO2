@@ -6,47 +6,14 @@
 
 @section('header-actions')
     <form method="GET" action="{{ route('inventory.index') }}" class="filter-bar" id="filterForm">
-        <div class="search-input-wrapper" style="width:220px">
+        <div class="search-input-wrapper" style="width:250px">
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input type="text" name="search" class="form-input" placeholder="Search product..."
+            <input type="text" name="search" class="form-input w-full" placeholder="Search product..."
                 value="{{ request('search') }}"
                 onchange="this.form.submit()">
         </div>
-
-        <select name="category" class="form-select" style="width:150px" onchange="this.form.submit()">
-            <option value="">All Categories</option>
-            @foreach($categories as $cat)
-                <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
-                    {{ $categoryLabels[$cat] ?? $cat }}
-                </option>
-            @endforeach
-        </select>
-
-        <select name="brand_id" class="form-select" style="width:140px" onchange="this.form.submit()">
-            <option value="">All Brands</option>
-            @foreach($filterBrands as $brand)
-                <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
-                    {{ $brand->name }}
-                </option>
-            @endforeach
-        </select>
-
-        <select name="supplier_id" class="form-select" style="width:140px" onchange="this.form.submit()">
-            <option value="">All Suppliers</option>
-            @foreach($filterSuppliers as $sup)
-                <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
-                    {{ $sup->name }}
-                </option>
-            @endforeach
-        </select>
-
-        <select name="status" class="form-select" style="width:140px" onchange="this.form.submit()">
-            <option value="">Stock Status</option>
-            <option value="low" {{ request('status') == 'low' ? 'selected' : '' }}>Low Stock</option>
-            <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Out of Stock</option>
-        </select>
     </form>
 
     <a href="{{ route('inventory.create') }}" class="btn btn--primary">
@@ -307,14 +274,62 @@
 </div>
 
 {{-- ===== PRODUCT INVENTORY TABLE ===== --}}
-<div class="card" id="productInventoryCard">
+<div class="card" id="productInventoryCard" style="overflow: visible;">
     <div class="card-header">
         <div class="card-title">Product Inventory</div>
-        <button class="btn-icon" title="Filter" onclick="document.getElementById('filterForm').scrollIntoView({behavior:'smooth'})">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-            </svg>
-        </button>
+        
+        <div style="position: relative;" x-data="{ showFilters: false }">
+            <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+            </button>
+
+            {{-- Floating Filter Popover --}}
+            <div x-show="showFilters" 
+                 @click.away="showFilters = false" 
+                 style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:260px; margin-top:8px;">
+            
+            <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
+                Filter Products
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:10px">
+                <select name="category" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                    <option value="">All Categories</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
+                            {{ $categoryLabels[$cat] ?? $cat }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="brand_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                    <option value="">All Brands</option>
+                    @foreach($filterBrands as $brand)
+                        <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
+                            {{ $brand->name }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="supplier_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                    <option value="">All Suppliers</option>
+                    @foreach($filterSuppliers as $sup)
+                        <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
+                            {{ $sup->name }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select name="status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                    <option value="">Stock Status</option>
+                    <option value="low" {{ request('status') == 'low' ? 'selected' : '' }}>Low Stock</option>
+                    <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Out of Stock</option>
+                </select>
+            </div>
+        </div>
+        </div>
     </div>
 
     <div class="data-table-wrapper" style="border:none; border-radius:0">
@@ -401,6 +416,7 @@
 </div>
 
 {{-- ===== SUPPLIER QUICK REFERENCE ===== --}}
+@if(auth()->check() && auth()->user()->role === 'admin')
 <div class="card">
     <div class="card-header">
         <div class="card-title">Supplier Quick Reference</div>
@@ -442,6 +458,7 @@
         </div>
     </div>
 </div>
+@endif
 
 {{-- ===== MODAL ===== --}}
 <div class="inv-modal-overlay" id="invModalOverlay" onclick="if(event.target === this) closeInvModal()">

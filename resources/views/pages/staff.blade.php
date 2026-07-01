@@ -441,26 +441,14 @@
                     <td>
                         <div style="display:flex; gap:4px">
                             <button class="btn-icon" title="Edit"
-                                onclick="openEditModal({{ $s->id }}, '{{ addslashes($s->name) }}', '{{ $s->role }}', '{{ $s->phone }}', '{{ $s->shift }}')">
+                                onclick="openEditModal({{ $s->id }}, '{{ addslashes($s->name) }}', '{{ $s->status }}', '{{ $s->phone }}', '{{ $s->shift }}')">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                 </svg>
                             </button>
 
-                            @if($s->status === 'active')
-                            <form method="POST" action="{{ route('staff.destroy', $s->id) }}"
-                                  onsubmit="return confirm('Nonaktifkan {{ addslashes($s->name) }}?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn-icon" title="Deactivate" style="color:var(--red-500)">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                                    </svg>
-                                </button>
-                            </form>
-                            @endif
+
                         </div>
                     </td>
                 </tr>
@@ -587,12 +575,7 @@
                 <input type="email" name="email" class="form-input w-full" required placeholder="email@example.com">
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
-                <div>
-                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
-                    <select name="role" class="form-select w-full" required>
-                        <option value="cashier">Cashier</option>
-                    </select>
-                </div>
+
                 <div>
                     <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Shift</label>
                     <select name="shift" class="form-select w-full" required>
@@ -637,10 +620,10 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
                 <div>
-                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Role</label>
-                    <select id="editRole" name="role" class="form-select w-full" required>
-                        <option value="cashier">Cashier</option>
-                        <option value="admin">Admin</option>
+                    <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Status</label>
+                    <select id="editStatus" name="status" class="form-select w-full" required>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
                     </select>
                 </div>
                 <div>
@@ -681,12 +664,12 @@
 </div>
 
 <script>
-function openEditModal(id, name, role, phone, shift) {
+function openEditModal(id, name, status, phone, shift) {
     const form = document.getElementById('editStaffForm');
     form.action = '/staff/' + id;
-    document.getElementById('editName').value  = name;
-    document.getElementById('editPhone').value = phone || '';
-    document.getElementById('editRole').value  = role;
+    document.getElementById('editName').value   = name;
+    document.getElementById('editPhone').value  = phone || '';
+    document.getElementById('editStatus').value = status;
     document.getElementById('editShift').value = shift;
     document.getElementById('modalEditStaff').style.display = 'flex';
 }

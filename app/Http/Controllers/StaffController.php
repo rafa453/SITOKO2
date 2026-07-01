@@ -89,7 +89,6 @@ class StaffController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'role'     => 'required|in:admin,cashier',
             'phone'    => 'nullable|string|max:20',
             'shift'    => 'required|in:pagi,siang,malam',
             'password' => 'required|string|min:8',
@@ -98,7 +97,7 @@ class StaffController extends Controller
         User::create([
             'name'     => $request->name,
             'email'    => $request->email,
-            'role'     => $request->role,
+            'role'     => 'cashier',
             'phone'    => $request->phone,
             'shift'    => $request->shift,
             'status'   => 'active',
@@ -108,30 +107,26 @@ class StaffController extends Controller
         return back()->with('success', 'Staff berhasil ditambahkan.');
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $staff)
     {
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'role'  => 'required|in:admin,cashier',
-            'phone' => 'nullable|string|max:20',
-            'shift' => 'required|in:pagi,siang,malam',
+            'name'   => 'required|string|max:255',
+            'phone'  => 'nullable|string|max:20',
+            'shift'  => 'required|in:pagi,siang,malam',
+            'status' => 'required|in:active,inactive',
         ]);
 
-        $user->update($request->only('name', 'role', 'phone', 'shift'));
+        if ($request->status === 'inactive') {
+            if ($staff->id === auth()->id()) {
+                return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
+            }
+            if ($staff->role === 'admin') {
+                return back()->with('error', 'Akun administrator utama tidak dapat dinonaktifkan.');
+            }
+        }
+
+        $staff->update($request->only('name', 'phone', 'shift', 'status'));
 
         return back()->with('success', 'Data staff berhasil diperbarui.');
-    }
-
-    public function destroy(User $user)
-    {
-        if ($user->id === auth()->id()) {
-            return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
-        }
-        if ($user->role === 'admin') {
-            return back()->with('error', 'Akun administrator utama tidak dapat dinonaktifkan.');
-        }
-
-        $user->update(['status' => 'inactive']);
-        return back()->with('success', 'Staff berhasil dinonaktifkan.');
     }
 }
