@@ -29,6 +29,105 @@
     </button>
 @endsection
 
+@push('styles')
+<style>
+.stat-card--clickable {
+    cursor: pointer;
+    position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.stat-card--clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    border-color: var(--blue-600, #2563EB);
+}
+.stat-card--clickable:active {
+    transform: translateY(0);
+}
+.stat-card--clickable .stat-card__goto {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--border-light, #F1F5F9);
+    color: var(--text-muted, #94A3B8);
+    transition: background .15s ease, color .15s ease, transform .15s ease;
+}
+.stat-card--clickable:hover .stat-card__goto {
+    background: var(--blue-600, #2563EB);
+    color: #fff;
+    transform: translateX(2px);
+}
+
+/* ── Staff Detail Modal ── */
+.staff-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.staff-modal-overlay.is-open {
+    display: flex;
+}
+.staff-modal {
+    background: #fff;
+    border-radius: var(--radius, 10px);
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    animation: staff-modal-in .18s ease;
+}
+@keyframes staff-modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.staff-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light, #F1F5F9);
+}
+.staff-modal__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary, #0F172A);
+}
+.staff-modal__close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--border-light, #F1F5F9);
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s ease;
+}
+.staff-modal__close:hover {
+    background: #E2E8F0;
+}
+.staff-modal__body {
+    padding: 18px 20px;
+    overflow-y: auto;
+}
+</style>
+@endpush
+
 @section('content')
 
 @if(session('success'))
@@ -38,7 +137,12 @@
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
 
-    <div class="stat-card" onclick="document.getElementById('staffDirectory').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
+    <div class="stat-card stat-card--clickable" onclick="openStaffModal('staffDirectory', 'Staff Directory')">
+            <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">Total Staff</span>
             <div class="stat-card__icon" style="background:#EFF6FF">
@@ -53,7 +157,12 @@
         <div class="stat-card__meta text-muted text-sm">Registered accounts</div>
     </div>
 
-    <div class="stat-card" onclick="document.getElementById('onDutyList').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
+    <div class="stat-card stat-card--clickable" onclick="openStaffModal('onDutyList', 'Currently On Duty')">
+        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">On Duty Today</span>
             <span class="status-dot status-dot--green"></span>
@@ -64,7 +173,11 @@
         <div class="stat-card__meta text-sm" style="color:var(--green-700); font-weight:600">Currently clocked in</div>
     </div>
 
-    <div class="stat-card" onclick="document.getElementById('shiftSchedule').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
+        <div class="stat-card stat-card--clickable" onclick="openStaffModal('onDutyList', 'Active Shift')">        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">Active Shift</span>
             <div class="stat-card__icon" style="background:#FFF7ED">
@@ -83,7 +196,12 @@
         <div class="stat-card__meta text-muted text-sm">{{ $shiftHours }}</div>
     </div>
 
-    <div class="stat-card" onclick="document.getElementById('topPerformers').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
+    <div class="stat-card stat-card--clickable" onclick="openStaffModal('topPerformers', 'Top Performers')">
+        <span class="stat-card__goto">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+            </svg>
+        </span>
         <div class="stat-card__header">
             <span class="stat-card__label">Avg. Trans / Today</span>
         </div>
@@ -124,8 +242,9 @@
                     $isActive   = $type === $currentShiftType;
                 @endphp
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px;
-                            border:1px solid var(--border); border-radius:var(--radius);
-                            background:{{ $isActive ? 'var(--border-light)' : 'var(--surface)' }}">
+                            border:1px solid var(--border); border-radius:var(--radius); cursor:pointer;
+                            background:{{ $isActive ? 'var(--border-light)' : 'var(--surface)' }}"
+                     onclick="openStaffModal('shiftDetail-{{ $type }}', '{{ $config['label'] }} Shift Detail')">
                     <div>
                         <div style="font-size:14px; font-weight:700">{{ $config['label'] }}</div>
                         <div style="font-size:12px; color:var(--text-muted)">{{ $config['hours'] }}</div>
@@ -152,6 +271,41 @@
                     @else
                         <span class="badge badge--gray">Vacant</span>
                     @endif
+                </div>
+
+                {{-- Hidden detail block, di-clone ke popup saat baris diklik --}}
+                <div id="shiftDetail-{{ $type }}" style="display:none">
+                    <div class="card-body" style="display:flex; flex-direction:column; gap:10px; padding:0">
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-light)">
+                            <span class="text-muted text-sm">Jam Shift</span>
+                            <span style="font-weight:700; font-size:13px">{{ $config['hours'] }} WIB</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-light)">
+                            <span class="text-muted text-sm">Status</span>
+                            @if($isActive)
+                                <span class="badge badge--green">Active</span>
+                            @elseif($shiftStaff && $shiftStaff->count() > 0)
+                                <span class="badge badge--blue">Scheduled</span>
+                            @else
+                                <span class="badge badge--gray">Vacant</span>
+                            @endif
+                        </div>
+                        <div style="padding-top:6px">
+                            <div class="text-muted text-sm" style="margin-bottom:8px">Staff Assigned</div>
+                            @if($shiftStaff && $shiftStaff->count() > 0)
+                                @foreach($shiftStaff as $sh)
+                                <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-light)">
+                                    <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
+                                        {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
+                                    </div>
+                                    <span style="font-size:13px; font-weight:600">{{ $sh->user->name ?? '—' }}</span>
+                                </div>
+                                @endforeach
+                            @else
+                                <p class="text-muted text-sm">No assignment yet for this shift.</p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             @endforeach
         </div>
@@ -511,6 +665,21 @@
     </div>
 </div>
 
+{{-- ===== MODAL: STAT CARD DETAIL POPUP ===== --}}
+<div class="staff-modal-overlay" id="staffModalOverlay" onclick="if(event.target === this) closeStaffModal()">
+    <div class="staff-modal">
+        <div class="staff-modal__header">
+            <div class="staff-modal__title" id="staffModalTitle">Detail</div>
+            <button type="button" class="staff-modal__close" onclick="closeStaffModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="staff-modal__body" id="staffModalBody"></div>
+    </div>
+</div>
+
 <script>
 function openEditModal(id, name, role, phone, shift) {
     const form = document.getElementById('editStaffForm');
@@ -521,6 +690,38 @@ function openEditModal(id, name, role, phone, shift) {
     document.getElementById('editShift').value = shift;
     document.getElementById('modalEditStaff').style.display = 'flex';
 }
+
+// ── Stat Card Detail Popup: clone existing section into modal ──
+function openStaffModal(sectionId, title) {
+    const source = document.getElementById(sectionId);
+    if (!source) return;
+
+    // Ambil isi card-body / data-table-wrapper dari section sumber, skip header biar gak duplikat judul
+    const sourceBody = source.querySelector('.card-body, .data-table-wrapper');
+    const modalBody  = document.getElementById('staffModalBody');
+    const modalTitle = document.getElementById('staffModalTitle');
+
+    modalTitle.textContent = title;
+    modalBody.innerHTML = '';
+
+    if (sourceBody) {
+        modalBody.appendChild(sourceBody.cloneNode(true));
+    } else {
+        modalBody.innerHTML = '<p class="text-muted text-sm">No data available.</p>';
+    }
+
+    document.getElementById('staffModalOverlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeStaffModal() {
+    document.getElementById('staffModalOverlay').classList.remove('is-open');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeStaffModal();
+});
 </script>
 
 @endsection

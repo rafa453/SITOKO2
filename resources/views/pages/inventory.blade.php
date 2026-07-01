@@ -39,19 +39,97 @@
     </a>
 @endsection
 
+@push('styles')
+<style>
+.stat-card--clickable {
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.stat-card--clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+.stat-card--clickable:active {
+    transform: translateY(0);
+}
+
+/* ── Inventory Detail Modal ── */
+.inv-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.inv-modal-overlay.is-open {
+    display: flex;
+}
+.inv-modal {
+    background: #fff;
+    border-radius: var(--radius, 10px);
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    animation: inv-modal-in .18s ease;
+}
+@keyframes inv-modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.inv-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light, #F1F5F9);
+}
+.inv-modal__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary, #0F172A);
+}
+.inv-modal__close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: var(--border-light, #F1F5F9);
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s ease;
+}
+.inv-modal__close:hover {
+    background: #E2E8F0;
+}
+.inv-modal__body {
+    padding: 18px 20px;
+    overflow-y: auto;
+}
+</style>
+@endpush
+
 @section('content')
 
-{{-- ===== FLASH MESSAGE ===== --}}
 @if(session('success'))
-    <div class="alert alert--success" style="margin-bottom:16px">
-        {{ session('success') }}
-    </div>
+    <div class="alert alert--success" style="margin-bottom:16px">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert--error" style="margin-bottom:16px">{{ session('error') }}</div>
 @endif
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
 
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openInvModal('productInventoryCard', 'Product Inventory')">
         <div class="stat-card__header">
             <span class="stat-card__label">Total SKUs</span>
             <div class="stat-card__icon" style="background:#EFF6FF">
@@ -64,7 +142,7 @@
         <div class="stat-card__meta text-muted text-sm">Active Products</div>
     </div>
 
-    <div class="stat-card" style="border-color:#FEF3C7; background:#FFFBEB">
+    <div class="stat-card stat-card--clickable" style="border-color:#FEF3C7; background:#FFFBEB" onclick="openInvModal('stockAlertsCard', 'Stock Alerts')">
         <div class="stat-card__header">
             <span class="stat-card__label" style="color:#92400E">Low Stock</span>
             <div class="stat-card__icon" style="background:#FEF3C7">
@@ -81,7 +159,7 @@
         </div>
     </div>
 
-    <div class="stat-card" style="border-color:#FEE2E2; background:#FEF2F2">
+    <div class="stat-card stat-card--clickable" style="border-color:#FEE2E2; background:#FEF2F2" onclick="openInvModal('stockAlertsCard', 'Stock Alerts')">
         <div class="stat-card__header">
             <span class="stat-card__label" style="color:#991B1B">Out of Stock</span>
             <div class="stat-card__icon" style="background:#FEE2E2">
@@ -98,7 +176,7 @@
         </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card stat-card--clickable" onclick="openInvModal('stockValueByCategoryCard', 'Stock Value by Category')">
         <div class="stat-card__header">
             <span class="stat-card__label">Stock Value</span>
             <div class="stat-card__icon" style="background:#F0FDF4">
@@ -119,7 +197,6 @@
 {{-- ===== CATEGORY BREAKDOWN + STOCK ALERTS ===== --}}
 <div class="card-grid card-grid--60-40">
 
-    {{-- Category Breakdown --}}
     <div class="card">
         <div class="card-header">
             <div class="card-title">Category Breakdown</div>
@@ -152,8 +229,7 @@
         </div>
     </div>
 
-    {{-- Stock Alerts --}}
-    <div class="card">
+    <div class="card" id="stockAlertsCard">
         <div class="card-header">
             <div class="card-title">Stock Alerts</div>
             <span class="badge badge--red">{{ $stockAlerts->count() }}</span>
@@ -188,17 +264,39 @@
 
 </div>
 
+{{-- Stock Value by Category (hidden, sumber popup) --}}
+<div id="stockValueByCategoryCard" style="display:none">
+    <div class="card-body" style="display:flex; flex-direction:column; gap:14px; padding:0">
+        @php $svMax = $stockValueByCategory->max('value') ?: 1; @endphp
+        @foreach($stockValueByCategory as $i => $cat)
+        <div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px">
+                <span style="font-size:13px; font-weight:500">{{ $cat->category ?? 'Uncategorized' }}</span>
+                <span style="font-size:13px; color:var(--text-muted)">Rp {{ number_format($cat->value, 0, ',', '.') }}</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-bar__fill"
+                     style="width:{{ round($cat->value / $svMax * 100) }}%;
+                            background:{{ $catColors[$i % count($catColors)] }}">
+                </div>
+            </div>
+        </div>
+        @endforeach
+        @if($stockValueByCategory->isEmpty())
+            <p class="text-muted text-sm">No data available.</p>
+        @endif
+    </div>
+</div>
+
 {{-- ===== PRODUCT INVENTORY TABLE ===== --}}
-<div class="card">
+<div class="card" id="productInventoryCard">
     <div class="card-header">
         <div class="card-title">Product Inventory</div>
-        <div style="display:flex; gap:8px">
-            <button class="btn-icon" title="Filter" onclick="document.getElementById('filterForm').scrollIntoView({behavior:'smooth'})">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-            </button>
-        </div>
+        <button class="btn-icon" title="Filter" onclick="document.getElementById('filterForm').scrollIntoView({behavior:'smooth'})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+        </button>
     </div>
 
     <div class="data-table-wrapper" style="border:none; border-radius:0">
@@ -221,9 +319,7 @@
                 @forelse($products as $p)
                 <tr>
                     <td class="table-id">{{ $p->sku }}</td>
-                    <td>
-                        <div style="font-weight:600; font-size:13px">{{ $p->name }}</div>
-                    </td>
+                    <td><div style="font-weight:600; font-size:13px">{{ $p->name }}</div></td>
                     <td class="text-secondary">{{ $p->category }}</td>
                     <td class="text-secondary">{{ $p->unit }}</td>
                     <td>
@@ -277,7 +373,6 @@
             </tbody>
         </table>
     </div>
-
     {{ $products->links('vendor.pagination.custom') }}
 </div>
 
@@ -292,7 +387,6 @@
             @php
                 $supplierColors = ['var(--blue-600)', 'var(--green-500)', 'var(--amber-500)', 'var(--purple-500)', 'var(--red-500)'];
             @endphp
-
             @foreach($suppliers as $i => $s)
             <div style="border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px">
                 <div style="display:flex; align-items:center; gap:10px">
@@ -324,5 +418,39 @@
         </div>
     </div>
 </div>
+
+{{-- ===== MODAL ===== --}}
+<div class="inv-modal-overlay" id="invModalOverlay" onclick="if(event.target === this) closeInvModal()">
+    <div class="inv-modal">
+        <div class="inv-modal__header">
+            <div class="inv-modal__title" id="invModalTitle">Detail</div>
+            <button type="button" class="inv-modal__close" onclick="closeInvModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="inv-modal__body" id="invModalBody"></div>
+    </div>
+</div>
+
+<script>
+function openInvModal(sectionId, title) {
+    const source = document.getElementById(sectionId);
+    if (!source) return;
+    const sourceBody = source.querySelector('.card-body, .data-table-wrapper') || source;
+    const modalBody  = document.getElementById('invModalBody');
+    document.getElementById('invModalTitle').textContent = title;
+    modalBody.innerHTML = '';
+    modalBody.appendChild(sourceBody.cloneNode(true));
+    document.getElementById('invModalOverlay').classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+}
+function closeInvModal() {
+    document.getElementById('invModalOverlay').classList.remove('is-open');
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInvModal(); });
+</script>
 
 @endsection

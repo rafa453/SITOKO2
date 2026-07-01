@@ -55,7 +55,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/inventory/{product}/restock', [ProductController::class, 'restock'])->name('inventory.restock');
 
         // Transactions — void admin
-        Route::post('/transactions/{id}/void', [TransactionController::class, 'void'])->name('transactions.void');
+       Route::post('/transactions/{transaction}/void', [TransactionController::class, 'void'])->name('transactions.void');
+
 
         // Staff
         Route::resource('staff', StaffController::class);

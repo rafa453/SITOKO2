@@ -42,7 +42,7 @@
     position: absolute;
     top: 14px;
     right: 14px;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     width: 22px;
