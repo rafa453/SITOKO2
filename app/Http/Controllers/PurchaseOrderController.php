@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PurchaseOrderController extends Controller
 {
@@ -110,6 +111,29 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->load(['supplier', 'creator', 'receiver', 'items.product']);
         return view('pages.purchase-order-show', compact('purchaseOrder'));
+    }
+
+    public function downloadPdf(PurchaseOrder $purchaseOrder)
+    {
+        // Authorization: hanya admin
+        if (auth()->user()->role !== 'admin') {
+            abort(403);
+        }
+
+        // Eager load semua relasi yang dibutuhkan template
+        $purchaseOrder->load(['supplier', 'items.product']);
+
+        // Sanitasi nomor phone supplier
+        $supplierPhone = ltrim($purchaseOrder->supplier->phone, '0+');
+
+        $pdf = Pdf::loadView('pdf.purchase-order', [
+            'purchaseOrder' => $purchaseOrder,
+            'supplierPhone' => $supplierPhone,
+        ]);
+
+        $filename = 'PO-' . $purchaseOrder->code . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function edit(PurchaseOrder $purchaseOrder)

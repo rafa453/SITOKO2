@@ -66,6 +66,36 @@
         </div>
 
         {{-- Action buttons --}}
+        @if($purchaseOrder->status !== 'draft')
+        <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+                <div class="card-title">Dokumen & Komunikasi</div>
+            </div>
+            <div class="card-body" style="display:flex; flex-direction:column; gap:8px">
+                <a href="{{ route('purchase-orders.pdf', $purchaseOrder) }}" 
+                   target="_blank"
+                   class="btn btn--secondary w-full" style="justify-content:center">
+                   Download Faktur PDF
+                </a>
+                
+                @php
+                    $phone = ltrim($purchaseOrder->supplier->phone, '0+');
+                    $message = "Kepada Yth. {$purchaseOrder->supplier->name},\n" .
+                               "Bersama ini kami mengirimkan Purchase Order #{$purchaseOrder->code}.\n" .
+                               "Total: Rp " . number_format($purchaseOrder->total, 0, ',', '.') . "\n" .
+                               "Mohon konfirmasi ketersediaan barang.\n" .
+                               "Terima kasih.";
+                    $waUrl = "https://wa.me/62" . $phone . "?text=" . urlencode($message);
+                @endphp
+                <a href="{{ $waUrl }}" 
+                   target="_blank"
+                   class="btn btn--primary w-full" style="justify-content:center">
+                   Kirim ke Supplier (WA)
+                </a>
+            </div>
+        </div>
+        @endif
+
         @if($purchaseOrder->canBeOrdered() || $purchaseOrder->canBeReceived() || $purchaseOrder->canBeCancelled() || $purchaseOrder->status === 'received')
         <div class="card">
             <div class="card-header">
