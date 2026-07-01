@@ -25,15 +25,56 @@ class SupplierReturnController extends Controller
 
         $returns = $query->paginate(10)->withQueryString();
 
+        // ===== Stat cards (angka utama) =====
         $totalDraft     = SupplierReturn::where('status', 'draft')->count();
         $totalConfirmed = SupplierReturn::where('status', 'confirmed')->count();
         $totalCompleted = SupplierReturn::where('status', 'completed')
-            ->whereMonth('completed_at', now()->month)->count();
+            ->whereMonth('completed_at', now()->month)
+            ->whereYear('completed_at', now()->year)
+            ->count();
         $totalValue     = SupplierReturn::where('status', 'confirmed')->sum('total');
+
+        // ===== Breakdown untuk popup: DRAFT =====
+        $draftValue  = SupplierReturn::where('status', 'draft')->sum('total');
+        $oldestDraft = SupplierReturn::where('status', 'draft')
+            ->with('supplier')
+            ->oldest()
+            ->first();
+
+        // ===== Breakdown untuk popup: DIKONFIRMASI =====
+        $confirmedValue = SupplierReturn::where('status', 'confirmed')->sum('total');
+        $oldestConfirmed = SupplierReturn::where('status', 'confirmed')
+            ->with('supplier')
+            ->orderBy('confirmed_at')
+            ->first();
+
+        // ===== Breakdown untuk popup: SELESAI BULAN INI =====
+        $completedValueThisMonth = SupplierReturn::where('status', 'completed')
+            ->whereMonth('completed_at', now()->month)
+            ->whereYear('completed_at', now()->year)
+            ->sum('total');
+
+        $completedCountLastMonth = SupplierReturn::where('status', 'completed')
+            ->whereMonth('completed_at', now()->subMonthNoOverflow()->month)
+            ->whereYear('completed_at', now()->subMonthNoOverflow()->year)
+            ->count();
+
+        // ===== Breakdown untuk popup: NILAI RETUR AKTIF (top 5 supplier) =====
+        $valueBySupplier = SupplierReturn::where('status', 'confirmed')
+            ->select('supplier_id', DB::raw('SUM(total) as total_value'), DB::raw('COUNT(*) as return_count'))
+            ->groupBy('supplier_id')
+            ->orderByDesc('total_value')
+            ->with('supplier')
+            ->take(5)
+            ->get();
 
         return view('pages.supplier-returns', compact(
             'returns',
-            'totalDraft', 'totalConfirmed', 'totalCompleted', 'totalValue'
+            'totalDraft', 'totalConfirmed', 'totalCompleted', 'totalValue',
+            'draftValue', 'oldestDraft',
+            'confirmedValue', 'oldestConfirmed',
+            'completedValueThisMonth', 'completedCountLastMonth',
+            'valueBySupplier'
         ));
     }
 
