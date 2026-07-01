@@ -39,7 +39,16 @@
 {{-- Table --}}
 <div class="card">
     <div class="data-table-wrapper">
-        <table class="data-table">
+        <table class="data-table" style="table-layout:fixed; width:100%">
+            <colgroup>
+                <col style="width:16%">
+                <col style="width:13%">
+                <col style="width:20%">
+                <col style="width:12%">
+                <col style="width:19%">
+                <col style="width:8%">
+                <col style="width:12%">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Nama Supplier</th>
@@ -53,24 +62,28 @@
             </thead>
             <tbody>
                 @forelse($suppliers as $s)
-                <tr>
-                    <td style="font-weight:600">{{ $s->name }}</td>
-                    <td>
+                <tr id="supplier-row-{{ $s->id }}"
+                    data-name="{{ $s->name }}"
+                    data-category="{{ $s->category ?? '—' }}"
+                    data-brand="{{ $s->brand ?? '—' }}"
+                    data-phone="{{ $s->phone ?? '—' }}"
+                    data-address="{{ $s->address ?? '—' }}"
+                    data-status="{{ $s->is_active ? 'Aktif' : 'Nonaktif' }}">
+                    <td style="font-weight:600; white-space:normal; word-break:break-word">{{ $s->name }}</td>
+                    <td style="white-space:normal">
                         @if($s->category)
                             <span class="badge badge--blue">{{ $s->category }}</span>
                         @else
                             <span class="text-muted">—</span>
                         @endif
                     </td>
-                    <td>
-                        @if($s->brand)
-                            <span class="badge badge--blue">{{ $s->brand }}</span>
-                        @else
-                            <span class="text-muted">—</span>
-                        @endif
+                    <td class="text-secondary" style="white-space:normal; word-break:break-word">
+                        {{ $s->brand ?? '—' }}
                     </td>
-                    <td class="text-secondary">{{ $s->phone ?? '—' }}</td>
-                    <td class="text-secondary" style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                    <td class="text-secondary" style="white-space:nowrap">{{ $s->phone ?? '—' }}</td>
+                    <td class="text-secondary"
+                        style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis"
+                        title="{{ $s->address }}">
                         {{ $s->address ?? '—' }}
                     </td>
                     <td>
@@ -79,7 +92,13 @@
                         </span>
                     </td>
                     <td>
-                        <div style="display:flex; gap:6px; align-items:center">
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center">
+                            <button type="button"
+                                    class="btn btn--secondary"
+                                    style="padding:5px 10px; font-size:12px"
+                                    onclick="openSupplierDetail({{ $s->id }})">
+                                Detail
+                            </button>
                             <a href="{{ route('suppliers.edit', $s) }}"
                             class="btn btn--secondary" style="padding:5px 10px; font-size:12px">
                                 Edit
@@ -120,5 +139,74 @@
     </div>
     @endif
 </div>
+
+{{-- Modal Detail Supplier --}}
+<div id="supplierDetailOverlay"
+     onclick="if(event.target===this) closeSupplierDetail()"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px">
+    <div style="background:var(--bg-card, #fff); border-radius:12px; width:100%; max-width:440px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.25)">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px">
+            <h3 id="sd-name" style="margin:0; font-size:18px; font-weight:700"></h3>
+            <button type="button" onclick="closeSupplierDetail()"
+                    style="background:none; border:none; cursor:pointer; font-size:20px; line-height:1; color:var(--text-muted, #888)">
+                &times;
+            </button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px">
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Status</div>
+                <span id="sd-status" class="badge"></span>
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Kategori Produk</div>
+                <div id="sd-category"></div>
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Nama Brand</div>
+                <div id="sd-brand"></div>
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Nomor Telepon</div>
+                <div id="sd-phone"></div>
+            </div>
+            <div>
+                <div style="font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted,#888); margin-bottom:4px">Alamat</div>
+                <div id="sd-address" style="white-space:normal; word-break:break-word"></div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:20px">
+            <button type="button" class="btn btn--secondary" onclick="closeSupplierDetail()">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openSupplierDetail(id) {
+        const row = document.getElementById('supplier-row-' + id);
+        if (!row) return;
+
+        document.getElementById('sd-name').textContent     = row.dataset.name;
+        document.getElementById('sd-category').textContent = row.dataset.category;
+        document.getElementById('sd-brand').textContent    = row.dataset.brand;
+        document.getElementById('sd-phone').textContent    = row.dataset.phone;
+        document.getElementById('sd-address').textContent  = row.dataset.address;
+
+        const statusEl = document.getElementById('sd-status');
+        statusEl.textContent = row.dataset.status;
+        statusEl.className = 'badge ' + (row.dataset.status === 'Aktif' ? 'badge--green' : 'badge--red');
+
+        document.getElementById('supplierDetailOverlay').style.display = 'flex';
+    }
+
+    function closeSupplierDetail() {
+        document.getElementById('supplierDetailOverlay').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSupplierDetail();
+    });
+</script>
 
 @endsection
