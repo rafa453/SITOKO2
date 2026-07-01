@@ -283,30 +283,24 @@
 
                 @endif
 
+                <a href="{{ route('transactions.create') }}" class="btn-new-transaction" style="margin-top:20px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    New Transaction
+                </a>
+
             </nav>
 
         <!-- Bottom actions -->
         <div class="sidebar-bottom">
-            <a href="{{ route('transactions.create') }}" class="btn-new-transaction">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                New Transaction
-            </a>
 
             <div class="sidebar-footer-links">
-                <a href="#" class="footer-link">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                    Support
-                </a>
+
                 <form method="POST" action="{{ route('logout') }}" class="logout-form">
                     @csrf
-                    <button type="submit" class="footer-link footer-link--btn">
+                    <button type="submit" class="footer-link footer-link--btn" style="color: var(--red-500);">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                             <polyline points="16 17 21 12 16 7"/>
