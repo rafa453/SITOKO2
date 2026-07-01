@@ -380,6 +380,7 @@
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
                             </button>
+                            @if(auth()->check() && auth()->user()->role === 'admin')
                             <a href="{{ route('inventory.edit', $p->id) }}" class="btn-icon" title="Edit">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -399,6 +400,7 @@
                                     </svg>
                                 </button>
                             </form>
+                            @endif
                         </div>
                     </td>
                 </tr>
