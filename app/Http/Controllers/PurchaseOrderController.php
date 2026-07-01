@@ -33,16 +33,56 @@ class PurchaseOrderController extends Controller
         $purchaseOrders = $query->paginate(10)->withQueryString();
         $suppliers      = Supplier::where('is_active', true)->orderBy('name')->get();
 
-        // Stat cards
+        // ===== Stat cards (angka utama) =====
         $totalDraft    = PurchaseOrder::where('status', 'draft')->count();
         $totalOrdered  = PurchaseOrder::where('status', 'ordered')->count();
         $totalReceived = PurchaseOrder::where('status', 'received')
-            ->whereMonth('received_at', now()->month)->count();
+            ->whereMonth('received_at', now()->month)
+            ->whereYear('received_at', now()->year)
+            ->count();
         $totalValue    = PurchaseOrder::where('status', 'ordered')->sum('total');
+
+        // ===== Breakdown untuk popup: DRAFT =====
+        $draftValue  = PurchaseOrder::where('status', 'draft')->sum('total');
+        $oldestDraft = PurchaseOrder::where('status', 'draft')
+            ->with('supplier')
+            ->oldest()
+            ->first();
+
+        // ===== Breakdown untuk popup: ORDERED =====
+        $orderedValue   = PurchaseOrder::where('status', 'ordered')->sum('total');
+        $overdueOrdered = PurchaseOrder::where('status', 'ordered')
+            ->whereNotNull('expected_at')
+            ->where('expected_at', '<', now()->startOfDay())
+            ->count();
+
+        // ===== Breakdown untuk popup: DITERIMA BULAN INI =====
+        $receivedValueThisMonth = PurchaseOrder::where('status', 'received')
+            ->whereMonth('received_at', now()->month)
+            ->whereYear('received_at', now()->year)
+            ->sum('total');
+
+        $receivedCountLastMonth = PurchaseOrder::where('status', 'received')
+            ->whereMonth('received_at', now()->subMonthNoOverflow()->month)
+            ->whereYear('received_at', now()->subMonthNoOverflow()->year)
+            ->count();
+
+        // ===== Breakdown untuk popup: NILAI PO AKTIF (top 5 supplier) =====
+        $valueBySupplier = PurchaseOrder::where('status', 'ordered')
+            ->select('supplier_id', DB::raw('SUM(total) as total_value'), DB::raw('COUNT(*) as po_count'))
+            ->groupBy('supplier_id')
+            ->orderByDesc('total_value')
+            ->with('supplier')
+            ->take(5)
+            ->get();
 
         return view('pages.purchase-orders', compact(
             'purchaseOrders', 'suppliers',
-            'totalDraft', 'totalOrdered', 'totalReceived', 'totalValue'
+            'totalDraft', 'totalOrdered', 'totalReceived', 'totalValue',
+            'draftValue', 'oldestDraft',
+            'orderedValue', 'overdueOrdered',
+            'receivedValueThisMonth', 'receivedCountLastMonth',
+            'valueBySupplier'
         ));
     }
 
@@ -228,9 +268,14 @@ class PurchaseOrderController extends Controller
         abort_if(!$po->canBeReceived(), 422, 'PO tidak bisa diubah ke status received.');
 
         DB::transaction(function () use ($po, $receivedQtys) {
+            // Lock PO & items dulu supaya qty_received yang dibaca selalu fresh
+            // (mencegah race condition kalau ada 2 request "receive" hampir bersamaan)
+            $po = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
+            $items = $po->items()->lockForUpdate()->get();
+
             $allFulfilled = true;
 
-            foreach ($po->items as $item) {
+            foreach ($items as $item) {
                 $inputQty = (int) ($receivedQtys[$item->id] ?? 0);
 
                 if ($inputQty <= 0) {
@@ -250,7 +295,7 @@ class PurchaseOrderController extends Controller
                     $product = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
                     // 2. OPERASI increment stok
                     $product->increment('qty', $actualQty);
-                    
+
                     $item->increment('qty_received', $actualQty);
                 }
 

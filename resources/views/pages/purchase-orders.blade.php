@@ -17,28 +17,28 @@
 
 {{-- Stat Cards --}}
 <div class="stats-grid">
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" onclick="openPoPopup('draft')">
         <div class="stat-card__header">
             <span class="stat-card__label">Draft</span>
         </div>
         <div class="stat-card__value">{{ $totalDraft }}</div>
         <div class="stat-card__meta text-muted text-sm">Belum dikonfirmasi</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" onclick="openPoPopup('ordered')">
         <div class="stat-card__header">
             <span class="stat-card__label">Ordered</span>
         </div>
         <div class="stat-card__value">{{ $totalOrdered }}</div>
         <div class="stat-card__meta text-muted text-sm">Menunggu barang tiba</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" onclick="openPoPopup('received')">
         <div class="stat-card__header">
             <span class="stat-card__label">Diterima Bulan Ini</span>
         </div>
         <div class="stat-card__value">{{ $totalReceived }}</div>
         <div class="stat-card__meta text-muted text-sm">{{ now()->translatedFormat('F Y') }}</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" onclick="openPoPopup('value-by-supplier')">
         <div class="stat-card__header">
             <span class="stat-card__label">Nilai PO Aktif</span>
         </div>
@@ -139,5 +139,141 @@
     </div>
     @endif
 </div>
+
+{{-- ================= POPUP OVERLAY (BACKDROP) ================= --}}
+<div id="po-popup-overlay"
+     onclick="closePoPopup()"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000">
+</div>
+
+{{-- ================= POPUP: DRAFT ================= --}}
+<div id="po-popup-draft" class="card po-popup" style="display:none">
+    <div class="card-body" style="padding:20px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+            <h3 style="margin:0">Detail Purchase Order — Draft</h3>
+            <button type="button" class="btn btn--ghost" style="padding:2px 10px" onclick="closePoPopup()">&times;</button>
+        </div>
+
+        <p>Total nilai draft: <strong>Rp {{ number_format($draftValue, 0, ',', '.') }}</strong></p>
+
+        @if($oldestDraft)
+            <p style="margin-top:8px">
+                Draft tertua: <strong>{{ $oldestDraft->code }}</strong>
+                dari supplier <strong>{{ $oldestDraft->supplier->name ?? '-' }}</strong><br>
+                <span class="text-muted text-sm">(dibuat {{ $oldestDraft->created_at->diffForHumans() }})</span>
+            </p>
+        @else
+            <p class="text-muted" style="margin-top:8px">Tidak ada draft saat ini.</p>
+        @endif
+    </div>
+</div>
+
+{{-- ================= POPUP: ORDERED ================= --}}
+<div id="po-popup-ordered" class="card po-popup" style="display:none">
+    <div class="card-body" style="padding:20px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+            <h3 style="margin:0">Detail Purchase Order — Ordered</h3>
+            <button type="button" class="btn btn--ghost" style="padding:2px 10px" onclick="closePoPopup()">&times;</button>
+        </div>
+
+        <p>Total nilai ordered: <strong>Rp {{ number_format($orderedValue, 0, ',', '.') }}</strong></p>
+
+        <p style="margin-top:8px">
+            Jumlah PO overdue (lewat expected date):
+            <strong class="{{ $overdueOrdered > 0 ? 'badge--red' : '' }}">{{ $overdueOrdered }}</strong>
+        </p>
+    </div>
+</div>
+
+{{-- ================= POPUP: DITERIMA BULAN INI ================= --}}
+<div id="po-popup-received" class="card po-popup" style="display:none">
+    <div class="card-body" style="padding:20px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+            <h3 style="margin:0">Detail Purchase Order — Diterima Bulan Ini</h3>
+            <button type="button" class="btn btn--ghost" style="padding:2px 10px" onclick="closePoPopup()">&times;</button>
+        </div>
+
+        <p>Total nilai diterima bulan ini: <strong>Rp {{ number_format($receivedValueThisMonth, 0, ',', '.') }}</strong></p>
+
+        <p style="margin-top:8px">
+            Jumlah PO diterima bulan lalu:
+            <strong>{{ $receivedCountLastMonth }}</strong>
+            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatedFormat('F Y') }})</span>
+        </p>
+    </div>
+</div>
+
+{{-- ================= POPUP: NILAI PO AKTIF (TOP 5 SUPPLIER) ================= --}}
+<div id="po-popup-value-by-supplier" class="card po-popup" style="display:none; width:480px">
+    <div class="card-body" style="padding:20px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+            <h3 style="margin:0">Nilai PO Aktif per Supplier (Top 5)</h3>
+            <button type="button" class="btn btn--ghost" style="padding:2px 10px" onclick="closePoPopup()">&times;</button>
+        </div>
+
+        @if($valueBySupplier->isEmpty())
+            <p class="text-muted">Belum ada PO aktif.</p>
+        @else
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Supplier</th>
+                        <th style="text-align:center">Jumlah PO</th>
+                        <th style="text-align:right">Total Nilai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($valueBySupplier as $row)
+                        <tr>
+                            <td>{{ $row->supplier->name ?? '-' }}</td>
+                            <td style="text-align:center">{{ $row->po_count }}</td>
+                            <td style="text-align:right">Rp {{ number_format($row->total_value, 0, ',', '.') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+</div>
+
+<style>
+.po-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    width: 420px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+</style>
+
+<script>
+function openPoPopup(name) {
+    document.getElementById('po-popup-overlay').style.display = 'block';
+    document.getElementById('po-popup-' + name).style.display = 'block';
+}
+
+function closePoPopup() {
+    document.getElementById('po-popup-overlay').style.display = 'none';
+    document.querySelectorAll('.po-popup').forEach(function (el) {
+        el.style.display = 'none';
+    });
+}
+
+// Cegah klik di dalam popup ikut menutup popup (event bubbling ke overlay)
+document.querySelectorAll('.po-popup').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+});
+
+// Tutup popup dengan tombol Escape
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closePoPopup();
+});
+</script>
 
 @endsection
