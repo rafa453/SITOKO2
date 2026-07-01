@@ -55,7 +55,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/inventory/{product}/restock', [ProductController::class, 'restock'])->name('inventory.restock');
 
         // Transactions — void admin
-        Route::post('/transactions/{id}/void', [TransactionController::class, 'void'])->name('transactions.void');
+        Route::post('/transactions/{id}/void', [TransactionController::class, 'void'])->name('transactions.void')->whereNumber('id');
 
         // Staff
         Route::resource('staff', StaffController::class);
@@ -83,7 +83,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settings', [PaymentMethodController::class, 'index'])->name('settings.index');
         Route::get('/settings/payment-methods', [PaymentMethodController::class, 'paymentMethods'])->name('settings.payment-methods');
         Route::post('/settings/payment-methods', [PaymentMethodController::class, 'storePaymentMethod'])->name('settings.payment-methods.store');
-        Route::patch('/settings/payment-methods/{id}/toggle', [PaymentMethodController::class, 'togglePaymentMethod'])->name('settings.payment-methods.toggle');
+        Route::patch('/settings/payment-methods/{paymentMethod}/toggle', [PaymentMethodController::class, 'togglePaymentMethod'])->name('settings.payment-methods.toggle');
 
         // Shifts management — /summary DULU sebelum resource wildcard
         Route::get('/shifts/summary', [ShiftController::class, 'summary'])->name('shifts.summary');

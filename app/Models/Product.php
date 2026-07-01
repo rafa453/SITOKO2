@@ -15,7 +15,14 @@ class Product extends Model
         'buy_price',
         'sell_price',
         'brand_id',
-        'sku',
+    ];
+
+    protected $casts = [
+        'qty'        => 'integer',
+        'threshold'  => 'integer',
+        'buy_price'  => 'integer',
+        'sell_price' => 'integer',
+        'is_active'  => 'boolean',
     ];
 
     public function transactionItems()

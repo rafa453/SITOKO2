@@ -112,7 +112,7 @@ class StaffController extends Controller
     {
         $request->validate([
             'name'  => 'required|string|max:255',
-            'role'  => 'required|in:admin,cashier,supervisor',
+            'role'  => 'required|in:admin,cashier',
             'phone' => 'nullable|string|max:20',
             'shift' => 'required|in:pagi,siang,malam',
         ]);
@@ -124,6 +124,13 @@ class StaffController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');
+        }
+        if ($user->role === 'admin') {
+            return back()->with('error', 'Akun administrator utama tidak dapat dinonaktifkan.');
+        }
+
         $user->update(['status' => 'inactive']);
         return back()->with('success', 'Staff berhasil dinonaktifkan.');
     }

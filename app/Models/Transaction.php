@@ -18,6 +18,12 @@ class Transaction extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'total'       => 'integer',
+        'amount_paid' => 'integer',
+        'change'      => 'integer',
+    ];
+
     public function cashier()
     {
         return $this->belongsTo(User::class, 'cashier_id');

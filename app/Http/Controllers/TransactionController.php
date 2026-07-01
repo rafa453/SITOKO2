@@ -100,6 +100,15 @@ class TransactionController extends Controller
             'amount_paid'    => 'required|numeric|min:0',
         ]);
 
+        $activeShift = \App\Models\Shift::where('user_id', auth()->id())
+            ->whereDate('started_at', \Carbon\Carbon::today())
+            ->whereNull('ended_at')
+            ->exists();
+
+        if (!$activeShift && auth()->user()->role === 'cashier') {
+            return response()->json(['success' => false, 'message' => 'Anda harus melakukan Clock-In shift hari ini terlebih dahulu sebelum bertransaksi.'], 422);
+        }
+
         try {
             $transaction = DB::transaction(function () use ($request) {
                 $total = 0;
@@ -162,6 +171,11 @@ class TransactionController extends Controller
 
     public function show(Transaction $transaction)
     {
+        // Kasir hanya bisa melihat detail transaksi milik sendiri
+        if (auth()->user()->role === 'cashier' && $transaction->cashier_id !== auth()->id()) {
+            abort(403, 'Anda tidak memiliki hak untuk melihat transaksi ini.');
+        }
+
         $transaction->load(['cashier', 'items.product']);
         return view('pages.transaction-detail', compact('transaction'));
     }
@@ -175,7 +189,8 @@ class TransactionController extends Controller
         DB::transaction(function () use ($transaction) {
             // Kembalikan stok
             foreach ($transaction->items as $item) {
-                $item->product->increment('qty', $item->qty);
+                $productToRestore = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
+                $productToRestore->increment('qty', $item->qty);
             }
 
             $transaction->update(['status' => 'voided']);

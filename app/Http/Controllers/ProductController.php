@@ -88,28 +88,32 @@ class ProductController extends Controller
             'supplier_prices.*' => 'nullable|numeric|min:0',
         ]);
 
-        $product = Product::create($validated);
+        $product = DB::transaction(function () use ($validated) {
+            $product = Product::create($validated);
 
-        // Attach suppliers dengan supplier_sku
-        if (!empty($validated['supplier_ids'])) {
-            $brandName = $validated['brand_id']
-                ? \App\Models\Brand::find($validated['brand_id'])->name
-                : 'NOBRAND';
+            // Attach suppliers dengan supplier_sku
+            if (!empty($validated['supplier_ids'])) {
+                $brandName = $validated['brand_id']
+                    ? \App\Models\Brand::find($validated['brand_id'])->name
+                    : 'NOBRAND';
 
-            foreach ($validated['supplier_ids'] as $index => $supplierId) {
-                $supplier = \App\Models\Supplier::find($supplierId);
-                $supplierSku = \App\Models\Product::generateSupplierSku(
-                    $validated['category'],
-                    $brandName,
-                    $supplier->name
-                );
+                foreach ($validated['supplier_ids'] as $index => $supplierId) {
+                    $supplier = \App\Models\Supplier::find($supplierId);
+                    $supplierSku = \App\Models\Product::generateSupplierSku(
+                        $validated['category'],
+                        $brandName,
+                        $supplier->name
+                    );
 
-                $product->suppliers()->attach($supplierId, [
-                    'supplier_sku' => $supplierSku,
-                    'price'        => $validated['supplier_prices'][$index] ?? 0,
-                ]);
+                    $product->suppliers()->attach($supplierId, [
+                        'supplier_sku' => $supplierSku,
+                        'price'        => $validated['supplier_prices'][$index] ?? 0,
+                    ]);
+                }
             }
-        }
+
+            return $product;
+        });
 
         activity()->log("Tambah produk: {$product->name} (SKU: {$product->sku})");
 
@@ -141,37 +145,55 @@ class ProductController extends Controller
             'supplier_prices.*' => 'nullable|numeric|min:0',
         ]);
 
-        $product->update($validated);
+        // Ambil stok awal SEBELUM update dipanggil (Terintegrasi dengan perbaikan temuan #7)
+        $oldQty = $product->qty;
 
-        // Sync suppliers — supplier baru dapat supplier_sku baru
-        $syncData = [];
-        if (!empty($validated['supplier_ids'])) {
-            $brandName = $validated['brand_id']
-                ? \App\Models\Brand::find($validated['brand_id'])->name
-                : 'NOBRAND';
+        DB::transaction(function () use ($validated, $product) {
+            $product->update($validated);
 
-            foreach ($validated['supplier_ids'] as $index => $supplierId) {
-                // Cek apakah relasi sudah ada (preserve supplier_sku lama)
-                $existing = $product->suppliers()->wherePivot('supplier_id', $supplierId)->first();
+            // Sync suppliers — supplier baru dapat supplier_sku baru
+            $syncData = [];
+            if (!empty($validated['supplier_ids'])) {
+                $brandName = $validated['brand_id']
+                    ? \App\Models\Brand::find($validated['brand_id'])->name
+                    : 'NOBRAND';
 
-                $supplierSku = $existing
-                    ? $existing->pivot->supplier_sku
-                    : \App\Models\Product::generateSupplierSku(
-                        $validated['category'],
-                        $brandName,
-                        \App\Models\Supplier::find($supplierId)->name
-                    );
+                foreach ($validated['supplier_ids'] as $index => $supplierId) {
+                    // Cek apakah relasi sudah ada (preserve supplier_sku lama)
+                    $existing = $product->suppliers()->wherePivot('supplier_id', $supplierId)->first();
 
-                $syncData[$supplierId] = [
-                    'supplier_sku' => $supplierSku,
-                    'price'        => $validated['supplier_prices'][$index] ?? 0,
-                ];
+                    $supplierSku = $existing
+                        ? $existing->pivot->supplier_sku
+                        : \App\Models\Product::generateSupplierSku(
+                            $validated['category'],
+                            $brandName,
+                            \App\Models\Supplier::find($supplierId)->name
+                        );
+
+                    $syncData[$supplierId] = [
+                        'supplier_sku' => $supplierSku,
+                        'price'        => $validated['supplier_prices'][$index] ?? 0,
+                    ];
+                }
             }
+
+            $product->suppliers()->sync($syncData);
+        });
+
+        // Sinkronisasi instance dengan nilai terbaru dari database
+        $product->refresh();
+
+        // Audit Trail Pencatatan Qty
+        if ($oldQty !== $product->qty) {
+            \App\Models\ActivityLog::record(
+                'STOCK_ADJUSTMENT',
+                'Penyesuaian stok manual (Update Product)',
+                $product->name,
+                ['old_qty' => $oldQty, 'new_qty' => $product->qty, 'diff' => $product->qty - $oldQty]
+            );
+        } else {
+            activity()->log("Update produk: {$product->name}");
         }
-
-        $product->suppliers()->sync($syncData);
-
-        activity()->log("Update produk: {$product->name}");
 
         return redirect()->route('inventory.index')->with('success', 'Produk berhasil diupdate.');
     }
