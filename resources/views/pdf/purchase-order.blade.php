@@ -30,7 +30,7 @@
 <body>
 
     <div class="header">
-        <h1>SITOKO2</h1>
+        <h1>{{ $store->store_name }}</h1>
         <h2>{{ $docTitle }}</h2>
         <div style="margin-top:5px; font-size:16px; font-weight:bold;"># {{ $purchaseOrder->code }}</div>
     </div>
@@ -40,7 +40,7 @@
             <td style="padding-right: 15px;">
                 <div class="info-box">
                     <div class="info-title">Informasi Pemesan</div>
-                    <strong>SITOKO2</strong><br>
+                    <strong>{{ $store->store_name }}</strong><br>
                     Admin: {{ $purchaseOrder->creator->name }}<br>
                     Tanggal: {{ $purchaseOrder->created_at->format('d F Y') }}<br>
                     Status: {{ strtoupper($purchaseOrder->status) }}
@@ -110,7 +110,7 @@
     @endif
 
     <div class="footer">
-        Dokumen ini dibuat secara otomatis oleh sistem SITOKO2 pada {{ now()->format('d F Y H:i') }}.<br>
+        Dokumen ini dibuat secara otomatis oleh sistem {{ $store->store_name }} pada {{ now()->format('d F Y H:i') }}.<br>
         Status Dokumen: <strong>{{ strtoupper($purchaseOrder->status) }}</strong>
     </div>
 

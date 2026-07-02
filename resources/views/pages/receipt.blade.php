@@ -208,10 +208,17 @@
 <div class="receipt">
 
     {{-- Header toko --}}
-    <div class="receipt__store-name">SITOKO2</div>
-    <div class="receipt__store-sub">Toko Sembako</div>
-    <div class="receipt__store-sub">Jl. Contoh No. 1, Bogor</div>
-    <div class="receipt__store-sub">Telp: 0812-xxxx-xxxx</div>
+    @php $store = \App\Models\StoreProfile::get(); @endphp
+    <div class="receipt__store-name">{{ $store->store_name }}</div>
+    @if($store->store_subtitle)
+    <div class="receipt__store-sub">{{ $store->store_subtitle }}</div>
+    @endif
+    @if($store->address)
+    <div class="receipt__store-sub">{{ $store->address }}</div>
+    @endif
+    @if($store->phone)
+    <div class="receipt__store-sub">Telp: {{ $store->phone }}</div>
+    @endif
 
     <hr class="divider">
 

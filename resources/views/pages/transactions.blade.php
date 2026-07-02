@@ -20,7 +20,7 @@
                 name="date_from"
                 class="form-input"
                 style="width:145px"
-                value="{{ request('date_from') }}"
+                value="{{ $dateFrom }}"
                 onchange="this.form.submit()"
             >
             <span style="font-size:12px; color:var(--text-muted)">—</span>
@@ -29,7 +29,7 @@
                 name="date_to"
                 class="form-input"
                 style="width:145px"
-                value="{{ request('date_to') }}"
+                value="{{ $dateTo }}"
                 onchange="this.form.submit()"
             >
         </div>
@@ -51,17 +51,26 @@
     </form>
 
     @if(auth()->user()->role === 'admin')
-    <button class="btn btn--secondary btn--sm">
+    <a href="{{ route('transactions.export', request()->only(['date_from','date_to','search','method','status'])) }}"
+       class="btn btn--secondary btn--sm">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
         Export CSV
-    </button>
+    </a>
     @endif
 @endsection
 
 @section('content')
+
+@php
+    // Bikin label tanggal dinamis
+    $dateLabel = \Carbon\Carbon::parse($dateFrom)->format('d M') . ' - ' . \Carbon\Carbon::parse($dateTo)->format('d M Y');
+    if ($dateFrom === $dateTo) {
+        $dateLabel = \Carbon\Carbon::parse($dateFrom)->format('d M Y');
+    }
+@endphp
 
 @if(session('success'))
     <div class="alert alert--success" style="margin-bottom:16px">{{ session('success') }}</div>
@@ -76,7 +85,7 @@
                 <span class="stat-card__label">Total Transactions</span>
             </div>
             <div class="stat-card__value">{{ number_format($totalTransactions) }}</div>
-            <div class="stat-card__meta text-muted text-sm">Today</div>
+            <div class="stat-card__meta text-muted text-sm">{{ $dateLabel }}</div>
         </div>
 
         <div class="stat-card" style="cursor:pointer" @click="openModal = 'revenue'">
@@ -87,7 +96,7 @@
                 <div class="stat-card__rp">Rp</div>
                 <div class="stat-card__value">{{ number_format($totalRevenue, 0, ',', '.') }}</div>
             </div>
-            <div class="stat-card__meta text-muted text-sm">Completed only</div>
+            <div class="stat-card__meta text-muted text-sm">Completed ({{ $dateLabel }})</div>
         </div>
 
         <div class="stat-card" style="cursor:pointer; border-color:#FEE2E2; background:#FEF2F2" @click="openModal = 'voided'">
@@ -111,7 +120,7 @@
                 <div class="stat-card__rp">Rp</div>
                 <div class="stat-card__value">{{ number_format($avgBasket, 0, ',', '.') }}</div>
             </div>
-            <div class="stat-card__meta text-muted text-sm">Today's average</div>
+            <div class="stat-card__meta text-muted text-sm">Average ({{ $dateLabel }})</div>
         </div>
 
     </div>
@@ -210,7 +219,7 @@
 
                         <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13.5px;">
                             <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-light)">
-                                <span style="color: var(--text-secondary)">Total Omset (Hari Ini)</span>
+                                <span style="color: var(--text-secondary)">Total Omset ({{ $dateLabel }})</span>
                                 <span style="font-weight: 600;">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-light)">
@@ -220,7 +229,7 @@
                         </div>
 
                         <div style="margin-top: 24px; padding: 12px; background: #EFF6FF; border-left: 4px solid #2563EB; border-radius: 4px; font-size: 12.5px; color: #1E40AF; line-height: 1.5;">
-                            <strong>💡 Metrik Basket Size:</strong> Nilai ini menunjukkan rata-rata jumlah uang yang dibelanjakan pelanggan dalam satu kali kunjungan ke kasir hari ini.
+                            <strong>💡 Metrik Basket Size:</strong> Nilai ini menunjukkan rata-rata jumlah uang yang dibelanjakan pelanggan dalam rentang waktu yang dipilih.
                         </div>
                     </div>
                 </template>
@@ -233,17 +242,17 @@
 {{-- ===== CHART + PAYMENT BREAKDOWN ===== --}}
 <div class="card-grid card-grid--60-40" style="margin-top: 24px;">
 
-    {{-- Hourly Volume Chart --}}
+    {{-- Daily Volume Chart --}}
     <div class="card">
         <div class="card-header">
             <div>
-                <div class="card-title">Hourly Transaction Volume</div>
-                <div class="card-subtitle">Daily activity patterns (07.00 – 21.00)</div>
+                <div class="card-title">Daily Transaction Volume</div>
+                <div class="card-subtitle">Activity patterns ({{ $dateLabel }})</div>
             </div>
         </div>
         <div class="card-body">
             <div class="chart-wrapper" style="height:180px">
-                <canvas id="hourlyChart"></canvas>
+                <canvas id="dailyChart"></canvas>
             </div>
         </div>
     </div>
@@ -501,19 +510,25 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const ctx = document.getElementById('hourlyChart');
+    const ctx = document.getElementById('dailyChart');
     if (!ctx) return;
 
-    const hourlyData = @json($hourlyVolume);
-    const hours = ['07','08','09','10','11','12','13','14','15','16','17','18','19','20','21'];
-    const data  = hours.map((h, i) => hourlyData[parseInt(h)] ?? 0);
+    const chartData  = @json($chartData);
+    const groupByHour = @json($groupByHour);
+
+    const labels = chartData.map(d =>
+        groupByHour
+            ? String(d.label).padStart(2,'0') + ':00'
+            : d.label
+    );
+    const counts = chartData.map(d => d.count);
 
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: hours,
+            labels: labels,
             datasets: [{
-                data,
+                data: counts,
                 borderColor: '#2563EB',
                 backgroundColor: 'rgba(37,99,235,.08)',
                 borderWidth: 2,
@@ -532,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }},
             scales: {
                 x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#94A3B8' } },
-                y: { grid: { color: '#F1F5F9' }, ticks: { font: { size: 11 }, color: '#94A3B8' } }
+                y: { grid: { color: '#F1F5F9' }, ticks: { font: { size: 11 }, color: '#94A3B8', stepSize: 1 } }
             }
         }
     });

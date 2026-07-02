@@ -18,7 +18,83 @@ class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $today = Carbon::today();
+        $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+            'search'    => 'nullable|string|max:100',
+            'method'    => 'nullable|string|max:100',
+            'status'    => 'nullable|in:completed,voided',
+        ]);
+
+        $dateFrom = $request->date_from
+            ? Carbon::parse($request->date_from)->startOfDay()
+            : Carbon::today()->subDays(30)->startOfDay();
+
+        $dateTo = $request->date_to
+            ? Carbon::parse($request->date_to)->endOfDay()
+            : Carbon::today()->endOfDay();
+
+        if ($dateFrom->gt($dateTo)) {
+            $dateFrom = Carbon::today()->subDays(30)->startOfDay();
+            $dateTo   = Carbon::today()->endOfDay();
+        }
+
+        $baseQuery = fn() => Transaction::where('status', 'completed')
+            ->whereBetween('created_at', [
+                $dateFrom->toDateTimeString(),
+                $dateTo->toDateTimeString(),
+            ]);
+
+        $voidedQuery = fn() => Transaction::where('status', 'voided')
+            ->whereBetween('created_at', [
+                $dateFrom->toDateTimeString(),
+                $dateTo->toDateTimeString(),
+            ]);
+
+        $totalTransactions = $baseQuery()->count();
+        $totalRevenue      = $baseQuery()->sum('total');
+        $voidedCount       = $voidedQuery()->count();
+        $voidedValue       = $voidedQuery()->sum('total');
+        $avgBasket         = $totalTransactions > 0 ? round($totalRevenue / $totalTransactions) : 0;
+
+        $diffDays    = $dateFrom->diffInDays($dateTo);
+        $groupByHour = $diffDays === 0;
+
+        $chartData = Transaction::where('status', 'completed')
+            ->whereBetween('created_at', [
+                $dateFrom->toDateTimeString(),
+                $dateTo->toDateTimeString(),
+            ])
+            ->when(
+                $groupByHour,
+                fn($q) => $q->selectRaw('HOUR(created_at) as label, COUNT(*) as count')
+                            ->groupByRaw('HOUR(created_at)'),
+                fn($q) => $q->selectRaw('DATE(created_at) as label, COUNT(*) as count')
+                            ->groupByRaw('DATE(created_at)')
+            )
+            ->orderBy('label')
+            ->get();
+
+        $paymentBreakdown = Transaction::where('status', 'completed')
+            ->whereBetween('created_at', [
+                $dateFrom->toDateTimeString(),
+                $dateTo->toDateTimeString(),
+            ])
+            ->selectRaw('payment_method, COUNT(*) as trx_count, SUM(total) as revenue')
+            ->groupBy('payment_method')
+            ->orderByDesc('revenue')
+            ->get();
+
+        $popupQuery = fn() => Transaction::with(['cashier'])
+            ->whereBetween('created_at', [
+                $dateFrom->toDateTimeString(),
+                $dateTo->toDateTimeString(),
+            ])
+            ->when(auth()->user()->role === 'cashier', fn($q) => $q->where('cashier_id', auth()->id()));
+
+        $popupAllTx     = $popupQuery()->latest()->get();
+        $popupRevenueTx = $popupQuery()->where('status', 'completed')->latest()->get();
+        $popupVoidedTx  = $popupQuery()->where('status', 'voided')->latest()->get();
 
         $query = Transaction::with(['cashier', 'items.product'])->latest();
 
@@ -30,15 +106,7 @@ class TransactionController extends Controller
             $query->where('code', 'like', '%' . $request->search . '%');
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-        if ($request->get('date') === 'today') {
-            $query->whereDate('created_at', $today);
-        }
+        $query->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()]);
 
         if ($request->filled('method')) {
             $query->where('payment_method', $request->method);
@@ -50,46 +118,84 @@ class TransactionController extends Controller
 
         $transactions = $query->paginate(10)->withQueryString();
 
-        // Stat cards
-        $totalTransactions = Transaction::whereDate('created_at', $today)->count();
-        $totalRevenue      = Transaction::whereDate('created_at', $today)
-            ->where('status', 'completed')->sum('total');
-        $voidedCount       = Transaction::where('status', 'voided')->count();
-        $voidedValue       = Transaction::where('status', 'voided')->sum('total');
-        $avgBasket         = Transaction::whereDate('created_at', $today)
-            ->where('status', 'completed')->avg('total') ?? 0;
-
-        // Payment breakdown hari ini
-        $paymentBreakdown = Transaction::whereDate('created_at', $today)
-            ->where('status', 'completed')
-            ->selectRaw('payment_method, COUNT(*) as trx_count, SUM(total) as revenue')
-            ->groupBy('payment_method')
-            ->get();
-
-        // Hourly volume (07.00–21.00)
-        $hourlyVolume = Transaction::whereDate('created_at', $today)
-        ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
-        ->groupBy('hour')
-        ->orderBy('hour')
-        ->pluck('count', 'hour');
-
-         // ↓ TAMBAH DI SINI ↓
-        $todayQuery = Transaction::with(['cashier'])->whereDate('created_at', $today);
-        if (auth()->user()->role === 'cashier') {
-            $todayQuery->where('cashier_id', auth()->id());
-        }
-
-        $popupAllTx     = (clone $todayQuery)->latest()->get();
-        $popupRevenueTx = (clone $todayQuery)->where('status', 'completed')->latest()->get();
-        $popupVoidedTx  = (clone $todayQuery)->where('status', 'voided')->latest()->get();
-
         return view('pages.transactions', compact(
             'transactions',
             'totalTransactions', 'totalRevenue',
             'voidedCount', 'voidedValue', 'avgBasket',
-            'paymentBreakdown', 'hourlyVolume',
-            'popupAllTx', 'popupRevenueTx', 'popupVoidedTx' 
+            'paymentBreakdown', 'chartData', 'groupByHour',
+            'popupAllTx', 'popupRevenueTx', 'popupVoidedTx',
+            'dateFrom', 'dateTo'
         ));
+    }
+
+    public function export(Request $request)
+    {
+        $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+            'search'    => 'nullable|string|max:100',
+            'method'    => 'nullable|string|max:100',
+            'status'    => 'nullable|in:completed,voided',
+        ]);
+
+        $dateFrom = $request->date_from
+            ? Carbon::parse($request->date_from)->startOfDay()
+            : Carbon::today()->subDays(30)->startOfDay();
+
+        $dateTo = $request->date_to
+            ? Carbon::parse($request->date_to)->endOfDay()
+            : Carbon::today()->endOfDay();
+
+        $query = Transaction::with(['cashier', 'items.product'])
+            ->whereBetween('created_at', [
+                $dateFrom->toDateTimeString(),
+                $dateTo->toDateTimeString(),
+            ]);
+
+        if (auth()->user()->role === 'cashier') {
+            $query->where('cashier_id', auth()->id());
+        }
+        if ($request->filled('search')) {
+            $query->where('code', 'like', '%' . $request->search . '%');
+        }
+        if ($request->filled('method')) {
+            $query->where('payment_method', $request->method);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $transactions = $query->latest()->get();
+
+        $filename = 'transaksi-' . $dateFrom->format('Ymd') . '-' . $dateTo->format('Ymd') . '.csv';
+
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function () use ($transactions) {
+            $handle = fopen('php://output', 'w');
+            // BOM untuk Excel agar bisa baca UTF-8
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($handle, ['Kode', 'Tanggal', 'Kasir', 'Payment Method', 'Total', 'Status']);
+
+            foreach ($transactions as $trx) {
+                fputcsv($handle, [
+                    $trx->code,
+                    $trx->created_at->format('d/m/Y H:i'),
+                    $trx->cashier?->name ?? '-',
+                    $trx->payment_method,
+                    $trx->total,
+                    $trx->status,
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function create()

@@ -14,19 +14,26 @@ class PaymentMethodController extends Controller
         return redirect()->route('settings.payment-methods');
     }
 
-    public function paymentMethods()
+    public function paymentMethods(Request $request)
     {
-        $today   = Carbon::today();
+        $dateFrom = $request->date_from ? Carbon::parse($request->date_from)->startOfDay() : Carbon::today()->subDays(30)->startOfDay();
+        $dateTo = $request->date_to ? Carbon::parse($request->date_to)->endOfDay() : Carbon::today()->endOfDay();
+
+        if ($dateFrom->gt($dateTo)) {
+            $dateFrom = Carbon::today()->subDays(30)->startOfDay();
+            $dateTo   = Carbon::today()->endOfDay();
+        }
+
         $methods = PaymentMethod::all();
+        $activeCount = $methods->where('is_active', true)->count();
 
         // Stat cards
-        $activeCount    = $methods->where('is_active', true)->count();
-        $digitalToday = Transaction::whereDate('transactions.created_at', $today)
+        $digitalToday = Transaction::whereBetween('transactions.created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])
             ->join('payment_methods', 'transactions.payment_method', '=', 'payment_methods.name')
             ->where('payment_methods.type', 'digital')
             ->count();
 
-        $cashToday = Transaction::whereDate('transactions.created_at', $today)
+        $cashToday = Transaction::whereBetween('transactions.created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])
             ->join('payment_methods', 'transactions.payment_method', '=', 'payment_methods.name')
             ->where('payment_methods.type', 'cash')
             ->count();
@@ -34,16 +41,16 @@ class PaymentMethodController extends Controller
         // Performance tabel
         $performance = PaymentMethod::withCount([
                 'transactions as trx_count' => fn($q) =>
-                    $q->whereDate('created_at', $today)->where('status', 'completed')
+                    $q->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])->where('status', 'completed')
             ])
             ->withSum([
                 'transactions as revenue' => fn($q) =>
-                    $q->whereDate('created_at', $today)->where('status', 'completed')
+                    $q->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])->where('status', 'completed')
             ], 'total')
             ->get();
 
-        // 7-day trend per method
-        $trend = Transaction::whereDate('created_at', '>=', Carbon::now()->subDays(7))
+        // Trend chart
+        $trend = Transaction::whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])
             ->where('status', 'completed')
             ->selectRaw('DATE(created_at) as date, payment_method, COUNT(*) as count')
             ->groupBy('date', 'payment_method')
@@ -53,7 +60,7 @@ class PaymentMethodController extends Controller
 
         return view('pages.payment-methods', compact(
             'methods', 'activeCount', 'digitalToday', 'cashToday',
-            'performance', 'trend'
+            'performance', 'trend', 'dateFrom', 'dateTo'
         ));
     }
 
@@ -83,5 +90,36 @@ class PaymentMethodController extends Controller
     {
         $paymentMethod->update(['is_active' => !$paymentMethod->is_active]);
         return back()->with('success', 'Status payment method diperbarui.');
+    }
+
+    public function updatePaymentMethod(Request $request, PaymentMethod $paymentMethod)
+    {
+        $request->validate([
+            'name'     => 'required|string|max:100|unique:payment_methods,name,' . $paymentMethod->id,
+            'type'     => 'required|in:digital,cash,edc',
+            'provider' => 'nullable|string|max:100',
+            'mdr_fee'  => 'nullable|numeric|min:0|max:100',
+            'notes'    => 'nullable|string',
+        ]);
+
+        $paymentMethod->update($request->only('name', 'type', 'provider', 'mdr_fee', 'notes'));
+
+        return back()->with('success', 'Payment method berhasil diupdate.');
+    }
+
+    public function updateStoreProfile(Request $request)
+    {
+        $request->validate([
+            'store_name'     => 'required|string|max:255',
+            'store_subtitle' => 'nullable|string|max:255',
+            'address'        => 'nullable|string|max:255',
+            'phone'          => 'nullable|string|max:50',
+            'city'           => 'nullable|string|max:100',
+        ]);
+
+        $store = \App\Models\StoreProfile::get();
+        $store->update($request->only('store_name', 'store_subtitle', 'address', 'phone', 'city'));
+
+        return back()->with('success', 'Store profile berhasil diperbarui.');
     }
 }

@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/create', [TransactionController::class, 'create'])->name('transactions.create');
     Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
+    Route::get('/transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show')->whereNumber('transaction');
 
     Route::get('/transactions/{transaction}/receipt', [TransactionController::class, 'receipt'])->name('transactions.receipt')->whereNumber('transaction');
@@ -88,6 +89,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settings/payment-methods', [PaymentMethodController::class, 'paymentMethods'])->name('settings.payment-methods');
         Route::post('/settings/payment-methods', [PaymentMethodController::class, 'storePaymentMethod'])->name('settings.payment-methods.store');
         Route::patch('/settings/payment-methods/{paymentMethod}/toggle', [PaymentMethodController::class, 'togglePaymentMethod'])->name('settings.payment-methods.toggle');
+        Route::patch('/settings/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'updatePaymentMethod'])->name('settings.payment-methods.update');
+        Route::patch('/settings/store-profile', [PaymentMethodController::class, 'updateStoreProfile'])->name('settings.store-profile.update');
 
         // Shifts management — /summary DULU sebelum resource wildcard
         Route::get('/shifts/summary', [ShiftController::class, 'summary'])->name('shifts.summary');

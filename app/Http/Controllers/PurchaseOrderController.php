@@ -175,11 +175,13 @@ class PurchaseOrderController extends Controller
 
         $purchaseOrder->load(['supplier', 'items.product']);
         $supplierPhone = ltrim($purchaseOrder->supplier->phone, '0+');
+        $store = \App\Models\StoreProfile::get();
 
         $pdf = Pdf::loadView('pdf.purchase-order', [
             'purchaseOrder' => $purchaseOrder,
             'supplierPhone' => $supplierPhone,
             'isNota'        => $isNota, // pass sebagai variabel eksplisit, bukan dihitung ulang di view
+            'store'         => $store,
         ]);
 
         $filename = ($isNota ? 'NOTA-' : 'PO-') . $purchaseOrder->code . '.pdf';
