@@ -5,13 +5,14 @@
 @section('page-subtitle', 'Manage your stock, categories, and supplier data.')
 
 @section('header-actions')
-
+    @if(auth()->user()->role === 'admin')
     <a href="{{ route('inventory.create') }}" class="btn btn--primary">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
         Add Product
     </a>
+    @endif
 @endsection
 
 @push('styles')
@@ -224,12 +225,14 @@
                         @endif
                     </div>
                 </div>
+                @if(auth()->user()->role === 'admin')
                 <form method="POST" action="{{ route('inventory.restock', $alert->id) }}" style="display:flex; gap:4px; align-items:center">
                     @csrf
                     <input type="number" name="qty" value="10" min="1"
                            style="width:52px; padding:4px 6px; font-size:12px; border:1px solid var(--border); border-radius:var(--radius-sm)">
                     <button type="submit" class="btn btn--secondary btn--sm">Restock</button>
                 </form>
+                @endif
             </div>
             @empty
                 <p class="text-muted text-sm" style="padding:8px 0">No stock alerts. All items are healthy.</p>
