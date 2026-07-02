@@ -61,16 +61,27 @@
                         <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
                             SKU <span style="color:var(--red-500)">*</span>
                         </label>
-                        <input
-                            type="text"
-                            name="sku"
-                            class="form-input"
-                            style="width:100%"
-                            placeholder="e.g. BR-001"
-                            value="{{ old('sku', $product->sku ?? '') }}"
-                            required
-                        >
-                        <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Must be unique across all products.</p>
+                        @if(!isset($product))
+                            <input
+                                type="text"
+                                name="sku"
+                                class="form-input"
+                                style="width:100%; background-color:#F3F4F6; cursor:not-allowed;"
+                                placeholder="SKU otomatis dibuat oleh sistem"
+                                readonly
+                            >
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">SKU akan otomatis dibuat oleh sistem setelah disimpan.</p>
+                        @else
+                            <input
+                                type="text"
+                                name="sku"
+                                class="form-input"
+                                style="width:100%; background-color:#F3F4F6; cursor:not-allowed;"
+                                value="{{ old('sku', $product->sku ?? '') }}"
+                                readonly
+                            >
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">SKU tidak dapat diubah setelah dibuat.</p>
+                        @endif
                     </div>
 
                     {{-- Kategori + Satuan --}}
@@ -117,6 +128,40 @@
                                 <option value="Kg">
                                 <option value="Liter">
                             </datalist>
+                        </div>
+                    </div>
+
+                    {{-- Supplier & Merek (Dependent Dropdown) --}}
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; border-top:1px solid var(--border-light); padding-top:16px">
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
+                                Supplier <span style="color:var(--red-500)">*</span>
+                            </label>
+                            <select name="supplier_ids[]" id="supplier_select" class="form-input" style="width:100%; min-height:80px" multiple required>
+                                @foreach($suppliers as $sup)
+                                    <option value="{{ $sup->id }}" {{ (isset($product) && $product->suppliers->contains($sup->id)) ? 'selected' : '' }}>
+                                        {{ $sup->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Tahan Ctrl/Cmd untuk memilih lebih dari satu.</p>
+                        </div>
+                        <div>
+                            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
+                                Brand / Merek <span style="color:var(--red-500)">*</span>
+                            </label>
+                            <select name="brand_id" id="brand_select" class="form-input" style="width:100%" @if(!isset($product)) disabled @endif required>
+                                @if(!isset($product))
+                                    <option value="">-- Pilih Supplier Dahulu --</option>
+                                @else
+                                    <option value="">-- Tidak ada Merek --</option>
+                                    @foreach($brands as $brand)
+                                        <option value="{{ $brand->id }}" {{ (isset($product) && $product->brand_id == $brand->id) ? 'selected' : '' }}>
+                                            {{ $brand->name }}
+                                        </option>
+                                    @endforeach
+                                @endif
+                            </select>
                         </div>
                     </div>
 
@@ -261,4 +306,47 @@
                     </div>
                     @endif
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const supplierSelect = document.getElementById('supplier_select');
+    const brandSelect = document.getElementById('brand_select');
+
+    if(supplierSelect && brandSelect) {
+        supplierSelect.addEventListener('change', function() {
+            // Ambil ID supplier pertama yang dipilih
+            const selectedOptions = Array.from(this.selectedOptions);
+            const supplierId = selectedOptions.length > 0 ? selectedOptions[0].value : null;
+            
+            // Reset state dropdown Merek
+            brandSelect.innerHTML = '<option value="">Loading...</option>';
+            brandSelect.disabled = true;
+
+            if(!supplierId) {
+                brandSelect.innerHTML = '<option value="">-- Pilih Supplier Dahulu --</option>';
+                return;
+            }
+
+            fetch(`/api/suppliers/${supplierId}/brands`)
+                .then(res => res.json())
+                .then(data => {
+                    brandSelect.innerHTML = '<option value="">-- Pilih Merek --</option>';
+                    if(data.length === 0) {
+                        brandSelect.innerHTML = '<option value="" disabled>Supplier ini tidak memiliki merek terdaftar</option>';
+                    } else {
+                        data.forEach(brand => {
+                            brandSelect.innerHTML += `<option value="${brand.id}">${brand.name}</option>`;
+                        });
+                        brandSelect.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch error:', err);
+                    brandSelect.innerHTML = '<option value="">Gagal memuat data</option>';
+                });
+        });
+    }
+});
+</script>
+@endpush
 @endsection

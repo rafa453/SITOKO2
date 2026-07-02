@@ -22,6 +22,11 @@ class Supplier extends Model
         'is_active' => 'boolean',
     ];
 
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class);
+    }
+
     public function purchaseOrders()
     {
         return $this->hasMany(PurchaseOrder::class);

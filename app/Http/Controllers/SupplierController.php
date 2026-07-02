@@ -124,4 +124,10 @@ class SupplierController extends Controller
         return redirect()->route('suppliers.index')
             ->with('success', 'Supplier berhasil dihapus.');
     }
+
+    public function getBrands(\App\Models\Supplier $supplier)
+    {
+        $brands = $supplier->brands()->select('brands.id', 'brands.name')->orderBy('name')->get();
+        return response()->json($brands);
+    }
 }

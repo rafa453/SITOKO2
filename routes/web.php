@@ -65,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
         // Suppliers
         Route::resource('suppliers', SupplierController::class)->except(['show']);
         Route::patch('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])->name('suppliers.toggle-active');
+        Route::get('/api/suppliers/{supplier}/brands', [SupplierController::class, 'getBrands'])->name('api.suppliers.brands');
 
         // Purchase Orders — /create DULU, baru {purchaseOrder}
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');

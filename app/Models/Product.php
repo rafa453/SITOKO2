@@ -52,17 +52,26 @@
                         ->withTimestamps();
         }
 
-        public static function generateSku(string $jenis, string $merek): string
+        public static function generateSku(string $category, string $brandName, string $supplierName): string
         {
-            $jenis  = strtoupper(Str::slug($jenis, ''));
-            $merek  = strtoupper(Str::slug($merek, ''));
-            $tgl    = now()->format('Ymd');
+            $kat = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $category), 0, 3));
+            $mrk = $brandName === 'NOBRAND' ? 'NOB' : strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $brandName), 0, 3));
+            $sup = $supplierName === 'NOSUPP' ? 'NOS' : strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $supplierName), 0, 3));
+            $tgl = now()->format('dmy');
 
-            // Ambil nomor urut hari ini
-            $count  = static::whereDate('created_at', today())->count() + 1;
-            $nomor  = str_pad($count, 4, '0', STR_PAD_LEFT);
+            $baseSku = "{$kat}-{$mrk}-{$sup}-{$tgl}";
+            $sku = $baseSku;
 
-            return "{$jenis}-{$merek}-{$tgl}-{$nomor}";
+            if (static::where('sku', 'like', $baseSku.'%')->count() > 0) {
+                $counter = 1;
+                $sku = $baseSku . '-' . str_pad($counter, 2, '0', STR_PAD_LEFT);
+                while (static::where('sku', $sku)->exists()) {
+                    $counter++;
+                    $sku = $baseSku . '-' . str_pad($counter, 2, '0', STR_PAD_LEFT);
+                }
+            }
+
+            return $sku;
         }
 
         public static function generateSupplierSku(string $jenis, string $merek, string $supplier): string

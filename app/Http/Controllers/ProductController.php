@@ -96,7 +96,9 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Product::select('category')->distinct()->pluck('category');
-        return view('pages.inventory-form', compact('categories'));
+        $brands     = \App\Models\Brand::orderBy('name')->get();
+        $suppliers  = \App\Models\Supplier::where('is_active', true)->orderBy('name')->get();
+        return view('pages.inventory-form', compact('categories', 'brands', 'suppliers'));
     }
 
     public function store(Request $request)
@@ -122,9 +124,14 @@ class ProductController extends Controller
                 ? \App\Models\Brand::find($validated['brand_id'])->name
                 : 'NOBRAND';
 
+            $supplierName = !empty($validated['supplier_ids']) 
+                ? \App\Models\Supplier::find($validated['supplier_ids'][0])->name 
+                : 'NOSUPP';
+
             $validated['sku'] = \App\Models\Product::generateSku(
                 $validated['category'],
-                $brandName
+                $brandName,
+                $supplierName
             );
 
             $product = Product::create($validated);
@@ -157,7 +164,9 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Product::select('category')->distinct()->pluck('category');
-        return view('pages.inventory-form', compact('product', 'categories'));
+        $brands     = \App\Models\Brand::orderBy('name')->get();
+        $suppliers  = \App\Models\Supplier::where('is_active', true)->orderBy('name')->get();
+        return view('pages.inventory-form', compact('product', 'categories', 'brands', 'suppliers'));
     }
 
     public function update(Request $request, Product $product)
