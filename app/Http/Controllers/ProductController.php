@@ -293,20 +293,21 @@ class ProductController extends Controller
     }
 
     public function detail(Product $product)
-    {
-        $product->load(['brand', 'suppliers']);
+        {
+            $product->load(['brand', 'suppliers']);
 
-        return response()->json([
-            'name'      => $product->name,
-            'sku'       => $product->sku,
-            'brand'     => $product->brand?->name,
-            'stock'     => $product->qty,
-            'price'     => $product->sell_price,
-            'suppliers' => $product->suppliers->map(fn($s) => [
-                'name'         => $s->name,
-                'supplier_sku' => $s->pivot->supplier_sku,
-                'price'        => $s->pivot->price,
-            ]),
-        ]);
-    }
+            return response()->json([
+                'name'        => $product->name,
+                'sku'         => $product->sku,
+                'brand'       => $product->brand?->name,
+                'stock'       => $product->qty,
+                'price'       => $product->sell_price,
+                'expired_at'  => $product->expired_at?->format('d M Y'),
+                'suppliers'   => $product->suppliers->map(fn($s) => [
+                    'name'         => $s->name,
+                    'supplier_sku' => $s->pivot->supplier_sku,
+                    'price'        => $s->pivot->price,
+                ]),
+            ]);
+        }
 }

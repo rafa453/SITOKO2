@@ -569,19 +569,23 @@
                     <div class="text-sm text-muted" x-text="detailData.sku"></div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px">
-                    <div>
-                        <div class="text-sm text-muted">Brand</div>
-                        <div style="font-weight:600" x-text="detailData.brand || 'Tanpa Brand'"></div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-muted">Stock</div>
-                        <div style="font-weight:600" x-text="detailData.stock"></div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-muted">Sell Price</div>
-                        <div style="font-weight:600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(detailData.price)"></div>
-                    </div>
+                <div>
+                    <div class="text-sm text-muted">Brand</div>
+                    <div style="font-weight:600" x-text="detailData.brand || 'Tanpa Brand'"></div>
                 </div>
+                <div>
+                    <div class="text-sm text-muted">Stock</div>
+                    <div style="font-weight:600" x-text="detailData.stock"></div>
+                </div>
+                <div>
+                    <div class="text-sm text-muted">Sell Price</div>
+                    <div style="font-weight:600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(detailData.price)"></div>
+                </div>
+                <div>
+                    <div class="text-sm text-muted">Expired Date</div>
+                    <div style="font-weight:600" x-text="detailData.expired_at || '-'"></div>
+                </div>
+            </div>
                 
                 <div class="card-title" style="margin-bottom:10px; font-size:14px">Suppliers</div>
                 <table class="data-table" style="width:100%">
