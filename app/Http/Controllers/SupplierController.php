@@ -10,7 +10,7 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Supplier::latest();
+        $query = Supplier::with('brands')->latest();
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -46,7 +46,6 @@ class SupplierController extends Controller
             'phone'                => 'nullable|string|max:20',
             'address'              => 'nullable|string|max:500',
             'category'             => 'nullable|string|max:255',
-            'brand'                => 'nullable|string|max:255',
             'bank_name'            => 'nullable|string|max:100',
             'bank_account_number'  => 'nullable|string|max:50',
             'bank_account_holder'  => 'nullable|string|max:255',
@@ -80,7 +79,6 @@ class SupplierController extends Controller
             'phone'                => 'nullable|string|max:20',
             'address'              => 'nullable|string|max:500',
             'category'             => 'nullable|string|max:255',
-            'brand'                => 'nullable|string|max:255',
             'bank_name'            => 'nullable|string|max:100',
             'bank_account_number'  => 'nullable|string|max:50',
             'bank_account_holder'  => 'nullable|string|max:255',

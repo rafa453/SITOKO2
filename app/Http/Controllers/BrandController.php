@@ -9,8 +9,16 @@ class BrandController extends Controller
 {
     public function index()
     {
-        $brands = Brand::withCount('products')->orderBy('name')->paginate(20);
-        return view('pages.brands', compact('brands'));
+        $brands = Brand::with('suppliers')
+                   ->withCount('products')
+                   ->orderBy('name')
+                   ->paginate(20);
+                   
+        $suppliers = \App\Models\Supplier::where('is_active', true)
+                                         ->orderBy('name')
+                                         ->get();
+                                         
+        return view('pages.brands', compact('brands', 'suppliers'));
     }
 
     public function store(Request $request)
@@ -43,6 +51,16 @@ class BrandController extends Controller
 
         $brand->delete();
 
-        return redirect()->route('brands.index')->with('success', 'Merek berhasil dihapus.');
+        return back()->with('success', 'Brand dihapus.');
+    }
+
+    public function assignSupplier(Request $request, Brand $brand)
+    {
+        $request->validate([
+            'supplier_id' => 'required|exists:suppliers,id',
+        ]);
+
+        $brand->suppliers()->sync([$request->supplier_id]);
+        return back()->with('success', "Brand {$brand->name} berhasil di-assign ke supplier.");
     }
 }

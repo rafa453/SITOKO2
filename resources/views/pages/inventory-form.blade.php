@@ -318,12 +318,14 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 1. Konsistensi ID elemen HTML
     const supplierSelect = document.getElementById('supplier_select');
     const brandSelect = document.getElementById('brand_select');
 
     if(supplierSelect && brandSelect) {
         supplierSelect.addEventListener('change', function() {
-            // Ambil ID supplier pertama yang dipilih
+            
+            // 2. Metode aman mengambil nilai multi-select
             const selectedOptions = Array.from(this.selectedOptions);
             const supplierId = selectedOptions.length > 0 ? selectedOptions[0].value : null;
             
@@ -331,11 +333,13 @@ document.addEventListener('DOMContentLoaded', function() {
             brandSelect.innerHTML = '<option value="">Loading...</option>';
             brandSelect.disabled = true;
 
+            // Cegah Fetch API jika tidak ada supplier yang valid
             if(!supplierId) {
                 brandSelect.innerHTML = '<option value="">-- Pilih Supplier Dahulu --</option>';
                 return;
             }
 
+            // Jalankan AJAX Request ke Endpoint API
             fetch(`/api/suppliers/${supplierId}/brands`)
                 .then(res => res.json())
                 .then(data => {

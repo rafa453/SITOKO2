@@ -46,17 +46,6 @@
                 </span>
             </div>
 
-             {{-- Brand --}}
-            <div class="form-group">
-                <label class="form-label">Nama Brand</label>
-                <input type="text" name="brand" class="form-input"
-                    value="{{ old('brand', $supplier->brand ?? '') }}"
-                    placeholder="Indomie, Aqua, Beras Cap Jago">
-                <span style="font-size:11.5px; color:var(--text-muted); margin-top:4px; display:block">
-                    Pisahkan dengan koma jika lebih dari satu brand.
-                </span>
-            </div>
-
             {{-- Telepon --}}
             <div class="form-group">
                 <label class="form-label">Nomor Telepon</label>

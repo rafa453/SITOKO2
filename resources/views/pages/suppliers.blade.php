@@ -65,7 +65,7 @@
                 <tr id="supplier-row-{{ $s->id }}"
                     data-name="{{ $s->name }}"
                     data-category="{{ $s->category ?? '—' }}"
-                    data-brand="{{ $s->brand ?? '—' }}"
+                    data-brand="{{ $s->brands->isNotEmpty() ? $s->brands->pluck('name')->join(', ') : '—' }}"
                     data-phone="{{ $s->phone ?? '—' }}"
                     data-address="{{ $s->address ?? '—' }}"
                     data-status="{{ $s->is_active ? 'Aktif' : 'Nonaktif' }}"
@@ -81,7 +81,7 @@
                         @endif
                     </td>
                     <td class="text-secondary" style="white-space:normal; word-break:break-word">
-                        {{ $s->brand ?? '—' }}
+                        {{ $s->brands->isNotEmpty() ? $s->brands->pluck('name')->join(', ') : '—' }}
                     </td>
                     <td class="text-secondary" style="white-space:nowrap">{{ $s->phone ?? '—' }}</td>
                     <td class="text-secondary"
