@@ -214,9 +214,14 @@
         </div>
         <div class="card-body" style="padding-top:8px; padding-bottom:8px">
             @forelse($stockAlerts as $alert)
-            <div class="alert-item">
+            <a href="{{ route('inventory.edit', $alert->id) }}" 
+               class="alert-item"
+               style="display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:inherit; padding:12px; margin:0 -12px; border-radius:8px; transition:background-color 0.15s ease; cursor:pointer;"
+               onmouseover="this.style.backgroundColor='#F9FAFB'" 
+               onmouseout="this.style.backgroundColor='transparent'">
+               
                 <div class="alert-item__info">
-                    <div class="alert-item__name">{{ $alert->name }}</div>
+                    <div class="alert-item__name" style="font-weight:600; color:var(--text-primary)">{{ $alert->name }}</div>
                     <div class="alert-item__detail {{ $alert->qty == 0 ? 'text-danger' : 'text-warning' }}">
                         @if($alert->qty == 0)
                             <span class="status-dot status-dot--red" style="margin-right:4px"></span>
@@ -227,17 +232,16 @@
                         @endif
                     </div>
                 </div>
-                @if(auth()->user()->role === 'admin')
-                <form method="POST" action="{{ route('inventory.restock', $alert->id) }}" style="display:flex; gap:4px; align-items:center">
-                    @csrf
-                    <input type="number" name="qty" value="10" min="1"
-                           style="width:52px; padding:4px 6px; font-size:12px; border:1px solid var(--border); border-radius:var(--radius-sm)">
-                    <button type="submit" class="btn btn--secondary btn--sm">Restock</button>
-                </form>
-                @endif
-            </div>
+                
+                {{-- Affordance: Chevron Right Icon --}}
+                <div style="color:#9CA3AF;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+            </a>
             @empty
-                <p class="text-muted text-sm" style="padding:8px 0">No stock alerts. All items are healthy.</p>
+                <p class="text-muted text-sm" style="padding:8px 0; margin-left:12px;">No stock alerts. All items are healthy.</p>
             @endforelse
         </div>
     </div>
@@ -471,51 +475,6 @@
     </div>
     {{ $products->links('vendor.pagination.custom') }}
 </div>
-
-{{-- ===== SUPPLIER QUICK REFERENCE ===== --}}
-@if(auth()->check() && auth()->user()->role === 'admin')
-<div class="card">
-    <div class="card-header">
-        <div class="card-title">Supplier Quick Reference</div>
-        <a href="#" class="card-action-link">View All Suppliers →</a>
-    </div>
-    <div class="card-body">
-        <div class="card-grid card-grid--3">
-            @php
-                $supplierColors = ['var(--blue-600)', 'var(--green-500)', 'var(--amber-500)', 'var(--purple-500)', 'var(--red-500)'];
-            @endphp
-            @foreach($suppliers as $i => $s)
-            <div style="border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px">
-                <div style="display:flex; align-items:center; gap:10px">
-                    <div class="avatar" style="background:{{ $supplierColors[$i % count($supplierColors)] }}; width:38px; height:38px; font-size:13px">
-                        {{ $s['initials'] }}
-                    </div>
-                    <div>
-                        <div style="font-size:13.5px; font-weight:700">{{ $s['name'] }}</div>
-                        <div style="font-size:12px; color:var(--text-muted)">{{ $s['desc'] }}</div>
-                    </div>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:4px; font-size:12.5px; color:var(--text-secondary)">
-                    <div style="display:flex; align-items:center; gap:6px">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                        </svg>
-                        {{ $s['phone'] }}
-                    </div>
-                    <div style="display:flex; align-items:center; gap:6px">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                        Last Delivery: {{ $s['last'] }}
-                    </div>
-                </div>
-                <button class="btn btn--secondary btn--sm w-full" style="justify-content:center">Contact Supplier</button>
-            </div>
-            @endforeach
-        </div>
-    </div>
-</div>
-@endif
 
 {{-- ===== MODAL ===== --}}
 <div class="inv-modal-overlay" id="invModalOverlay" onclick="if(event.target === this) closeInvModal()">
