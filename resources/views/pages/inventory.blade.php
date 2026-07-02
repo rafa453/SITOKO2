@@ -135,9 +135,9 @@
         </div>
     </div>
 
-    <div class="stat-card stat-card--clickable" style="border-color:#FEE2E2; background:#FEF2F2" onclick="openInvModal('stockAlertsCard', 'Stock Alerts')">
+    <div class="stat-card stat-card--clickable" style="border-color:#FEE2E2; background:#FEF2F2" onclick="openInvModal('expiringProductsCard', 'Stock Alert — Mendekati Kadaluarsa')">
         <div class="stat-card__header">
-            <span class="stat-card__label" style="color:#991B1B">Out of Stock</span>
+            <span class="stat-card__label" style="color:#991B1B">Stock Alert</span>
             <div class="stat-card__icon" style="background:#FEE2E2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
@@ -145,10 +145,10 @@
                 </svg>
             </div>
         </div>
-        <div class="stat-card__value" style="color:#EF4444">{{ $outOfStockCount }}</div>
+        <div class="stat-card__value" style="color:#EF4444">{{ $expiringCount }}</div>
         <div class="stat-card__meta">
-            <span class="badge badge--red">RESTOCK NOW</span>
-            <span class="text-sm" style="color:#991B1B">Immediate action required</span>
+            <span class="badge badge--red">EXPIRY</span>
+            <span class="text-sm" style="color:#991B1B">Mendekati / sudah kadaluarsa</span>
         </div>
     </div>
 
@@ -263,6 +263,50 @@
         @if($stockValueByCategory->isEmpty())
             <p class="text-muted text-sm">No data available.</p>
         @endif
+    </div>
+</div>
+
+{{-- Expiring Products (hidden, sumber popup Stock Alert) --}}
+<div id="expiringProductsCard" style="display:none">
+    <div class="data-table-wrapper" style="border:none; border-radius:0; padding:0">
+        <table class="data-table" style="width:100%">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Nama Produk</th>
+                    <th>Sisa Stok</th>
+                    <th>Tanggal Expired</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($expiringProducts as $ep)
+                @php
+                    $isExpired = $ep->expired_at->isPast();
+                    $daysLeft  = now()->diffInDays($ep->expired_at, false);
+                @endphp
+                <tr>
+                    <td class="table-id">{{ $ep->sku }}</td>
+                    <td style="font-weight:600; font-size:13px">{{ $ep->name }}</td>
+                    <td class="text-secondary">{{ $ep->qty }} {{ $ep->unit }}</td>
+                    <td class="text-secondary">{{ $ep->expired_at->format('d M Y') }}</td>
+                    <td>
+                        @if($isExpired)
+                            <span class="badge badge--red">Sudah Expired</span>
+                        @else
+                            <span class="badge badge--yellow">H-{{ $daysLeft }}</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted)">
+                        Tidak ada produk yang mendekati kadaluarsa.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 

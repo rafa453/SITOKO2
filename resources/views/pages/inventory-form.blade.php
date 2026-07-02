@@ -251,6 +251,21 @@
                             Alert will trigger when stock drops to or below this number.
                         </p>
                     </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
+                            Expired Date
+                        </label>
+                        <input
+                            type="date"
+                            name="expired_at"
+                            class="form-input"
+                            style="width:100%"
+                            value="{{ old('expired_at', isset($product) && $product->expired_at ? $product->expired_at->format('Y-m-d') : '') }}"
+                        >
+                        <p style="font-size:11px; color:var(--text-muted); margin-top:4px">
+                            Opsional. Isi untuk produk yang punya tanggal kadaluarsa.
+                        </p>
+                    </div>
                 </div>
             </div>
 

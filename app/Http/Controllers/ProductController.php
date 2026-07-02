@@ -52,6 +52,13 @@ class ProductController extends Controller
         $outOfStockCount = Product::where('qty', 0)->count();
         $stockValue      = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
 
+        // ===== Stock Alert: produk mendekati / sudah kadaluarsa (H-7) =====
+        $expiringProducts = Product::whereNotNull('expired_at')
+            ->where('expired_at', '<=', now()->addDays(7))
+            ->orderBy('expired_at')
+            ->get();
+        $expiringCount = $expiringProducts->count();
+
         $categoryBreakdown = Product::selectRaw('category, COUNT(*) as count')
             ->groupBy('category')
             ->orderByDesc('count')
@@ -88,6 +95,7 @@ class ProductController extends Controller
         return view('pages.inventory', compact(
             'products', 'categories',
             'totalSkus', 'lowStockCount', 'outOfStockCount', 'stockValue',
+            'expiringProducts', 'expiringCount',
             'categoryBreakdown', 'stockValueByCategory', 'stockAlerts', 'suppliers',
             'filterBrands', 'filterSuppliers', 'categoryLabels'
         ));
@@ -112,6 +120,7 @@ class ProductController extends Controller
             'sell_price'  => 'required|numeric|min:0',
             'qty'         => 'required|integer|min:0',
             'threshold'   => 'required|integer|min:0',
+            'expired_at'  => 'nullable|date',
             'description' => 'nullable|string',
             'supplier_ids'      => 'nullable|array',
             'supplier_ids.*'    => 'exists:suppliers,id',
@@ -180,6 +189,7 @@ class ProductController extends Controller
             'sell_price'  => 'required|numeric|min:0',
             'qty'         => 'required|integer|min:0',
             'threshold'   => 'required|integer|min:0',
+            'expired_at'  => 'nullable|date',
             'description' => 'nullable|string',
             'supplier_ids'      => 'nullable|array',
             'supplier_ids.*'    => 'exists:suppliers,id',

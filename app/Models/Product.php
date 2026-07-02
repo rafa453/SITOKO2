@@ -15,6 +15,7 @@
             'buy_price',
             'sell_price',
             'brand_id',
+            'expired_at',
         ];
 
         protected $casts = [
@@ -23,6 +24,7 @@
             'buy_price'  => 'integer',
             'sell_price' => 'integer',
             'is_active'  => 'boolean',
+            'expired_at' => 'date',
         ];
 
         public function transactionItems()
@@ -50,6 +52,26 @@
             return $this->belongsToMany(Supplier::class, 'product_supplier')
                         ->withPivot(['supplier_sku', 'price'])
                         ->withTimestamps();
+        }
+
+        /**
+         * Status kadaluarsa produk: 'expired', 'near' (≤7 hari), 'safe', atau null jika tidak diset.
+         */
+        public function getExpiryStatusAttribute(): ?string
+        {
+            if (!$this->expired_at) {
+                return null;
+            }
+
+            if ($this->expired_at->isPast()) {
+                return 'expired';
+            }
+
+            if ($this->expired_at->diffInDays(now()) <= 7) {
+                return 'near';
+            }
+
+            return 'safe';
         }
 
         public static function generateSku(string $category, string $brandName, string $supplierName): string
