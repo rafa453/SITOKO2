@@ -73,6 +73,19 @@ class StaffController extends Controller
 
         $activityQuery = ActivityLog::with('user')->latest();
 
+        if ($request->filled('log_user_id')) {
+            $activityQuery->where('user_id', $request->log_user_id);
+        }
+        if ($request->filled('log_type')) {
+            $activityQuery->where('type', $request->log_type);
+        }
+        if ($request->filled('log_search')) {
+            $activityQuery->where(function($q) use ($request) {
+                $q->where('action', 'like', '%' . $request->log_search . '%')
+                  ->orWhere('subject', 'like', '%' . $request->log_search . '%');
+            });
+        }
+
         if ($request->filled('log_from')) {
             $activityQuery->whereDate('created_at', '>=', $request->log_from);
         }
@@ -81,10 +94,11 @@ class StaffController extends Controller
         }
 
         $activityLogs = $activityQuery->limit(20)->get();
+        $allUsers = User::orderBy('name')->get(['id', 'name', 'role']);
 
         return view('pages.staff', compact(
             'staff', 'totalStaff', 'onDuty', 'onDutyShifts', 'avgTrans',
-            'todayShifts', 'topPerformers', 'activityLogs'
+            'todayShifts', 'topPerformers', 'activityLogs', 'allUsers'
         ));
     }
 

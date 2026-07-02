@@ -3,216 +3,561 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ─── 1. PAYMENT METHODS ───────────────────────────────────────────
+        // =========================================================================
+        // 1. TRUNCATE DATA DENGAN AMAN (KECUALI USERS)
+        // =========================================================================
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        $tablesToTruncate = [
+            'transactions',
+            'transaction_items',
+            'purchase_orders',
+            'purchase_order_items',
+            'supplier_returns',
+            'supplier_return_items',
+            'products',
+            'product_supplier',
+            'brands',
+            'brand_supplier',
+            'suppliers',
+            'payment_methods',
+        ];
+
+        foreach ($tablesToTruncate as $table) {
+            DB::table($table)->truncate();
+        }
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        $this->command->info('✅ Tabel operasional berhasil di-truncate (Users tetap aman).');
+
+        // =========================================================================
+        // 2. SEEDING MASTER DATA
+        // =========================================================================
+        
+        // A. Payment Methods
         $paymentMethods = [
             ['name' => 'Tunai',        'type' => 'cash',    'provider' => null,    'mdr_fee' => 0,   'notes' => 'Pembayaran tunai langsung', 'is_active' => true],
             ['name' => 'QRIS GoPay',   'type' => 'digital', 'provider' => 'GoPay', 'mdr_fee' => 0.7, 'notes' => 'Scan QR semua e-wallet',    'is_active' => true],
             ['name' => 'Transfer BCA', 'type' => 'digital', 'provider' => 'BCA',   'mdr_fee' => 0,   'notes' => 'Transfer antar bank BCA',   'is_active' => true],
-            ['name' => 'Debit BRI',    'type' => 'edc',     'provider' => 'BRI',   'mdr_fee' => 1.0, 'notes' => 'Kartu debit BRI',           'is_active' => true],
-            ['name' => 'OVO',          'type' => 'digital', 'provider' => 'OVO',   'mdr_fee' => 1.5, 'notes' => 'Dompet digital OVO',        'is_active' => false],
         ];
-
-        DB::table('payment_methods')->insert(array_map(fn($p) => array_merge($p, [
-            'created_at' => now(), 'updated_at' => now()
-        ]), $paymentMethods));
-
-        // ─── 2. USERS ─────────────────────────────────────────────────────
-        $users = [
-            ['name' => 'Admin Utama',    'email' => 'admin@marketos.id',    'role' => 'admin',      'phone' => '081200000001', 'shift' => 'pagi',  'status' => 'active'],
-            ['name' => 'Budi Santoso',   'email' => 'budi@marketos.id',     'role' => 'cashier',    'phone' => '081200000002', 'shift' => 'pagi',  'status' => 'active'],
-            ['name' => 'Siti Rahayu',    'email' => 'siti@marketos.id',     'role' => 'cashier',    'phone' => '081200000003', 'shift' => 'siang', 'status' => 'active'],
-            ['name' => 'Dedi Kurniawan', 'email' => 'dedi@marketos.id',     'role' => 'cashier',    'phone' => '081200000004', 'shift' => 'malam', 'status' => 'active'],
-            ['name' => 'Rina Wulandari', 'email' => 'rina@marketos.id',     'role' => 'supervisor', 'phone' => '081200000005', 'shift' => 'pagi',  'status' => 'active'],
-            ['name' => 'Joko Widodo',    'email' => 'joko@marketos.id',     'role' => 'cashier',    'phone' => '081200000006', 'shift' => 'siang', 'status' => 'inactive'],
-        ];
-
-        foreach ($users as $u) {
-            DB::table('users')->insert(array_merge($u, [
-                'password'   => Hash::make('password'),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
+        
+        foreach ($paymentMethods as $pm) {
+            DB::table('payment_methods')->insert(array_merge($pm, ['created_at' => now(), 'updated_at' => now()]));
         }
 
-        // ─── 3. PRODUCTS ──────────────────────────────────────────────────
-        $products = [
-            // Beras & Tepung
-            ['sku'=>'BR-001','name'=>'Beras Premium 5kg',     'category'=>'Beras & Tepung',  'unit'=>'Karung','qty'=>120,'threshold'=>20,'buy_price'=>68000, 'sell_price'=>75000],
-            ['sku'=>'BR-002','name'=>'Beras Medium 5kg',      'category'=>'Beras & Tepung',  'unit'=>'Karung','qty'=>85, 'threshold'=>15,'buy_price'=>55000, 'sell_price'=>62000],
-            ['sku'=>'BR-003','name'=>'Tepung Terigu 1kg',     'category'=>'Beras & Tepung',  'unit'=>'Pcs',   'qty'=>9,  'threshold'=>15,'buy_price'=>11000, 'sell_price'=>13500],
-            ['sku'=>'BR-004','name'=>'Tepung Beras 500g',     'category'=>'Beras & Tepung',  'unit'=>'Pcs',   'qty'=>0,  'threshold'=>10,'buy_price'=>8000,  'sell_price'=>10000],
+        // C. Suppliers
+        $supplierIndofoodId = DB::table('suppliers')->insertGetId([
+            'name'       => 'PT Indofood',
+            'phone'      => '081234567890',
+            'address'    => 'Jl. Indofood No. 1, Jakarta',
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-            // Minyak & Lemak
-            ['sku'=>'MG-001','name'=>'Minyak Goreng 2L',      'category'=>'Minyak & Lemak',  'unit'=>'Botol', 'qty'=>95, 'threshold'=>20,'buy_price'=>28000, 'sell_price'=>32000],
-            ['sku'=>'MG-002','name'=>'Minyak Goreng 1L',      'category'=>'Minyak & Lemak',  'unit'=>'Botol', 'qty'=>60, 'threshold'=>15,'buy_price'=>15000, 'sell_price'=>18000],
-            ['sku'=>'MG-003','name'=>'Margarin Blue Band 200g','category'=>'Minyak & Lemak', 'unit'=>'Pcs',   'qty'=>7,  'threshold'=>10,'buy_price'=>9500,  'sell_price'=>12000],
+        $supplierUnileverId = DB::table('suppliers')->insertGetId([
+            'name'       => 'PT Unilever',
+            'phone'      => '081298765432',
+            'address'    => 'Jl. Unilever No. 2, Jakarta',
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-            // Gula & Garam
-            ['sku'=>'GG-001','name'=>'Gula Pasir 1kg',        'category'=>'Gula & Garam',    'unit'=>'Pcs',   'qty'=>150,'threshold'=>30,'buy_price'=>13500, 'sell_price'=>16000],
-            ['sku'=>'GG-002','name'=>'Gula Merah 500g',       'category'=>'Gula & Garam',    'unit'=>'Pcs',   'qty'=>45, 'threshold'=>10,'buy_price'=>9000,  'sell_price'=>11500],
-            ['sku'=>'GG-003','name'=>'Garam Halus 500g',      'category'=>'Gula & Garam',    'unit'=>'Pcs',   'qty'=>80, 'threshold'=>20,'buy_price'=>3500,  'sell_price'=>5000],
+        $supplierNestleId = DB::table('suppliers')->insertGetId([
+            'name'       => 'PT Nestle Indonesia',
+            'phone'      => '081122334455',
+            'address'    => 'Arkadia Green Park, Jakarta',
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-            // Mie & Pasta
-            ['sku'=>'MI-001','name'=>'Indomie Goreng',        'category'=>'Mie & Pasta',     'unit'=>'Pcs',   'qty'=>300,'threshold'=>50,'buy_price'=>2800,  'sell_price'=>3500],
-            ['sku'=>'MI-002','name'=>'Indomie Kuah',          'category'=>'Mie & Pasta',     'unit'=>'Pcs',   'qty'=>250,'threshold'=>50,'buy_price'=>2800,  'sell_price'=>3500],
-            ['sku'=>'MI-003','name'=>'Mie Telur 200g',        'category'=>'Mie & Pasta',     'unit'=>'Pcs',   'qty'=>5,  'threshold'=>15,'buy_price'=>6500,  'sell_price'=>8500],
+        $supplierWingsId = DB::table('suppliers')->insertGetId([
+            'name'       => 'PT Wings Surya',
+            'phone'      => '081199887766',
+            'address'    => 'Jl. Cakung Cilincing, Jakarta',
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-            // Bumbu & Rempah
-            ['sku'=>'BM-001','name'=>'Kecap Manis ABC 600ml', 'category'=>'Bumbu & Rempah',  'unit'=>'Botol', 'qty'=>40, 'threshold'=>10,'buy_price'=>16000, 'sell_price'=>20000],
-            ['sku'=>'BM-002','name'=>'Saos Sambal 340ml',     'category'=>'Bumbu & Rempah',  'unit'=>'Botol', 'qty'=>35, 'threshold'=>10,'buy_price'=>12000, 'sell_price'=>15000],
-            ['sku'=>'BM-003','name'=>'Royco Sapi 230g',       'category'=>'Bumbu & Rempah',  'unit'=>'Pcs',   'qty'=>0,  'threshold'=>10,'buy_price'=>14000, 'sell_price'=>17500],
+        $supplierMayoraId = DB::table('suppliers')->insertGetId([
+            'name'       => 'PT Mayora Indah',
+            'phone'      => '081155443322',
+            'address'    => 'Gedung Mayora, Jakarta Barat',
+            'is_active'  => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-            // Minuman
-            ['sku'=>'MN-001','name'=>'Teh Botol Sosro 350ml', 'category'=>'Minuman',         'unit'=>'Botol', 'qty'=>120,'threshold'=>24,'buy_price'=>4500,  'sell_price'=>6000],
-            ['sku'=>'MN-002','name'=>'Air Mineral Aqua 600ml','category'=>'Minuman',         'unit'=>'Botol', 'qty'=>200,'threshold'=>48,'buy_price'=>2500,  'sell_price'=>4000],
-            ['sku'=>'MN-003','name'=>'Susu Ultra 1L',         'category'=>'Minuman',         'unit'=>'Kotak', 'qty'=>8,  'threshold'=>12,'buy_price'=>17500, 'sell_price'=>22000],
+        // D. Brands & M2M Relasi (brand_supplier)
+        $brandIndomieId = DB::table('brands')->insertGetId(['name' => 'Indomie', 'created_at' => now(), 'updated_at' => now()]);
+        $brandBogasariId = DB::table('brands')->insertGetId(['name' => 'Bogasari', 'created_at' => now(), 'updated_at' => now()]);
+        
+        $brandLifebuoyId = DB::table('brands')->insertGetId(['name' => 'Lifebuoy', 'created_at' => now(), 'updated_at' => now()]);
+        $brandSunlightId = DB::table('brands')->insertGetId(['name' => 'Sunlight', 'created_at' => now(), 'updated_at' => now()]);
 
-            // Kebutuhan Rumah
-            ['sku'=>'KR-001','name'=>'Sabun Cuci Piring 800ml','category'=>'Kebutuhan Rumah','unit'=>'Botol', 'qty'=>50, 'threshold'=>10,'buy_price'=>12000, 'sell_price'=>15000],
-            ['sku'=>'KR-002','name'=>'Deterjen Rinso 800g',   'category'=>'Kebutuhan Rumah', 'unit'=>'Pcs',   'qty'=>30, 'threshold'=>10,'buy_price'=>22000, 'sell_price'=>27000],
+        $brandDancowId = DB::table('brands')->insertGetId(['name' => 'Dancow', 'created_at' => now(), 'updated_at' => now()]);
+        $brandMiloId = DB::table('brands')->insertGetId(['name' => 'Milo', 'created_at' => now(), 'updated_at' => now()]);
+        $brandBearBrandId = DB::table('brands')->insertGetId(['name' => 'Bear Brand', 'created_at' => now(), 'updated_at' => now()]);
+
+        $brandMieSedaapId = DB::table('brands')->insertGetId(['name' => 'Mie Sedaap', 'created_at' => now(), 'updated_at' => now()]);
+        $brandNuvoId = DB::table('brands')->insertGetId(['name' => 'Nuvo', 'created_at' => now(), 'updated_at' => now()]);
+
+        $brandKopikoId = DB::table('brands')->insertGetId(['name' => 'Kopiko', 'created_at' => now(), 'updated_at' => now()]);
+        $brandRomaId = DB::table('brands')->insertGetId(['name' => 'Roma', 'created_at' => now(), 'updated_at' => now()]);
+
+        DB::table('brand_supplier')->insert([
+            ['brand_id' => $brandIndomieId,  'supplier_id' => $supplierIndofoodId, 'created_at' => now(), 'updated_at' => now()],
+            ['brand_id' => $brandBogasariId, 'supplier_id' => $supplierIndofoodId, 'created_at' => now(), 'updated_at' => now()],
+            
+            ['brand_id' => $brandLifebuoyId, 'supplier_id' => $supplierUnileverId, 'created_at' => now(), 'updated_at' => now()],
+            ['brand_id' => $brandSunlightId, 'supplier_id' => $supplierUnileverId, 'created_at' => now(), 'updated_at' => now()],
+
+            ['brand_id' => $brandDancowId, 'supplier_id' => $supplierNestleId, 'created_at' => now(), 'updated_at' => now()],
+            ['brand_id' => $brandMiloId, 'supplier_id' => $supplierNestleId, 'created_at' => now(), 'updated_at' => now()],
+            ['brand_id' => $brandBearBrandId, 'supplier_id' => $supplierNestleId, 'created_at' => now(), 'updated_at' => now()],
+
+            ['brand_id' => $brandMieSedaapId, 'supplier_id' => $supplierWingsId, 'created_at' => now(), 'updated_at' => now()],
+            ['brand_id' => $brandNuvoId, 'supplier_id' => $supplierWingsId, 'created_at' => now(), 'updated_at' => now()],
+
+            ['brand_id' => $brandKopikoId, 'supplier_id' => $supplierMayoraId, 'created_at' => now(), 'updated_at' => now()],
+            ['brand_id' => $brandRomaId, 'supplier_id' => $supplierMayoraId, 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $this->command->info('✅ Master Data (Payment, Categories, Suppliers, Brands) berhasil di-seed.');
+
+        // =========================================================================
+        // 3. SEEDING INVENTORY DENGAN LOGIKA BARU
+        // =========================================================================
+        
+        $productsData = [
+            // Sembako (Indofood)
+            [
+                'brand_id'   => $brandIndomieId,
+                'sku'        => 'SBK-IDF-0001',
+                'name'       => 'Indomie Goreng Spesial',
+                'category'   => 'Sembako',
+                'unit'       => 'Pcs',
+                'qty'        => 350,
+                'threshold'  => 50,
+                'buy_price'  => 2500,
+                'sell_price' => 3200,
+            ],
+            [
+                'brand_id'   => $brandIndomieId,
+                'sku'        => 'SBK-IDF-0002',
+                'name'       => 'Indomie Ayam Bawang',
+                'category'   => 'Sembako',
+                'unit'       => 'Pcs',
+                'qty'        => 200,
+                'threshold'  => 50,
+                'buy_price'  => 2400,
+                'sell_price' => 3000,
+            ],
+            [
+                'brand_id'   => $brandBogasariId,
+                'sku'        => 'SBK-IDF-0003',
+                'name'       => 'Tepung Segitiga Biru 1Kg',
+                'category'   => 'Sembako',
+                'unit'       => 'Pcs',
+                'qty'        => 120,
+                'threshold'  => 20,
+                'buy_price'  => 11000,
+                'sell_price' => 13500,
+            ],
+            // Pembersih (Unilever)
+            [
+                'brand_id'   => $brandLifebuoyId,
+                'sku'        => 'PMB-UNI-0001',
+                'name'       => 'Sabun Mandi Lifebuoy Total 10',
+                'category'   => 'Pembersih',
+                'unit'       => 'Pcs',
+                'qty'        => 180,
+                'threshold'  => 25,
+                'buy_price'  => 3500,
+                'sell_price' => 4500,
+            ],
+            [
+                'brand_id'   => $brandSunlightId,
+                'sku'        => 'PMB-UNI-0002',
+                'name'       => 'Sunlight Jeruk Nipis 755ml',
+                'category'   => 'Pembersih',
+                'unit'       => 'Pcs',
+                'qty'        => 85,
+                'threshold'  => 15,
+                'buy_price'  => 15000,
+                'sell_price' => 18000,
+            ],
+            // Susu (Nestle)
+            [
+                'brand_id'   => $brandDancowId,
+                'sku'        => 'MIN-NST-0001',
+                'name'       => 'Susu Dancow Fortigro 400g',
+                'category'   => 'Susu',
+                'unit'       => 'Pcs',
+                'qty'        => 60,
+                'threshold'  => 10,
+                'buy_price'  => 38000,
+                'sell_price' => 45000,
+            ],
+            [
+                'brand_id'   => $brandBearBrandId,
+                'sku'        => 'MIN-NST-0002',
+                'name'       => 'Susu Bear Brand 189ml',
+                'category'   => 'Susu',
+                'unit'       => 'Kaleng',
+                'qty'        => 150,
+                'threshold'  => 30,
+                'buy_price'  => 8500,
+                'sell_price' => 10500,
+            ],
+            // Sembako (Wings)
+            [
+                'brand_id'   => $brandMieSedaapId,
+                'sku'        => 'SBK-WNG-0001',
+                'name'       => 'Mie Sedaap Soto',
+                'category'   => 'Sembako',
+                'unit'       => 'Pcs',
+                'qty'        => 400,
+                'threshold'  => 100,
+                'buy_price'  => 2300,
+                'sell_price' => 3000,
+            ],
+            [
+                'brand_id'   => $brandNuvoId,
+                'sku'        => 'PMB-WNG-0002',
+                'name'       => 'Sabun Nuvo Family Merah',
+                'category'   => 'Pembersih',
+                'unit'       => 'Pcs',
+                'qty'        => 120,
+                'threshold'  => 20,
+                'buy_price'  => 3000,
+                'sell_price' => 4000,
+            ],
+            // Makanan Ringan (Mayora)
+            [
+                'brand_id'   => $brandKopikoId,
+                'sku'        => 'SNK-MYR-0001',
+                'name'       => 'Permen Kopiko Blister',
+                'category'   => 'Makanan Ringan',
+                'unit'       => 'Pack',
+                'qty'        => 90,
+                'threshold'  => 15,
+                'buy_price'  => 7000,
+                'sell_price' => 9000,
+            ],
+            [
+                'brand_id'   => $brandRomaId,
+                'sku'        => 'SNK-MYR-0002',
+                'name'       => 'Biskuit Roma Kelapa 300g',
+                'category'   => 'Makanan Ringan',
+                'unit'       => 'Pcs',
+                'qty'        => 75,
+                'threshold'  => 15,
+                'buy_price'  => 11500,
+                'sell_price' => 14000,
+            ],
         ];
 
-        foreach ($products as $p) {
-            DB::table('products')->insert(array_merge($p, [
-                'created_at' => now(), 'updated_at' => now()
-            ]));
-        }
+        foreach ($productsData as $index => $prod) {
+            $productId = DB::table('products')->insertGetId(array_merge($prod, ['created_at' => now(), 'updated_at' => now()]));
 
-        // ─── 4. SHIFTS (30 hari terakhir) ────────────────────────────────
-        // cashier_ids: Budi=2, Siti=3, Dedi=4
-        $cashierShifts = [
-            2 => 'pagi',
-            3 => 'siang',
-            4 => 'malam',
-        ];
-
-        $shiftHours = [
-            'pagi'  => ['start' => 7,  'end' => 15],
-            'siang' => ['start' => 15, 'end' => 23],
-            'malam' => ['start' => 23, 'end' => 31], // +1 hari
-        ];
-
-        $shiftIds = [];
-
-        for ($day = 29; $day >= 0; $day--) {
-            $date = Carbon::now()->subDays($day)->startOfDay();
-
-            foreach ($cashierShifts as $userId => $shiftType) {
-                $h     = $shiftHours[$shiftType];
-                $start = $date->copy()->addHours($h['start']);
-                $end   = $date->copy()->addHours($h['end']);
-
-                $shiftId = DB::table('shifts')->insertGetId([
-                    'user_id'    => $userId,
-                    'type'       => $shiftType,
-                    'started_at' => $start,
-                    'ended_at'   => $end,
-                    'revenue'    => 0, // akan di-update nanti
-                    'trx_count'  => 0,
-                    'created_at' => $start,
-                    'updated_at' => $end,
-                ]);
-
-                $shiftIds[] = [
-                    'id'      => $shiftId,
-                    'user_id' => $userId,
-                    'type'    => $shiftType,
-                    'start'   => $start,
-                    'end'     => $end,
-                ];
+            // Pivot product_supplier assignment
+            $supplierId = null;
+            $supplierCode = '';
+            
+            if (in_array($prod['brand_id'], [$brandIndomieId, $brandBogasariId])) {
+                $supplierId = $supplierIndofoodId; $supplierCode = 'IDF';
+            } elseif (in_array($prod['brand_id'], [$brandLifebuoyId, $brandSunlightId])) {
+                $supplierId = $supplierUnileverId; $supplierCode = 'UNI';
+            } elseif (in_array($prod['brand_id'], [$brandDancowId, $brandMiloId, $brandBearBrandId])) {
+                $supplierId = $supplierNestleId; $supplierCode = 'NST';
+            } elseif (in_array($prod['brand_id'], [$brandMieSedaapId, $brandNuvoId])) {
+                $supplierId = $supplierWingsId; $supplierCode = 'WNG';
+            } elseif (in_array($prod['brand_id'], [$brandKopikoId, $brandRomaId])) {
+                $supplierId = $supplierMayoraId; $supplierCode = 'MYR';
             }
-        }
 
-        // ─── 5. TRANSACTIONS + TRANSACTION ITEMS ─────────────────────────
-        $allProducts    = DB::table('products')->get();
-        $allPayMethods  = DB::table('payment_methods')->where('is_active', true)->get();
-        $cashierIds     = [2, 3, 4];
-        $trxCodes       = [];
+            if (!$supplierId) continue;
 
-        // Distribusi transaksi per shift per hari
-        $trxPerShift = ['pagi' => 12, 'siang' => 8, 'malam' => 5];
-
-        $shiftRevenueTotals = []; // [shift_id => ['revenue'=>0,'trx_count'=>0]]
-
-        foreach ($shiftIds as $shift) {
-            $trxCount = $trxPerShift[$shift['type']];
-
-            for ($t = 0; $t < $trxCount; $t++) {
-                // Waktu transaksi: acak dalam window shift
-                $shiftDuration = $shift['start']->diffInMinutes($shift['end']);
-                $offsetMinutes = rand(5, max(6, $shiftDuration - 10));
-                $trxTime       = $shift['start']->copy()->addMinutes($offsetMinutes);
-
-                // Buat kode transaksi unik
-                $code = 'TRX-' . $trxTime->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
-
-                // Pilih 1–4 produk acak
-                $pickedProducts = $allProducts->random(rand(1, 4));
-                $payMethod      = $allPayMethods->random();
-
-                $total = 0;
-                $items = [];
-
-                foreach ($pickedProducts as $prod) {
-                    $qty      = rand(1, 5);
-                    $price    = $prod->sell_price;
-                    $subtotal = $qty * $price;
-                    $total   += $subtotal;
-
-                    $items[] = [
-                        'product_id' => $prod->id,
-                        'qty'        => $qty,
-                        'price'      => $price,
-                        'subtotal'   => $subtotal,
-                    ];
-                }
-
-                $amountPaid = $total + (($payMethod->type === 'cash') ? rand(0, 3) * 1000 : 0);
-                $change     = $amountPaid - $total;
-
-                $trxId = DB::table('transactions')->insertGetId([
-                    'code'           => $code,
-                    'cashier_id'     => $shift['user_id'],
-                    'payment_method' => $payMethod->name,
-                    'total'          => $total,
-                    'amount_paid'    => $amountPaid,
-                    'change'         => $change,
-                    'status'         => 'completed',
-                    'created_at'     => $trxTime,
-                    'updated_at'     => $trxTime,
-                ]);
-
-                foreach ($items as $item) {
-                    DB::table('transaction_items')->insert(array_merge($item, [
-                        'transaction_id' => $trxId,
-                        'created_at'     => $trxTime,
-                        'updated_at'     => $trxTime,
-                    ]));
-                }
-
-                // Akumulasi revenue per shift
-                if (!isset($shiftRevenueTotals[$shift['id']])) {
-                    $shiftRevenueTotals[$shift['id']] = ['revenue' => 0, 'trx_count' => 0];
-                }
-                $shiftRevenueTotals[$shift['id']]['revenue']   += $total;
-                $shiftRevenueTotals[$shift['id']]['trx_count'] += 1;
-            }
-        }
-
-        // ─── 6. UPDATE revenue & trx_count di tabel shifts ───────────────
-        foreach ($shiftRevenueTotals as $shiftId => $totals) {
-            DB::table('shifts')->where('id', $shiftId)->update([
-                'revenue'   => $totals['revenue'],
-                'trx_count' => $totals['trx_count'],
+            DB::table('product_supplier')->insert([
+                'product_id'   => $productId,
+                'supplier_id'  => $supplierId,
+                'supplier_sku' => 'SUP-' . $supplierCode . '-' . now()->format('Ymd') . '-' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
+                'price'        => $prod['buy_price'],
+                'created_at'   => now(),
+                'updated_at'   => now(),
             ]);
         }
+
+        $this->command->info('✅ Inventory Data (Products & Supplier pivot) berhasil di-seed.');
+
+        // =========================================================================
+        // 3.5 SEEDING PURCHASE ORDERS (ERP REAL-WORLD SIMULATION)
+        // =========================================================================
+        
+        $adminId = DB::table('users')->value('id') ?? 1;
+        $suppliersDb = DB::table('suppliers')->get();
+        $productsInDb = DB::table('products')->get();
+        $poCount = 1;
+
+        // --- KELOMPOK 1: THE FOUNDATION (Bukti Stok Saat Ini) ---
+        foreach ($suppliersDb as $supplier) {
+            $supplierProductIds = DB::table('product_supplier')->where('supplier_id', $supplier->id)->pluck('product_id')->toArray();
+            if (empty($supplierProductIds)) continue;
+
+            $supplierProducts = $productsInDb->whereIn('id', $supplierProductIds);
+
+            // Tanggal: Acak antara 1 hingga 2 bulan yang lalu
+            $date = now()->subMonths(rand(1, 2))->subDays(rand(1, 28));
+            
+            $poId = DB::table('purchase_orders')->insertGetId([
+                'code'           => 'PO-' . $date->format('Ymd') . '-' . str_pad($poCount++, 5, '0', STR_PAD_LEFT),
+                'supplier_id'    => $supplier->id,
+                'created_by'     => $adminId,
+                'received_by'    => $adminId,
+                'status'         => 'received',
+                'payment_status' => 'paid',
+                'payment_type'   => 'full',
+                'expected_at'    => $date->copy()->addDays(2)->toDateString(),
+                'received_at'    => $date->copy()->addDays(2),
+                'total'          => 0,
+                'amount_paid'    => 0, // Akan diupdate sama dengan total
+                'created_at'     => $date,
+                'updated_at'     => $date->copy()->addDays(2),
+            ]);
+
+            $totalPo = 0;
+            foreach ($supplierProducts as $prod) {
+                $subtotal = $prod->buy_price * $prod->qty; // Qty sesuai stok riil saat ini
+                $totalPo += $subtotal;
+
+                DB::table('purchase_order_items')->insert([
+                    'purchase_order_id' => $poId,
+                    'product_id'        => $prod->id,
+                    'qty_ordered'       => $prod->qty,
+                    'qty_received'      => $prod->qty,
+                    'buy_price'         => $prod->buy_price,
+                    'subtotal'          => $subtotal,
+                    'created_at'        => $date,
+                    'updated_at'        => $date->copy()->addDays(2),
+                ]);
+            }
+            DB::table('purchase_orders')->where('id', $poId)->update([
+                'total' => $totalPo,
+                'amount_paid' => $totalPo
+            ]);
+        }
+
+        // --- KELOMPOK 2: HISTORICAL NOISE (Riwayat Masa Lalu Bervariasi) ---
+        $historicalPoCount = rand(15, 20);
+        for ($i = 0; $i < $historicalPoCount; $i++) {
+            $supplier = $suppliersDb->random();
+            $supplierProductIds = DB::table('product_supplier')->where('supplier_id', $supplier->id)->pluck('product_id')->toArray();
+            if (empty($supplierProductIds)) continue;
+
+            $supplierProducts = $productsInDb->whereIn('id', $supplierProductIds);
+            
+            // Tanggal: Acak antara 2 hingga 6 bulan yang lalu
+            $date = now()->subMonths(rand(2, 6))->subDays(rand(1, 28));
+            
+            // Variasi Status
+            $isReceived = (rand(1, 100) <= 80); // 80% received, 20% cancelled
+            $status = $isReceived ? 'received' : 'cancelled';
+            
+            // Variasi Pembayaran
+            if ($isReceived) {
+                $paymentStatus = (rand(1, 100) <= 90) ? 'paid' : 'unpaid';
+            } else {
+                $paymentStatus = 'unpaid';
+            }
+
+            $poId = DB::table('purchase_orders')->insertGetId([
+                'code'           => 'PO-' . $date->format('Ymd') . '-' . str_pad($poCount++, 5, '0', STR_PAD_LEFT),
+                'supplier_id'    => $supplier->id,
+                'created_by'     => $adminId,
+                'received_by'    => $isReceived ? $adminId : null,
+                'status'         => $status,
+                'payment_status' => $paymentStatus,
+                'payment_type'   => $paymentStatus == 'paid' ? 'full' : null,
+                'expected_at'    => $date->copy()->addDays(rand(1, 5))->toDateString(),
+                'received_at'    => $isReceived ? $date->copy()->addDays(rand(1, 5)) : null,
+                'total'          => 0,
+                'amount_paid'    => 0,
+                'created_at'     => $date,
+                'updated_at'     => $isReceived ? $date->copy()->addDays(rand(1, 5)) : clone $date,
+            ]);
+
+            $totalPo = 0;
+            // Ambil 1-3 produk secara acak
+            $prodArray = $supplierProducts->toArray();
+            shuffle($prodArray);
+            $randomProds = array_slice($prodArray, 0, rand(1, min(3, count($prodArray))));
+
+            foreach ($randomProds as $prod) {
+                $qtyOrdered = rand(10, 50);
+                $qtyReceived = $isReceived ? $qtyOrdered : 0;
+                $subtotal = $prod->buy_price * $qtyOrdered;
+                $totalPo += $subtotal;
+
+                DB::table('purchase_order_items')->insert([
+                    'purchase_order_id' => $poId,
+                    'product_id'        => $prod->id,
+                    'qty_ordered'       => $qtyOrdered,
+                    'qty_received'      => $qtyReceived,
+                    'buy_price'         => $prod->buy_price,
+                    'subtotal'          => $subtotal,
+                    'created_at'        => $date,
+                    'updated_at'        => $date,
+                ]);
+            }
+            
+            $amountPaid = ($paymentStatus == 'paid') ? $totalPo : 0;
+            DB::table('purchase_orders')->where('id', $poId)->update([
+                'total' => $totalPo,
+                'amount_paid' => $amountPaid
+            ]);
+        }
+
+        // --- KELOMPOK 3: ACTIVE QUEUE (Antrean Aktif Hari Ini & Minggu Ini) ---
+        $activePoCount = rand(5, 10);
+        for ($i = 0; $i < $activePoCount; $i++) {
+            $supplier = $suppliersDb->random();
+            $supplierProductIds = DB::table('product_supplier')->where('supplier_id', $supplier->id)->pluck('product_id')->toArray();
+            if (empty($supplierProductIds)) continue;
+
+            $supplierProducts = $productsInDb->whereIn('id', $supplierProductIds);
+            
+            // Tanggal: Acak antara 1 hingga 7 hari yang lalu
+            $date = now()->subDays(rand(1, 7))->subHours(rand(1, 23));
+            
+            // Variasi Status ('ordered' atau 'draft')
+            $status = \Illuminate\Support\Arr::random(['draft', 'ordered']);
+            
+            // Variasi Pembayaran
+            $paymentStatus = \Illuminate\Support\Arr::random(['unpaid', 'partial']);
+            $paymentType = ($paymentStatus == 'partial') ? 'dp' : null;
+
+            $poId = DB::table('purchase_orders')->insertGetId([
+                'code'           => 'PO-' . $date->format('Ymd') . '-' . str_pad($poCount++, 5, '0', STR_PAD_LEFT),
+                'supplier_id'    => $supplier->id,
+                'created_by'     => $adminId,
+                'received_by'    => null,
+                'status'         => $status,
+                'payment_status' => $paymentStatus,
+                'payment_type'   => $paymentType,
+                'expected_at'    => $date->copy()->addDays(rand(2, 7))->toDateString(),
+                'received_at'    => null,
+                'total'          => 0,
+                'amount_paid'    => 0, // Diupdate setelah items
+                'created_at'     => $date,
+                'updated_at'     => $date,
+            ]);
+
+            $totalPo = 0;
+            $prodArray = $supplierProducts->toArray();
+            shuffle($prodArray);
+            $randomProds = array_slice($prodArray, 0, rand(1, min(4, count($prodArray))));
+
+            foreach ($randomProds as $prod) {
+                $qtyOrdered = rand(20, 100);
+                $subtotal = $prod->buy_price * $qtyOrdered;
+                $totalPo += $subtotal;
+
+                DB::table('purchase_order_items')->insert([
+                    'purchase_order_id' => $poId,
+                    'product_id'        => $prod->id,
+                    'qty_ordered'       => $qtyOrdered,
+                    'qty_received'      => 0,
+                    'buy_price'         => $prod->buy_price,
+                    'subtotal'          => $subtotal,
+                    'created_at'        => $date,
+                    'updated_at'        => $date,
+                ]);
+            }
+            
+            $amountPaid = ($paymentStatus == 'partial') ? ($totalPo * (rand(10, 50) / 100)) : 0; // DP 10-50%
+            DB::table('purchase_orders')->where('id', $poId)->update([
+                'total' => $totalPo,
+                'amount_paid' => $amountPaid
+            ]);
+        }
+
+        $this->command->info('✅ Purchase Order Data (Foundation, Historical Noise, & Active Queue) berhasil di-seed.');
+
+        // =========================================================================
+        // 4. SEEDING TRANSAKSI (PEMBUKTIAN HPP/FINANSIAL)
+        // =========================================================================
+        
+        $cashPaymentId = 1; // ID untuk 'Tunai'
+
+        $totalTransactions = rand(18, 25);
+        $paymentMethods = DB::table('payment_methods')->get();
+
+        for ($i = 1; $i <= $totalTransactions; $i++) {
+            $date = now()->subDays(rand(0, 7))->subHours(rand(0, 23))->subMinutes(rand(0, 59));
+            $paymentMethod = $paymentMethods->random();
+
+            $trxId = DB::table('transactions')->insertGetId([
+                'code'           => 'TRX-' . $date->format('Ymd') . '-' . str_pad($i, 4, '0', STR_PAD_LEFT),
+                'cashier_id'     => $adminId,
+                'total'          => 0, // Akan di-update nanti
+                'amount_paid'    => 0, // Akan di-update nanti
+                'change'         => 0,
+                'payment_method' => $paymentMethod->name,
+                'status'         => 'completed',
+                'created_at'     => $date,
+                'updated_at'     => $date,
+            ]);
+
+            $totalAmount = 0;
+            
+            // Pilih 2 hingga 5 produk acak untuk transaksi ini
+            $productsArray = $productsInDb->toArray();
+            shuffle($productsArray);
+            $pickedProducts = array_slice($productsArray, 0, rand(2, 5));
+
+            foreach ($pickedProducts as $prod) {
+                $qty = rand(1, 3);
+                $subtotal = $prod->sell_price * $qty;
+                $totalAmount += $subtotal;
+
+                DB::table('transaction_items')->insert([
+                    'transaction_id' => $trxId,
+                    'product_id'     => $prod->id,
+                    'qty'            => $qty,
+                    'unit'           => $prod->unit,
+                    'price'          => $prod->sell_price,
+                    // SNAPSHOT HPP DITERAPKAN DI SINI:
+                    'buy_price'      => $prod->buy_price, 
+                    'subtotal'       => $subtotal,
+                    'created_at'     => $date,
+                    'updated_at'     => $date,
+                ]);
+
+                // Kurangi stok aktual produk di Master Data
+                DB::table('products')->where('id', $prod->id)->decrement('qty', $qty);
+            }
+
+            // Perbarui Total Transaksi
+            DB::table('transactions')->where('id', $trxId)->update([
+                'total' => $totalAmount,
+                'amount_paid' => $totalAmount,
+            ]);
+        }
+
+        $this->command->info('✅ Transaction Data (beserta snapshot HPP buy_price) berhasil di-seed.');
+        $this->command->info('🚀 GRAND RESET & DATA CLEANSING SELESAI!');
     }
 }

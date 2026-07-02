@@ -522,35 +522,67 @@
 </div>
 
 {{-- ===== RECENT ACTIVITY LOG ===== --}}
-<div class="card">
+<div class="card" id="recent-activity">
     <div class="card-header">
         <div class="card-title">Recent Activity Log</div>
         <span class="card-subtitle">Last 20 activities</span>
     </div>
-        <div style="padding:12px 20px; border-bottom:1px solid var(--border-light)">
-        <form method="GET" action="{{ route('staff.index') }}" style="display:flex; align-items:center; gap:8px">
+    <div style="padding:16px 20px; border-bottom:1px solid var(--border-light)">
+        <form method="GET" action="{{ route('staff.index') }}#recent-activity" style="display:flex; align-items:center; flex-wrap:wrap; gap:10px">
             <input type="hidden" name="search" value="{{ request('search') }}">
             <input type="hidden" name="status" value="{{ request('status') }}">
 
-            <span style="font-size:12px; font-weight:600; color:var(--text-secondary)">Filter Log:</span>
+            <span style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-right:4px">Filter:</span>
+            
+            <select name="log_user_id" class="form-input" style="width:150px; font-size:13px; padding:6px 12px;">
+                <option value="">All Staff</option>
+                @foreach($allUsers as $u)
+                    <option value="{{ $u->id }}" {{ request('log_user_id') == $u->id ? 'selected' : '' }}>
+                        {{ $u->name }}
+                    </option>
+                @endforeach
+            </select>
+            
+            <select name="log_type" class="form-input" style="width:140px; font-size:13px; padding:6px 12px;">
+                <option value="">All Types</option>
+                <option value="LOGIN" {{ request('log_type') == 'LOGIN' ? 'selected' : '' }}>LOGIN</option>
+                <option value="TRANSACTION" {{ request('log_type') == 'TRANSACTION' ? 'selected' : '' }}>TRANSACTION</option>
+                <option value="VOID" {{ request('log_type') == 'VOID' ? 'selected' : '' }}>VOID</option>
+                <option value="RESTOCK" {{ request('log_type') == 'RESTOCK' ? 'selected' : '' }}>RESTOCK</option>
+                <option value="PRODUCT" {{ request('log_type') == 'PRODUCT' ? 'selected' : '' }}>PRODUCT</option>
+                <option value="SHIFT" {{ request('log_type') == 'SHIFT' ? 'selected' : '' }}>SHIFT</option>
+            </select>
+
             <input
-                type="date"
-                name="log_from"
+                type="text"
+                name="log_search"
                 class="form-input"
-                style="width:145px"
-                value="{{ request('log_from') }}"
+                style="width:180px; font-size:13px; padding:6px 12px;"
+                placeholder="Search action/subject..."
+                value="{{ request('log_search') }}"
             >
-            <span style="font-size:12px; color:var(--text-muted)">—</span>
-            <input
-                type="date"
-                name="log_to"
-                class="form-input"
-                style="width:145px"
-                value="{{ request('log_to') }}"
-            >
+
+            <div style="display:flex; align-items:center; gap:6px; margin-left:auto">
+                <input
+                    type="date"
+                    name="log_from"
+                    class="form-input"
+                    style="width:130px; font-size:13px; padding:6px 12px;"
+                    value="{{ request('log_from') }}"
+                >
+                <span style="font-size:12px; color:var(--text-muted)">—</span>
+                <input
+                    type="date"
+                    name="log_to"
+                    class="form-input"
+                    style="width:130px; font-size:13px; padding:6px 12px;"
+                    value="{{ request('log_to') }}"
+                >
+            </div>
+
             <button type="submit" class="btn btn--secondary btn--sm">Apply</button>
-            @if(request('log_from') || request('log_to'))
-                <a href="{{ route('staff.index') }}" class="btn btn--secondary btn--sm">Reset</a>
+            @if(request('log_user_id') || request('log_type') || request('log_search') || request('log_from') || request('log_to'))
+                <a href="{{ route('staff.index') }}#recent-activity" class="btn btn--secondary btn--sm" style="color:var(--red-600)">Reset</a>
             @endif
         </form>
     </div>
