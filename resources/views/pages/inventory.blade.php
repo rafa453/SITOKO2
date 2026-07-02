@@ -152,6 +152,7 @@
         </div>
     </div>
 
+    @if(auth()->user()->role === 'admin')
     <div class="stat-card stat-card--clickable" onclick="openInvModal('stockValueByCategoryCard', 'Stock Value by Category')">
         <div class="stat-card__header">
             <span class="stat-card__label">Stock Value</span>
@@ -167,6 +168,7 @@
         </div>
         <div class="stat-card__meta text-muted text-sm">Estimated asset value</div>
     </div>
+    @endif
 
 </div>
 

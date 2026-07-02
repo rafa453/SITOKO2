@@ -61,6 +61,7 @@
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
 
+    @if(auth()->user()->role === 'admin')
     {{-- Today's Revenue --}}
     <div class="stat-card stat-card--clickable" onclick="openDashModal('revenue')">
         <div class="stat-card__header">
@@ -79,6 +80,7 @@
             <span class="text-muted text-sm">transactions today</span>
         </div>
     </div>
+    @endif
 
     {{-- On-Shift Staff --}}
     <div class="stat-card stat-card--clickable" onclick="openDashModal('staff')">
@@ -118,6 +120,7 @@
         </div>
     </div>
 
+    @if(auth()->user()->role === 'admin')
     {{-- Top Selling Item --}}
     <div class="stat-card stat-card--clickable" onclick="openDashModal('top')" style="background:var(--sidebar-bg); border-color:transparent">
         <div class="stat-card__header">
@@ -142,6 +145,7 @@
             <div style="font-size:14px; color:#64748B; margin-top:8px">No sales today</div>
         @endif
     </div>
+    @endif
 
 </div>
 
@@ -216,8 +220,9 @@
         </div>
     </div>
 
-    {{-- Top 5 Best Sellers --}}
+    {{-- Top 5 Best Sellers / Stock Alerts --}}
     <div class="card">
+        @if(auth()->user()->role === 'admin')
         <div class="card-header">
             <div class="card-title">Top Sellers — This Month</div>
             <a href="{{ route('reports.index') }}" class="card-action-link">View Reports →</a>
@@ -249,13 +254,14 @@
                 </div>
             </div>
             @empty
-                <p class="text-muted text-sm">No sales data this month.</p>
+                <div style="font-size:13px; color:var(--text-muted); text-align:center; padding:20px 0">No sales data yet.</div>
             @endforelse
         </div>
+        @endif
 
         {{-- Low Stock Alert box --}}
         @if($lowStockCount > 0)
-        <div style="margin:0 20px 20px; padding:14px 16px; background:#FFFBEB;
+        <div style="margin:{{ auth()->user()->role === 'admin' ? '0 20px 20px' : '20px' }}; padding:14px 16px; background:#FFFBEB;
                     border:1px solid #FEF3C7; border-radius:var(--radius); display:flex; gap:10px">
             <svg width="16" height="16" style="margin-top:1px; flex-shrink:0; color:#F59E0B"
                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
