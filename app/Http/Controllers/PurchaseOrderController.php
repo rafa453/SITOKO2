@@ -380,8 +380,19 @@ class PurchaseOrderController extends Controller
                 if ($actualQty > 0) {
                     // 1. LOCK row produk terlebih dahulu
                     $product = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
-                    // 2. OPERASI increment stok
-                    $product->increment('qty', $actualQty);
+                    
+                    // 2. Kalkulasi HPP Moving Average
+                    $oldValue = $product->qty * $product->buy_price;
+                    $newValue = $actualQty * $item->buy_price;
+                    $totalQty = $product->qty + $actualQty;
+                    
+                    $newAvgPrice = $totalQty > 0 ? round(($oldValue + $newValue) / $totalQty) : $product->buy_price;
+
+                    // 3. OPERASI update stok & HPP
+                    $product->update([
+                        'qty'       => $totalQty,
+                        'buy_price' => $newAvgPrice
+                    ]);
 
                     $item->increment('qty_received', $actualQty);
                 }

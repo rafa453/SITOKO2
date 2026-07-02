@@ -391,7 +391,9 @@
                     <th>Unit</th>
                     <th>Qty</th>
                     <th>Threshold</th>
-                    <th>Buy Price</th>
+                    @if(auth()->user()->role === 'admin')
+                        <th>Buy Price</th>
+                    @endif
                     <th>Sell Price</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -410,7 +412,9 @@
                         </span>
                     </td>
                     <td class="text-muted">{{ $p->threshold }}</td>
-                    <td class="text-secondary">Rp {{ number_format($p->buy_price, 0, ',', '.') }}</td>
+                    @if(auth()->user()->role === 'admin')
+                        <td class="text-secondary">Rp {{ number_format($p->buy_price, 0, ',', '.') }}</td>
+                    @endif
                     <td style="font-weight:600">Rp {{ number_format($p->sell_price, 0, ',', '.') }}</td>
                     <td>
                         @if($p->qty == 0)

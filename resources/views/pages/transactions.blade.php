@@ -77,6 +77,7 @@
 @endif
 
 <div x-data="{ openModal: null }">
+    @if(auth()->user()->role === 'admin')
     {{-- ===== STAT CARDS ===== --}}
     <div class="stats-grid">
 
@@ -237,8 +238,10 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 
+@if(auth()->user()->role === 'admin')
 {{-- ===== CHART + PAYMENT BREAKDOWN ===== --}}
 <div class="card-grid card-grid--60-40" style="margin-top: 24px;">
 
@@ -290,6 +293,7 @@
     </div>
 
 </div>
+@endif
 
 {{-- ===== TRANSACTION LOG + DETAIL PANEL ===== --}}
 <div class="card-grid" style="grid-template-columns:1fr 380px; margin-top: 24px;"

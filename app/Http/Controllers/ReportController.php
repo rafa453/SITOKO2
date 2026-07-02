@@ -24,10 +24,9 @@ class ReportController extends Controller
         $totalTrx = Transaction::whereBetween('created_at', [$startDate, $endDate])
             ->where('status', 'completed')->count();
 
-        // Ada JOIN — wajib prefix tabel
-        $netProfit = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
-            ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->selectRaw('SUM((transaction_items.price - products.buy_price) * transaction_items.qty) as profit')
+        // Net Profit (Independen & Immutable) — tidak ada JOIN ke products
+        $netProfit = TransactionItem::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('SUM((price - buy_price) * qty) as profit')
             ->value('profit') ?? 0;
 
         // Produk terlaris

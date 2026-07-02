@@ -200,7 +200,12 @@ class TransactionController extends Controller
 
     public function create()
     {
-        $products       = Product::where('qty', '>', 0)->orderBy('name')->get();
+        // Kritis: Sembunyikan 'buy_price' dari kasir, hanya kirim 'sell_price' dan atribut relevan
+        $products = Product::where('qty', '>', 0)
+            ->select('id', 'sku', 'name', 'category', 'unit', 'qty', 'threshold', 'sell_price', 'tag', 'photo')
+            ->orderBy('name')
+            ->get();
+            
         $paymentMethods = PaymentMethod::where('is_active', true)->get();
         return view('pages.cashier', compact('products', 'paymentMethods'));
     }
@@ -243,6 +248,7 @@ class TransactionController extends Controller
                         'product_id' => $product->id,
                         'qty'        => $item['qty'],
                         'unit'       => $product->unit,
+                        'buy_price'  => $product->buy_price,
                         'price'      => $product->sell_price,
                         'subtotal'   => $subtotal,
                     ];
