@@ -29,10 +29,12 @@
     }
 @endphp
 
+<div x-data="{ openModal: null }">
+
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid stats-grid--3">
 
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" @click="openModal = 'active'">
         <div class="stat-card__header">
             <span class="stat-card__label">Active Payment Methods</span>
             <span class="status-dot status-dot--green"></span>
@@ -44,7 +46,7 @@
         </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" @click="openModal = 'digital'">
         <div class="stat-card__header">
             <span class="stat-card__label">Total Digital ({{ $dateLabel }})</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2">
@@ -57,7 +59,7 @@
         </div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card" style="cursor:pointer" @click="openModal = 'cash'">
         <div class="stat-card__header">
             <span class="stat-card__label">Total Cash ({{ $dateLabel }})</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber-500)" stroke-width="2">
@@ -235,19 +237,20 @@
                         @endif
                     </td>
                     <td>
-                        <button class="btn-icon">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                        </button>
+                        <form method="POST" action="{{ route('settings.payment-methods.toggle', $perf) }}" style="margin: 0; display: flex; align-items: center; justify-content: center;">
+                            @csrf @method('PATCH')
+                            <label class="toggle" style="cursor:pointer; transform: scale(0.9);">
+                                <input type="checkbox" onchange="this.form.submit()" {{ $perf->is_active ? 'checked' : '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </form>
                     </td>
                 </tr>
                 @endforeach
 
                 {{-- Total row --}}
                 <tr style="background:var(--sidebar-bg)">
-                    <td colspan="2" style="font-weight:800; color:#fff; font-size:12px; text-transform:uppercase; letter-spacing:.5px">Total Revenue (Today)</td>
+                    <td colspan="2" style="font-weight:800; color:#fff; font-size:12px; text-transform:uppercase; letter-spacing:.5px">Total Revenue ({{ $dateLabel }})</td>
                     <td style="font-weight:800; color:#fff">{{ $totalTrx }}</td>
                     <td style="font-weight:800; color:#fff">Rp{{ number_format($totalRevenue, 0, ',', '.') }}</td>
                     <td style="color:#64748B">-</td>
@@ -373,6 +376,87 @@
                 <button type="submit" class="btn btn--primary">Update Profile</button>
             </div>
         </form>
+    </div>
+</div>
+
+    {{-- MODAL POPUPS --}}
+    <div x-show="openModal" 
+         x-transition.opacity
+         style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px;"
+         @click.self="openModal = null"
+         x-cloak>
+
+        <div class="card" 
+             x-show="openModal"
+             x-transition.scale.85
+             style="width: 520px; max-width: 100%; max-height: 85vh; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); margin: auto;">
+            
+            {{-- Header --}}
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light)">
+                <div class="card-title" style="font-weight: 700; font-size: 16px;">
+                    <span x-show="openModal === 'active'">Active Payment Methods</span>
+                    <span x-show="openModal === 'digital'">Digital Methods ({{ $dateLabel }})</span>
+                    <span x-show="openModal === 'cash'">Cash Methods ({{ $dateLabel }})</span>
+                </div>
+                <button class="btn-icon" @click="openModal = null" style="background: none; border: none; cursor: pointer; color: var(--text-muted)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Content --}}
+            <div style="overflow-y: auto; flex: 1; padding: 10px 0;">
+                <template x-if="openModal === 'active'">
+                    <div>
+                        @forelse($methods->where('is_active', true) as $m)
+                        <div style="padding:12px 20px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center">
+                            <div>
+                                <div style="font-weight:600; font-size:14px">{{ $m->name }}</div>
+                                <div style="font-size:12px; color:var(--text-muted)">{{ $m->provider ?? 'No Provider' }}</div>
+                            </div>
+                            <span class="badge {{ $m->type==='cash' ? 'badge--amber' : 'badge--blue' }}" style="font-size:10px">{{ strtoupper($m->type) }}</span>
+                        </div>
+                        @empty
+                        <div style="padding:20px; text-align:center; color:var(--text-muted)">No active methods.</div>
+                        @endforelse
+                    </div>
+                </template>
+
+                <template x-if="openModal === 'digital'">
+                    <div>
+                        @forelse($performance->where('type', 'digital') as $m)
+                        <div style="padding:12px 20px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center">
+                            <div>
+                                <div style="font-weight:600; font-size:14px">{{ $m->name }}</div>
+                                <div style="font-size:12px; color:var(--text-muted)">{{ $m->trx_count }} TRX</div>
+                            </div>
+                            <div style="font-weight:700; font-size:14px">Rp {{ number_format($m->revenue, 0, ',', '.') }}</div>
+                        </div>
+                        @empty
+                        <div style="padding:20px; text-align:center; color:var(--text-muted)">No digital transactions.</div>
+                        @endforelse
+                    </div>
+                </template>
+
+                <template x-if="openModal === 'cash'">
+                    <div>
+                        @forelse($performance->where('type', 'cash') as $m)
+                        <div style="padding:12px 20px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center">
+                            <div>
+                                <div style="font-weight:600; font-size:14px">{{ $m->name }}</div>
+                                <div style="font-size:12px; color:var(--text-muted)">{{ $m->trx_count }} TRX</div>
+                            </div>
+                            <div style="font-weight:700; font-size:14px">Rp {{ number_format($m->revenue, 0, ',', '.') }}</div>
+                        </div>
+                        @empty
+                        <div style="padding:20px; text-align:center; color:var(--text-muted)">No cash transactions.</div>
+                        @endforelse
+                    </div>
+                </template>
+            </div>
+            
+        </div>
     </div>
 </div>
 

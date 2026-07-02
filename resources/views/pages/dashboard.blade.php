@@ -163,7 +163,9 @@
                         <th>Current Stock</th>
                         <th>Sell Price</th>
                         <th>Status</th>
+                        @if(auth()->user()->role === 'admin')
                         <th>Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -189,6 +191,7 @@
                                 <span class="badge badge--green">Healthy</span>
                             @endif
                         </td>
+                        @if(auth()->user()->role === 'admin')
                         <td>
                             <div style="display:flex; gap:4px">
                                 <a href="{{ route('inventory.edit', $item->id) }}" class="btn-icon" title="Edit">
@@ -199,10 +202,11 @@
                                 </a>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted)">
+                            <td colspan="{{ auth()->user()->role === 'admin' ? 6 : 5 }}" style="text-align:center; padding:32px; color:var(--text-muted)">
                                 No inventory data.
                             </td>
                         </tr>
