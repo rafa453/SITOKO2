@@ -33,15 +33,14 @@
             {{-- Kategori --}}
             <div class="form-group">
                 <label class="form-label">Kategori Produk</label>
-                <input type="text" name="category" class="form-input"
-                       value="{{ old('category', $supplier->category ?? '') }}"
-                       list="category-list"
-                       placeholder="Beras & Tepung">
-                <datalist id="category-list">
+                <select name="category" class="form-input cursor-pointer bg-white">
+                    <option value="">Pilih Kategori (Opsional)</option>
                     @foreach($categories as $cat)
-                        <option value="{{ $cat }}">
+                        <option value="{{ $cat }}" {{ old('category', $supplier->category ?? '') == $cat ? 'selected' : '' }}>
+                            {{ $cat }}
+                        </option>
                     @endforeach
-                </datalist>
+                </select>
                 <span style="font-size:11.5px; color:var(--text-muted); margin-top:4px; display:block">
                     Kategori produk yang biasa disupply oleh supplier ini.
                 </span>

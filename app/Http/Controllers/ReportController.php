@@ -120,255 +120,276 @@ class ReportController extends Controller
     }
 
     public function exportCustom(Request $request)
-{
-    $type    = $request->get('type', 'sales');
-    $range   = $request->get('range', 'this_month');
-    $groupBy = $request->get('group_by', 'product');
+    {
+        $type    = $request->get('type', 'sales');
+        $range   = $request->get('range', 'this_month');
+        $groupBy = $request->get('group_by', 'product');
+        $format  = $request->get('format', 'csv');
 
-    [$startDate, $endDate] = $this->resolvePeriod($range);
-
-    $filename = 'report_' . $type . '_' . $groupBy . '_' . now()->format('Ymd_His') . '.csv';
-
-    $headers = [
-        'Content-Type'        => 'text/csv',
-        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-    ];
-
-    $callback = function () use ($type, $groupBy, $startDate, $endDate) {
-        $out = fopen('php://output', 'w');
-
-        // BOM supaya Excel baca UTF-8 dengan benar
-        fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        [$startDate, $endDate] = $this->resolvePeriod($range);
 
         if ($type === 'sales') {
-            $this->exportSales($out, $groupBy, $startDate, $endDate);
+            [$headers, $rows] = $this->getSalesData($groupBy, $startDate, $endDate);
         } elseif ($type === 'inventory') {
-            $this->exportInventory($out, $groupBy, $startDate, $endDate);
+            [$headers, $rows] = $this->getInventoryData($groupBy, $startDate, $endDate);
         } elseif ($type === 'staff') {
-            $this->exportStaff($out, $groupBy, $startDate, $endDate);
+            [$headers, $rows] = $this->getStaffData($groupBy, $startDate, $endDate);
+        } else {
+            abort(404);
         }
 
-        fclose($out);
-    };
-
-    return response()->stream($callback, 200, $headers);
-}
-
-private function exportSales($out, string $groupBy, $startDate, $endDate): void
-{
-    $totalRevenue = Transaction::whereBetween('created_at', [$startDate, $endDate])
-        ->where('status', 'completed')->sum('total') ?: 1;
-
-    if ($groupBy === 'category') {
-        fputcsv($out, ['Kategori', 'Jumlah Transaksi Item', 'Total Qty Terjual', 'Revenue (Rp)', '% dari Total']);
-        $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
-            ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
-            ->where('transactions.status', 'completed')
-            ->selectRaw('products.category as nama,
-                         COUNT(DISTINCT transactions.id) as jumlah_trx,
-                         SUM(transaction_items.qty) as total_qty,
-                         SUM(transaction_items.subtotal) as revenue')
-            ->groupBy('products.category')
-            ->orderByDesc('revenue')
-            ->get();
-
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                $r->nama,
-                $r->jumlah_trx,
-                $r->total_qty,
-                $r->revenue,
-                round($r->revenue / $totalRevenue * 100, 2) . '%',
-            ]);
+        if ($format === 'pdf') {
+            $filename = 'report_' . $type . '_' . $groupBy . '_' . now()->format('Ymd_His') . '.pdf';
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.custom-report', [
+                'headers' => $headers,
+                'rows'    => $rows,
+                'type'    => $type,
+                'groupBy' => $groupBy,
+                'range'   => $range,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+            ])->setPaper('a4', 'landscape');
+            return $pdf->download($filename);
         }
 
-    } elseif ($groupBy === 'product') {
-        fputcsv($out, ['Produk', 'Kategori', 'Total Qty Terjual', 'Revenue (Rp)', '% dari Total']);
-        $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
-            ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
-            ->where('transactions.status', 'completed')
-            ->selectRaw('products.name as nama,
-                         products.category as kategori,
-                         SUM(transaction_items.qty) as total_qty,
-                         SUM(transaction_items.subtotal) as revenue')
-            ->groupBy('products.id', 'products.name', 'products.category')
-            ->orderByDesc('revenue')
-            ->get();
+        // Output CSV
+        $filename = 'report_' . $type . '_' . $groupBy . '_' . now()->format('Ymd_His') . '.csv';
+        $headersResp = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
 
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                $r->nama,
-                $r->kategori,
-                $r->total_qty,
-                $r->revenue,
-                round($r->revenue / $totalRevenue * 100, 2) . '%',
-            ]);
-        }
+        $callback = function () use ($headers, $rows) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
+            fputcsv($out, $headers);
+            foreach ($rows as $r) {
+                fputcsv($out, $r);
+            }
+            fclose($out);
+        };
 
-    } elseif ($groupBy === 'cashier') {
-        fputcsv($out, ['Kasir', 'Jumlah Transaksi', 'Total Revenue (Rp)', '% dari Total']);
-        $rows = Transaction::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
-            ->join('users', 'transactions.cashier_id', '=', 'users.id')
-            ->selectRaw('users.name as nama,
-                         COUNT(transactions.id) as jumlah_trx,
-                         SUM(transactions.total) as revenue')
-            ->groupBy('users.id', 'users.name')
-            ->orderByDesc('revenue')
-            ->get();
-
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                $r->nama,
-                $r->jumlah_trx,
-                $r->revenue,
-                round($r->revenue / $totalRevenue * 100, 2) . '%',
-            ]);
-        }
-
-    } elseif ($groupBy === 'shift') {
-        // Sales group by shift — pakai join ke shifts
-        fputcsv($out, ['Shift', 'Jumlah Transaksi', 'Total Revenue (Rp)', '% dari Total']);
-        $rows = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
-            ->where('transactions.status', 'completed')
-            ->join('shifts', fn($j) =>
-                $j->on('transactions.cashier_id', '=', 'shifts.user_id')
-                  ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
-                  ->where(function($q) {
-                      $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
-                        ->orWhereNull('shifts.ended_at');
-                  })
-            )
-            ->selectRaw('shifts.type as shift,
-                         COUNT(DISTINCT transactions.id) as jumlah_trx,
-                         SUM(transactions.total) as revenue')
-            ->groupBy('shifts.type')
-            ->orderByDesc('revenue')
-            ->get();
-
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                ucfirst($r->shift),
-                $r->jumlah_trx,
-                $r->revenue,
-                round($r->revenue / $totalRevenue * 100, 2) . '%',
-            ]);
-        }
+        return response()->stream($callback, 200, $headersResp);
     }
-}
 
-private function exportInventory($out, string $groupBy, $startDate, $endDate): void
-{
-    if ($groupBy === 'product' || $groupBy === 'cashier' || $groupBy === 'shift') {
-        // cashier & shift tidak valid untuk inventory — fallback ke product
-        fputcsv($out, ['Produk', 'Kategori', 'Stok Saat Ini', 'Total Terjual (Periode)', 'Estimasi Nilai Stok (Rp)']);
-        $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
-            ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->selectRaw('products.name as nama,
-                         products.category as kategori,
-                         products.qty as stok,
-                         products.sell_price as harga,
-                         SUM(transaction_items.qty) as terjual')
-            ->groupBy('products.id', 'products.name', 'products.category', 'products.qty', 'products.sell_price')
-            ->orderByDesc('terjual')
-            ->get();
+    private function getSalesData(string $groupBy, $startDate, $endDate): array
+    {
+        $totalRevenue = Transaction::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'completed')->sum('total') ?: 1;
+        $headers = [];
+        $data = [];
 
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                $r->nama,
-                $r->kategori,
-                $r->stok,
-                $r->terjual,
-                $r->stok * $r->harga,
-            ]);
+        if ($groupBy === 'category') {
+            $headers = ['Kategori', 'Jumlah Transaksi Item', 'Total Qty Terjual', 'Revenue (Rp)', '% dari Total'];
+            $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
+                ->join('products', 'transaction_items.product_id', '=', 'products.id')
+                ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+                ->where('transactions.status', 'completed')
+                ->selectRaw('products.category as nama,
+                             COUNT(DISTINCT transactions.id) as jumlah_trx,
+                             SUM(transaction_items.qty) as total_qty,
+                             SUM(transaction_items.subtotal) as revenue')
+                ->groupBy('products.category')
+                ->orderByDesc('revenue')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    $r->nama,
+                    $r->jumlah_trx,
+                    $r->total_qty,
+                    $r->revenue,
+                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                ];
+            }
+        } elseif ($groupBy === 'product') {
+            $headers = ['Produk', 'Kategori', 'Total Qty Terjual', 'Revenue (Rp)', '% dari Total'];
+            $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
+                ->join('products', 'transaction_items.product_id', '=', 'products.id')
+                ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+                ->where('transactions.status', 'completed')
+                ->selectRaw('products.name as nama,
+                             products.category as kategori,
+                             SUM(transaction_items.qty) as total_qty,
+                             SUM(transaction_items.subtotal) as revenue')
+                ->groupBy('products.id', 'products.name', 'products.category')
+                ->orderByDesc('revenue')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    $r->nama,
+                    $r->kategori,
+                    $r->total_qty,
+                    $r->revenue,
+                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                ];
+            }
+        } elseif ($groupBy === 'cashier') {
+            $headers = ['Kasir', 'Jumlah Transaksi', 'Total Revenue (Rp)', '% dari Total'];
+            $rows = Transaction::whereBetween('created_at', [$startDate, $endDate])
+                ->where('status', 'completed')
+                ->join('users', 'transactions.cashier_id', '=', 'users.id')
+                ->selectRaw('users.name as nama,
+                             COUNT(transactions.id) as jumlah_trx,
+                             SUM(transactions.total) as revenue')
+                ->groupBy('users.id', 'users.name')
+                ->orderByDesc('revenue')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    $r->nama,
+                    $r->jumlah_trx,
+                    $r->revenue,
+                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                ];
+            }
+        } elseif ($groupBy === 'shift') {
+            $headers = ['Shift', 'Jumlah Transaksi', 'Total Revenue (Rp)', '% dari Total'];
+            $rows = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
+                ->where('transactions.status', 'completed')
+                ->join('shifts', fn($j) =>
+                    $j->on('transactions.cashier_id', '=', 'shifts.user_id')
+                      ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                      ->where(function($q) {
+                          $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                            ->orWhereNull('shifts.ended_at');
+                      })
+                )
+                ->selectRaw('shifts.type as shift,
+                             COUNT(DISTINCT transactions.id) as jumlah_trx,
+                             SUM(transactions.total) as revenue')
+                ->groupBy('shifts.type')
+                ->orderByDesc('revenue')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    ucfirst($r->shift),
+                    $r->jumlah_trx,
+                    $r->revenue,
+                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                ];
+            }
         }
-
-    } elseif ($groupBy === 'category') {
-        fputcsv($out, ['Kategori', 'Jumlah Produk', 'Total Stok Saat Ini', 'Total Terjual (Periode)', 'Estimasi Nilai Stok (Rp)']);
-        $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
-            ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->selectRaw('products.category as kategori,
-                         COUNT(DISTINCT products.id) as jumlah_produk,
-                         SUM(products.qty) as total_stok,
-                         SUM(transaction_items.qty) as terjual,
-                         SUM(products.qty * products.sell_price) as nilai_stok')
-            ->groupBy('products.category')
-            ->orderByDesc('terjual')
-            ->get();
-
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                $r->kategori,
-                $r->jumlah_produk,
-                $r->total_stok,
-                $r->terjual,
-                $r->nilai_stok,
-            ]);
-        }
+        return [$headers, $data];
     }
-}
 
-private function exportStaff($out, string $groupBy, $startDate, $endDate): void
-{
-    if ($groupBy === 'cashier' || $groupBy === 'product' || $groupBy === 'category') {
-        // product & category tidak valid untuk staff — fallback ke cashier
-        fputcsv($out, ['Kasir', 'Jumlah Transaksi', 'Total Revenue (Rp)', 'Rata-rata per Transaksi (Rp)']);
-        $rows = User::withCount([
-                'transactions as jumlah_trx' => fn($q) =>
-                    $q->whereBetween('created_at', [$startDate, $endDate])
-                      ->where('status', 'completed')
-            ])
-            ->withSum([
-                'transactions as revenue' => fn($q) =>
-                    $q->whereBetween('created_at', [$startDate, $endDate])
-                      ->where('status', 'completed')
-            ], 'total')
-            ->having('jumlah_trx', '>', 0)
-            ->orderByDesc('revenue')
-            ->get();
+    private function getInventoryData(string $groupBy, $startDate, $endDate): array
+    {
+        $headers = [];
+        $data = [];
 
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                $r->name,
-                $r->jumlah_trx,
-                $r->revenue,
-                $r->jumlah_trx > 0 ? round($r->revenue / $r->jumlah_trx) : 0,
-            ]);
+        if ($groupBy === 'product' || $groupBy === 'cashier' || $groupBy === 'shift') {
+            $headers = ['Produk', 'Kategori', 'Stok Saat Ini', 'Total Terjual', 'Estimasi Nilai Stok (Rp)'];
+            $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
+                ->join('products', 'transaction_items.product_id', '=', 'products.id')
+                ->selectRaw('products.name as nama,
+                             products.category as kategori,
+                             products.qty as stok,
+                             products.sell_price as harga,
+                             SUM(transaction_items.qty) as terjual')
+                ->groupBy('products.id', 'products.name', 'products.category', 'products.qty', 'products.sell_price')
+                ->orderByDesc('terjual')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    $r->nama,
+                    $r->kategori,
+                    $r->stok,
+                    $r->terjual,
+                    $r->stok * $r->harga,
+                ];
+            }
+        } elseif ($groupBy === 'category') {
+            $headers = ['Kategori', 'Jumlah Produk', 'Total Stok Saat Ini', 'Total Terjual', 'Estimasi Nilai Stok (Rp)'];
+            $rows = TransactionItem::whereBetween('transaction_items.created_at', [$startDate, $endDate])
+                ->join('products', 'transaction_items.product_id', '=', 'products.id')
+                ->selectRaw('products.category as kategori,
+                             COUNT(DISTINCT products.id) as jumlah_produk,
+                             SUM(products.qty) as total_stok,
+                             SUM(transaction_items.qty) as terjual,
+                             SUM(products.qty * products.sell_price) as nilai_stok')
+                ->groupBy('products.category')
+                ->orderByDesc('terjual')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    $r->kategori,
+                    $r->jumlah_produk,
+                    $r->total_stok,
+                    $r->terjual,
+                    $r->nilai_stok,
+                ];
+            }
         }
-
-    } elseif ($groupBy === 'shift') {
-        fputcsv($out, ['Shift', 'Jumlah Staff', 'Jumlah Transaksi', 'Total Revenue (Rp)', 'Rata-rata per Staff (Rp)']);
-        $rows = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
-            ->where('transactions.status', 'completed')
-            ->join('shifts', fn($j) =>
-                $j->on('transactions.cashier_id', '=', 'shifts.user_id')
-                  ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
-                  ->where(function($q) {
-                      $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
-                        ->orWhereNull('shifts.ended_at');
-                  })
-            )
-            ->selectRaw('shifts.type as shift,
-                         COUNT(DISTINCT shifts.user_id) as jumlah_staff,
-                         COUNT(DISTINCT transactions.id) as jumlah_trx,
-                         SUM(transactions.total) as revenue')
-            ->groupBy('shifts.type')
-            ->orderByDesc('revenue')
-            ->get();
-
-        foreach ($rows as $r) {
-            fputcsv($out, [
-                ucfirst($r->shift),
-                $r->jumlah_staff,
-                $r->jumlah_trx,
-                $r->revenue,
-                $r->jumlah_staff > 0 ? round($r->revenue / $r->jumlah_staff) : 0,
-            ]);
-        }
+        return [$headers, $data];
     }
-}
+
+    private function getStaffData(string $groupBy, $startDate, $endDate): array
+    {
+        $headers = [];
+        $data = [];
+
+        if ($groupBy === 'cashier' || $groupBy === 'product' || $groupBy === 'category') {
+            $headers = ['Kasir', 'Jumlah Transaksi', 'Total Revenue (Rp)', 'Rata-rata per Transaksi (Rp)'];
+            $rows = User::withCount([
+                    'transactions as jumlah_trx' => fn($q) =>
+                        $q->whereBetween('created_at', [$startDate, $endDate])
+                          ->where('status', 'completed')
+                ])
+                ->withSum([
+                    'transactions as revenue' => fn($q) =>
+                        $q->whereBetween('created_at', [$startDate, $endDate])
+                          ->where('status', 'completed')
+                ], 'total')
+                ->having('jumlah_trx', '>', 0)
+                ->orderByDesc('revenue')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    $r->name,
+                    $r->jumlah_trx,
+                    $r->revenue,
+                    $r->jumlah_trx > 0 ? round($r->revenue / $r->jumlah_trx) : 0,
+                ];
+            }
+        } elseif ($groupBy === 'shift') {
+            $headers = ['Shift', 'Jumlah Staff', 'Jumlah Transaksi', 'Total Revenue (Rp)', 'Rata-rata per Staff (Rp)'];
+            $rows = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
+                ->where('transactions.status', 'completed')
+                ->join('shifts', fn($j) =>
+                    $j->on('transactions.cashier_id', '=', 'shifts.user_id')
+                      ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                      ->where(function($q) {
+                          $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                            ->orWhereNull('shifts.ended_at');
+                      })
+                )
+                ->selectRaw('shifts.type as shift,
+                             COUNT(DISTINCT shifts.user_id) as jumlah_staff,
+                             COUNT(DISTINCT transactions.id) as jumlah_trx,
+                             SUM(transactions.total) as revenue')
+                ->groupBy('shifts.type')
+                ->orderByDesc('revenue')
+                ->get();
+
+            foreach ($rows as $r) {
+                $data[] = [
+                    ucfirst($r->shift),
+                    $r->jumlah_staff,
+                    $r->jumlah_trx,
+                    $r->revenue,
+                    $r->jumlah_staff > 0 ? round($r->revenue / $r->jumlah_staff) : 0,
+                ];
+            }
+        }
+        return [$headers, $data];
+    }
 
     private function resolvePeriod(string $period): array
     {

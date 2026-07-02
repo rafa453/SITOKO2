@@ -24,14 +24,18 @@ class SupplierController extends Controller
         }
 
         $suppliers  = $query->paginate(10)->withQueryString();
-        $categories = Supplier::distinct()->orderBy('category')->pluck('category')->filter();
+        $categories = \App\Models\Product::distinct()->pluck('category')
+            ->merge(Supplier::distinct()->pluck('category'))
+            ->filter()->unique()->sort()->values();
 
         return view('pages.suppliers', compact('suppliers', 'categories'));
     }
 
     public function create()
     {
-        $categories = Supplier::distinct()->orderBy('category')->pluck('category')->filter();
+        $categories = \App\Models\Product::distinct()->pluck('category')
+            ->merge(Supplier::distinct()->pluck('category'))
+            ->filter()->unique()->sort()->values();
         return view('pages.supplier-form', compact('categories'));
     }
 
@@ -63,7 +67,9 @@ class SupplierController extends Controller
 
     public function edit(Supplier $supplier)
     {
-        $categories = Supplier::distinct()->orderBy('category')->pluck('category')->filter();
+        $categories = \App\Models\Product::distinct()->pluck('category')
+            ->merge(Supplier::distinct()->pluck('category'))
+            ->filter()->unique()->sort()->values();
         return view('pages.supplier-form', compact('supplier', 'categories'));
     }
 

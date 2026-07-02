@@ -90,44 +90,38 @@
                             <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
                                 Category <span style="color:var(--red-500)">*</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 name="category"
-                                class="form-input"
+                                class="form-input cursor-pointer bg-white"
                                 style="width:100%"
-                                placeholder="e.g. Beras & Tepung"
-                                value="{{ old('category', $product->category ?? '') }}"
-                                list="category-list"
                                 required
                             >
-                            <datalist id="category-list">
+                                <option value="" disabled {{ !old('category', $product->category ?? '') ? 'selected' : '' }}>Select Category</option>
                                 @foreach($categories as $cat)
-                                    <option value="{{ $cat }}">
+                                    <option value="{{ $cat }}" {{ old('category', $product->category ?? '') == $cat ? 'selected' : '' }}>
+                                        {{ $cat }}
+                                    </option>
                                 @endforeach
-                            </datalist>
+                            </select>
                         </div>
                         <div>
                             <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
                                 Unit <span style="color:var(--red-500)">*</span>
                             </label>
-                            <input
-                                type="text"
+                            <select
                                 name="unit"
-                                class="form-input"
+                                class="form-input cursor-pointer bg-white"
                                 style="width:100%"
-                                placeholder="e.g. Karung, Pcs, Botol"
-                                value="{{ old('unit', $product->unit ?? '') }}"
-                                list="unit-list"
                                 required
                             >
-                            <datalist id="unit-list">
-                                <option value="Pcs">
-                                <option value="Karung">
-                                <option value="Botol">
-                                <option value="Kotak">
-                                <option value="Kg">
-                                <option value="Liter">
-                            </datalist>
+                                <option value="" disabled {{ !old('unit', $product->unit ?? '') ? 'selected' : '' }}>Select Unit</option>
+                                @php $units = ['Pcs', 'Karung', 'Botol', 'Kotak', 'Kg', 'Liter']; @endphp
+                                @foreach($units as $u)
+                                    <option value="{{ $u }}" {{ old('unit', $product->unit ?? '') == $u ? 'selected' : '' }}>
+                                        {{ $u }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 

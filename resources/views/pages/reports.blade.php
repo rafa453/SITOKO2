@@ -13,7 +13,7 @@
             <option value="today"      {{ $period === 'today'      ? 'selected' : '' }}>Today</option>
         </select>
         <button type="submit" class="btn btn--secondary">Apply</button>
-        <button type="button" class="btn btn--primary">
+        <button type="button" class="btn btn--primary" onclick="exportDashboardToPDF()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -124,6 +124,9 @@
 @endpush
 
 @section('content')
+
+<!-- Wrapper untuk dirender menjadi PDF -->
+<div id="dashboard-report-area">
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid">
@@ -423,12 +426,15 @@
 
 </div>
 
+</div> <!-- Akhir dari #dashboard-report-area -->
+
 {{-- ===== CUSTOM REPORT BUILDER ===== --}}
 <div class="card"
      x-data="{
          type: 'sales',
          range: 'this_month',
          groupBy: 'product',
+         format: 'csv',
          validGroups: {
              sales:     ['category', 'product', 'cashier', 'shift'],
              inventory: ['product', 'category'],
@@ -441,7 +447,7 @@
              }
          },
          buildUrl() {
-             return `{{ route('reports.export-custom') }}?type=${this.type}&range=${this.range}&group_by=${this.groupBy}`;
+             return `{{ route('reports.export-custom') }}?type=${this.type}&range=${this.range}&group_by=${this.groupBy}&format=${this.format}`;
          }
      }">
     <div class="card-header">
@@ -498,12 +504,10 @@
             {{-- Format — CSV only untuk sekarang --}}
             <div class="form-group">
                 <label class="form-label">Format</label>
-                <select class="form-select" disabled>
-                    <option>CSV (.csv)</option>
+                <select class="form-select" x-model="format">
+                    <option value="csv">CSV (.csv)</option>
+                    <option value="pdf">PDF (.pdf)</option>
                 </select>
-                <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block">
-                    PDF & Excel coming soon
-                </span>
             </div>
 
         </div>
@@ -513,7 +517,7 @@
                     background:var(--border-light); border-radius:var(--radius-sm)">
             Output:
             <span style="font-weight:600; color:var(--text-primary)"
-                  x-text="`report_${type}_${groupBy}_{{ now()->format('Ymd') }}.csv`"></span>
+                  x-text="`report_${type}_${groupBy}_{{ now()->format('Ymd') }}.${format}`"></span>
         </div>
 
         <a :href="buildUrl()" class="btn btn--primary" style="justify-content:center; padding:11px; text-decoration:none; display:flex; align-items:center; gap:8px">
@@ -521,7 +525,7 @@
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Download CSV
+            <span x-text="format === 'pdf' ? 'Download PDF' : 'Download CSV'"></span>
         </a>
 
     </div>
@@ -545,7 +549,22 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
 <script>
+function exportDashboardToPDF() {
+    const element = document.getElementById('dashboard-report-area');
+    const opt = {
+        margin:       0.3,
+        filename:     'SITOKO_Dashboard_Report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+}
+
 // ── Data dari controller (dipakai chart & modal) ──
 const reportDailyDates    = @json($dailyRevenue->pluck('date'));
 const reportDailyRevenues = @json($dailyRevenue->pluck('revenue'));
