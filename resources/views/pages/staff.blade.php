@@ -126,6 +126,31 @@
     padding: 18px 20px;
     overflow-y: auto;
 }
+
+/* ── Photo Upload Field ── */
+.photo-upload-field {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.photo-upload-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-light, #F1F5F9);
+    background: var(--border-light, #F1F5F9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-muted, #94A3B8);
+    flex-shrink: 0;
+}
+.photo-upload-input-wrapper {
+    flex: 1;
+}
 </style>
 @endpush
 
@@ -133,6 +158,9 @@
 
 @if(session('success'))
     <div class="alert alert--success" style="margin-bottom:16px">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert--error" style="margin-bottom:16px">{{ session('error') }}</div>
 @endif
 
 {{-- ===== STAT CARDS ===== --}}
@@ -253,9 +281,14 @@
                     <div style="display:flex; align-items:center; gap:10px">
                         @if($shiftStaff && $shiftStaff->count() > 0)
                             @php $sh = $shiftStaff->first(); @endphp
-                            <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
-                                {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
-                            </div>
+                            @if($sh->user?->photo)
+                                <img src="{{ Storage::url($sh->user->photo) }}"
+                                     style="width:28px; height:28px; border-radius:50%; object-fit:cover">
+                            @else
+                                <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
+                                    {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
+                                </div>
+                            @endif
                             <span style="font-size:13px; font-weight:600">
                                 {{ $sh->user->name ?? '—' }}
                             </span>
@@ -295,9 +328,14 @@
                             @if($shiftStaff && $shiftStaff->count() > 0)
                                 @foreach($shiftStaff as $sh)
                                 <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-light)">
-                                    <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
-                                        {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
-                                    </div>
+                                    @if($sh->user?->photo)
+                                        <img src="{{ Storage::url($sh->user->photo) }}"
+                                             style="width:28px; height:28px; border-radius:50%; object-fit:cover">
+                                    @else
+                                        <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
+                                            {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
+                                        </div>
+                                    @endif
                                     <span style="font-size:13px; font-weight:600">{{ $sh->user->name ?? '—' }}</span>
                                 </div>
                                 @endforeach
@@ -325,9 +363,14 @@
             @forelse($topPerformers as $i => $p)
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-light)">
                 <div style="font-size:11px; font-weight:700; color:var(--text-muted); width:20px">#{{ $i + 1 }}</div>
-                <div class="avatar {{ $avatarColors[$i % 3] }}">
-                    {{ strtoupper(substr($p->name, 0, 2)) }}
-                </div>
+                @if($p->photo)
+                    <img src="{{ Storage::url($p->photo) }}"
+                         style="width:36px; height:36px; border-radius:50%; object-fit:cover">
+                @else
+                    <div class="avatar {{ $avatarColors[$i % 3] }}">
+                        {{ strtoupper(substr($p->name, 0, 2)) }}
+                    </div>
+                @endif
                 <div style="flex:1">
                     <div style="font-weight:700; font-size:13px">{{ $p->name }}</div>
                     <span class="badge badge--gray" style="margin-top:2px">
@@ -366,9 +409,14 @@
         @if($onDutyStaff && $onDutyStaff->count() > 0)
             @foreach($onDutyStaff as $sh)
             <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-light)">
-                <div class="avatar avatar--blue" style="width:32px; height:32px; font-size:11px">
-                    {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
-                </div>
+                @if($sh->user?->photo)
+                    <img src="{{ Storage::url($sh->user->photo) }}"
+                         style="width:32px; height:32px; border-radius:50%; object-fit:cover">
+                @else
+                    <div class="avatar avatar--blue" style="width:32px; height:32px; font-size:11px">
+                        {{ strtoupper(substr($sh->user->name ?? '?', 0, 2)) }}
+                    </div>
+                @endif
                 <div style="flex:1">
                     <div style="font-weight:700; font-size:13px">{{ $sh->user->name ?? '—' }}</div>
                     <div style="font-size:11px; color:var(--text-muted)">{{ ucfirst($currentShiftType) }} Shift</div>
@@ -408,9 +456,14 @@
                     <td class="table-id">#{{ str_pad($s->id, 4, '0', STR_PAD_LEFT) }}</td>
                     <td>
                         <div style="display:flex; align-items:center; gap:8px">
-                            <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
-                                {{ strtoupper(substr($s->name, 0, 2)) }}
-                            </div>
+                            @if($s->photo)
+                                <img src="{{ Storage::url($s->photo) }}"
+                                     style="width:28px; height:28px; border-radius:50%; object-fit:cover">
+                            @else
+                                <div class="avatar avatar--blue" style="width:28px; height:28px; font-size:10px">
+                                    {{ strtoupper(substr($s->name, 0, 2)) }}
+                                </div>
+                            @endif
                             <div>
                                 <div style="font-weight:600; font-size:13px">{{ $s->name }}</div>
                                 <div style="font-size:11px; color:var(--text-muted)">{{ $s->email }}</div>
@@ -441,7 +494,7 @@
                     <td>
                         <div style="display:flex; gap:4px">
                             <button class="btn-icon" title="Edit"
-                                onclick="openEditModal({{ $s->id }}, '{{ addslashes($s->name) }}', '{{ $s->status }}', '{{ $s->phone }}', '{{ $s->shift }}')">
+                                onclick="openEditModal({{ $s->id }}, '{{ addslashes($s->name) }}', '{{ $s->status }}', '{{ $s->phone }}', '{{ $s->shift }}', '{{ $s->photo ? Storage::url($s->photo) : '' }}')">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -519,9 +572,14 @@
                     <td class="table-id">{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
                     <td>
                         <div style="display:flex; align-items:center; gap:7px">
-                            <div class="avatar avatar--blue" style="width:26px; height:26px; font-size:10px">
-                                {{ strtoupper(substr($log->user?->name ?? '?', 0, 2)) }}
-                            </div>
+                            @if($log->user?->photo)
+                                <img src="{{ Storage::url($log->user->photo) }}"
+                                     style="width:26px; height:26px; border-radius:50%; object-fit:cover">
+                            @else
+                                <div class="avatar avatar--blue" style="width:26px; height:26px; font-size:10px">
+                                    {{ strtoupper(substr($log->user?->name ?? '?', 0, 2)) }}
+                                </div>
+                            @endif
                             <span style="font-size:12.5px; font-weight:600">{{ $log->user?->name ?? 'System' }}</span>
                         </div>
                     </td>
@@ -564,8 +622,23 @@
             <button onclick="document.getElementById('modalAddStaff').style.display='none'"
                     style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px">✕</button>
         </div>
-        <form method="POST" action="{{ route('staff.store') }}" style="display:flex; flex-direction:column; gap:14px">
+        <form method="POST" action="{{ route('staff.store') }}" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:14px">
             @csrf
+
+            {{-- Foto --}}
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Foto (opsional)</label>
+                <div class="photo-upload-field">
+                    <img id="addPhotoPreview" class="photo-upload-preview" style="display:none">
+                    <div id="addPhotoPlaceholder" class="photo-upload-preview">?</div>
+                    <div class="photo-upload-input-wrapper">
+                        <input type="file" name="photo" id="addPhotoInput" accept="image/png,image/jpeg,image/webp"
+                               class="form-input w-full" onchange="previewPhoto(this, 'addPhotoPreview', 'addPhotoPlaceholder')">
+                        <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px">JPG/PNG/WebP, maks. 2MB.</span>
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Full Name</label>
                 <input type="text" name="name" class="form-input w-full" required placeholder="e.g. Budi Santoso">
@@ -610,9 +683,24 @@
             <button onclick="document.getElementById('modalEditStaff').style.display='none'"
                     style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px">✕</button>
         </div>
-        <form id="editStaffForm" method="POST" style="display:flex; flex-direction:column; gap:14px">
+        <form id="editStaffForm" method="POST" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:14px">
             @csrf
             @method('PATCH')
+
+            {{-- Foto --}}
+            <div>
+                <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Foto (opsional)</label>
+                <div class="photo-upload-field">
+                    <img id="editPhotoPreview" class="photo-upload-preview" style="display:none">
+                    <div id="editPhotoPlaceholder" class="photo-upload-preview">?</div>
+                    <div class="photo-upload-input-wrapper">
+                        <input type="file" name="photo" id="editPhotoInput" accept="image/png,image/jpeg,image/webp"
+                               class="form-input w-full" onchange="previewPhoto(this, 'editPhotoPreview', 'editPhotoPlaceholder')">
+                        <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px">Kosongkan jika tidak ingin mengubah foto.</span>
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px">Full Name</label>
                 <input type="text" id="editName" name="name" class="form-input w-full" required>
@@ -662,14 +750,47 @@
 </div>
 
 <script>
-function openEditModal(id, name, status, phone, shift) {
+function openEditModal(id, name, status, phone, shift, photoUrl) {
     const form = document.getElementById('editStaffForm');
     form.action = '/staff/' + id;
     document.getElementById('editName').value   = name;
     document.getElementById('editPhone').value  = phone || '';
     document.getElementById('editStatus').value = status;
-    document.getElementById('editShift').value = shift;
+    document.getElementById('editShift').value  = shift;
+
+    // Reset file input tiap buka modal
+    document.getElementById('editPhotoInput').value = '';
+
+    const preview     = document.getElementById('editPhotoPreview');
+    const placeholder = document.getElementById('editPhotoPlaceholder');
+
+    if (photoUrl) {
+        preview.src = photoUrl;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+    } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.textContent = name ? name.substring(0, 2).toUpperCase() : '?';
+    }
+
     document.getElementById('modalEditStaff').style.display = 'flex';
+}
+
+// Preview foto sebelum upload (Add & Edit)
+function previewPhoto(input, previewId, placeholderId) {
+    const preview     = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
 }
 
 // ── Stat Card Detail Popup: clone existing section into modal ──

@@ -295,9 +295,7 @@
 
         <!-- Bottom actions -->
         <div class="sidebar-bottom">
-
             <div class="sidebar-footer-links">
-
                 <form method="POST" action="{{ route('logout') }}" class="logout-form">
                     @csrf
                     <button type="submit" class="footer-link footer-link--btn" style="color: var(--red-500);">
@@ -328,17 +326,14 @@
                 @if(auth()->user()?->isAdmin())
                 <!-- Notification Bell -->
                 <div class="notification-dropdown-wrapper" x-data="notificationDropdown()" x-init="init()">
-                    <!-- Bell Button -->
                     <button class="btn-icon" @click="toggleDropdown()" title="Notifications">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
-                        <!-- Unread Badge -->
                         <span x-show="unreadCount > 0" class="notification-badge" x-text="unreadCount" x-cloak></span>
                     </button>
 
-                    <!-- Dropdown Panel -->
-                    <div class="notification-dropdown" x-show="isOpen" @click.outside="isOpen = false" 
+                    <div class="notification-dropdown" x-show="isOpen" @click.outside="isOpen = false"
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 transform scale-95"
                          x-transition:enter-end="opacity-100 transform scale-100"
@@ -347,7 +342,6 @@
                          x-transition:leave-end="opacity-0 transform scale-95"
                          style="display: none;"
                          x-cloak>
-                        <!-- Header -->
                         <div class="notification-header">
                             <span class="notification-header-title">Notifikasi Baru</span>
                             <button x-show="unreadCount > 0" @click="markAllAsRead()" class="btn-mark-all-read">
@@ -355,19 +349,11 @@
                             </button>
                         </div>
 
-                        <!-- List -->
                         <div class="notification-list">
-                            <!-- Loading -->
-                            <div x-show="isLoading" class="notification-loading">
-                                Memuat...
-                            </div>
-                            
-                            <!-- Empty State -->
+                            <div x-show="isLoading" class="notification-loading">Memuat...</div>
                             <div x-show="!isLoading && notifications.length === 0" class="notification-empty">
                                 Tidak ada notifikasi baru.
                             </div>
-
-                            <!-- Items -->
                             <template x-for="item in notifications" :key="item.id">
                                 <div class="notification-item">
                                     <div class="notification-item-header">
@@ -378,12 +364,8 @@
                                         Total: <strong style="color: var(--blue-600);">Rp <span x-text="formatNumber(item.data.total)"></span></strong> oleh <span x-text="item.data.cashier_name"></span>
                                     </div>
                                     <div class="notification-item-actions">
-                                        <a :href="'/transactions/' + item.data.transaction_id" class="notification-action-link">
-                                            Detail
-                                        </a>
-                                        <button @click="markAsRead(item.id)" class="btn-mark-single-read">
-                                            Tandai dibaca
-                                        </button>
+                                        <a :href="'/transactions/' + item.data.transaction_id" class="notification-action-link">Detail</a>
+                                        <button @click="markAsRead(item.id)" class="btn-mark-single-read">Tandai dibaca</button>
                                     </div>
                                 </div>
                             </template>
@@ -393,9 +375,35 @@
                 @endif
 
                 <!-- User Avatar -->
-                <div class="user-avatar" title="{{ auth()->user()->name ?? 'Admin' }}">
-                    {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
-                </div>
+                <!-- User Avatar -->
+                @if(auth()->user()?->isAdmin())
+                    <a href="{{ route('profile.edit') }}" style="text-decoration:none">
+                        @if(auth()->user()->photo)
+                            <img src="{{ Storage::url(auth()->user()->photo) }}"
+                                style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--border)"
+                                title="{{ auth()->user()->name }}">
+                        @else
+                            <div class="user-avatar" title="{{ auth()->user()->name ?? 'Admin' }}">
+                                {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
+                            </div>
+                        @endif
+                    </a>
+                @else
+                    <div style="display:flex; align-items:center; gap:8px">
+                        <span style="font-size:13px; font-weight:600; color:var(--text-secondary)">
+                            Halo, {{ auth()->user()->name }}
+                        </span>
+                        @if(auth()->user()->photo)
+                            <img src="{{ Storage::url(auth()->user()->photo) }}"
+                                style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid var(--border)"
+                                title="{{ auth()->user()->name }}">
+                        @else
+                            <div class="avatar avatar--green" style="width:32px; height:32px; font-size:11px">
+                                {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
         </header>
 
@@ -429,7 +437,6 @@
             notifications: [],
             init() {
                 this.fetchNotifications();
-                // Poll every 5 seconds as per revised requirement
                 setInterval(() => {
                     this.fetchNotifications();
                 }, 5000);

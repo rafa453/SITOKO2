@@ -24,6 +24,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo'); 
 
     // Inventory — static routes DULU, baru wildcard
     Route::get('/inventory', [ProductController::class, 'index'])->name('inventory.index');
@@ -113,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/api/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        
     });
 
 });
