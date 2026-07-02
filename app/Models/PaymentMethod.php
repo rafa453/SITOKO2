@@ -8,6 +8,7 @@ class PaymentMethod extends Model
 {
     protected $fillable = [
         'name',
+        'code',
         'type',
         'provider',
         'mdr_fee',

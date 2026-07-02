@@ -89,7 +89,7 @@ Route::middleware(['auth'])->group(function () {
         // Settings
         Route::get('/settings', [PaymentMethodController::class, 'index'])->name('settings.index');
         Route::get('/settings/payment-methods', [PaymentMethodController::class, 'paymentMethods'])->name('settings.payment-methods');
-        Route::post('/settings/payment-methods', [PaymentMethodController::class, 'storePaymentMethod'])->name('settings.payment-methods.store');
+        Route::post('/settings/payment-methods', [PaymentMethodController::class, 'store'])->name('payment-methods.store');
         Route::patch('/settings/payment-methods/{paymentMethod}/toggle', [PaymentMethodController::class, 'togglePaymentMethod'])->name('settings.payment-methods.toggle');
         Route::patch('/settings/payment-methods/{paymentMethod}', [PaymentMethodController::class, 'updatePaymentMethod'])->name('settings.payment-methods.update');
         Route::patch('/settings/store-profile', [PaymentMethodController::class, 'updateStoreProfile'])->name('settings.store-profile.update');

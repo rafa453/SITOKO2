@@ -11,7 +11,7 @@
             <span style="font-size:12px; color:var(--text-muted)">—</span>
             <input type="date" name="date_to" class="form-input" style="width:145px" value="{{ $dateTo->format('Y-m-d') }}" onchange="this.form.submit()">
         </form>
-        <button class="btn btn--primary">
+        <button type="button" class="btn btn--primary" onclick="window.dispatchEvent(new CustomEvent('open-modal', {detail: 'add'}))">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -29,7 +29,24 @@
     }
 @endphp
 
-<div x-data="{ openModal: null }">
+@if(session('success'))
+    <div class="alert alert--success" style="margin-bottom:16px; padding:12px 16px; background:#D1FAE5; border-left:4px solid #10B981; border-radius:4px; font-size:13px; color:#065F46">
+        {{ session('success') }}
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert--error" style="margin-bottom:16px; padding:12px 16px; background:#FEE2E2; border-left:4px solid #EF4444; border-radius:4px; font-size:13px; color:#991B1B">
+        <strong style="display:block; margin-bottom:4px">Gagal menyimpan data:</strong>
+        <ul style="margin:0 0 0 16px; padding:0">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+<div x-data="{ openModal: null }" @open-modal.window="openModal = $event.detail">
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid stats-grid--3">
@@ -144,6 +161,10 @@
                     <div class="form-group">
                         <label class="form-label">Method Name</label>
                         <input class="form-input" type="text" name="name" value="{{ $method->name }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Method Code</label>
+                        <input class="form-input" type="text" name="code" value="{{ $method->code }}" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Type</label>
@@ -265,80 +286,24 @@
     </div>
 </div>
 
-{{-- ===== 7-DAY TREND + ADD NEW FORM ===== --}}
-<div class="card-grid card-grid--2">
-
-    <div class="card">
-        <div class="card-header">
-            <div>
-                <div class="card-title">7-Day Transaction Trend</div>
-                <div class="card-subtitle">Daily Volume by Method</div>
-            </div>
-            <div style="display:flex; gap:10px; font-size:11.5px; align-items:center">
-                <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#2563EB"></span> GP</span>
-                <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#F59E0B"></span> CS</span>
-                <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#EF4444"></span> QR</span>
-            </div>
+{{-- ===== 7-DAY TREND ===== --}}
+<div class="card" style="margin-top:16px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">7-Day Transaction Trend</div>
+            <div class="card-subtitle">Daily Volume by Method</div>
         </div>
-        <div class="card-body">
-            <div class="chart-wrapper" style="height:200px">
-                <canvas id="trendChart"></canvas>
-            </div>
+        <div style="display:flex; gap:10px; font-size:11.5px; align-items:center">
+            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#2563EB"></span> GP</span>
+            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#F59E0B"></span> CS</span>
+            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#EF4444"></span> QR</span>
         </div>
     </div>
-
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Add New Payment Method</div>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="{{ route('settings.payment-methods.store') }}" style="display:flex; flex-direction:column; gap:12px">
-                @csrf
-                <div class="card-grid card-grid--2" style="gap:10px">
-                    <div class="form-group">
-                        <label class="form-label">Method Name</label>
-                        <input class="form-input" type="text" name="name" placeholder="e.g. ShopeePay" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Type</label>
-                        <select class="form-select" name="type" required>
-                            <option value="digital">Digital</option>
-                            <option value="cash">Cash</option>
-                            <option value="edc">EDC</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Provider</label>
-                        <input class="form-input" type="text" name="provider" placeholder="Bank or Gateway">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">MDR Fee (%)</label>
-                        <input class="form-input" type="number" name="mdr_fee" value="0.70" step="0.01">
-                    </div>
-                </div>
-
-                <label style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm)">
-                    <span style="font-size:13px; font-weight:500">Initial Status: Active</span>
-                    <label class="toggle">
-                        <input type="hidden" name="is_active" value="0">
-                        <input type="checkbox" name="is_active" value="1" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </label>
-
-                <div class="form-group">
-                    <label class="form-label">Internal Notes</label>
-                    <textarea class="form-input" name="notes" rows="2" placeholder="Optional notes for administration..." style="resize:none"></textarea>
-                </div>
-
-                <div style="display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--border-light); padding-top:12px">
-                    <button type="button" class="btn btn--secondary">Cancel</button>
-                    <button type="submit" class="btn btn--primary">Save Channel</button>
-                </div>
-            </form>
+    <div class="card-body">
+        <div class="chart-wrapper" style="height:250px">
+            <canvas id="trendChart"></canvas>
         </div>
     </div>
-
 </div>
 
 {{-- ===== STORE PROFILE ===== --}}
@@ -397,6 +362,7 @@
                     <span x-show="openModal === 'active'">Active Payment Methods</span>
                     <span x-show="openModal === 'digital'">Digital Methods ({{ $dateLabel }})</span>
                     <span x-show="openModal === 'cash'">Cash Methods ({{ $dateLabel }})</span>
+                    <span x-show="openModal === 'add'">Add New Payment Method</span>
                 </div>
                 <button class="btn-icon" @click="openModal = null" style="background: none; border: none; cursor: pointer; color: var(--text-muted)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -452,6 +418,59 @@
                         @empty
                         <div style="padding:20px; text-align:center; color:var(--text-muted)">No cash transactions.</div>
                         @endforelse
+                    </div>
+                </template>
+
+                <template x-if="openModal === 'add'">
+                    <div style="padding:20px;">
+                        <form method="POST" action="{{ route('payment-methods.store') }}" style="display:flex; flex-direction:column; gap:12px">
+                            @csrf
+                            <div class="card-grid card-grid--2" style="gap:10px">
+                                <div class="form-group">
+                                    <label class="form-label">Method Name <span style="color:red">*</span></label>
+                                    <input class="form-input" type="text" name="name" value="{{ old('name') }}" placeholder="e.g. ShopeePay" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Method Code <span style="color:red">*</span></label>
+                                    <input class="form-input" type="text" name="code" value="{{ old('code') }}" placeholder="e.g. shopeepay" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Type <span style="color:red">*</span></label>
+                                    <select class="form-select" name="type" required>
+                                        <option value="digital" {{ old('type') == 'digital' ? 'selected' : '' }}>Digital</option>
+                                        <option value="cash" {{ old('type') == 'cash' ? 'selected' : '' }}>Cash</option>
+                                        <option value="edc" {{ old('type') == 'edc' ? 'selected' : '' }}>EDC</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Provider</label>
+                                    <input class="form-input" type="text" name="provider" value="{{ old('provider') }}" placeholder="Bank or Gateway">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">MDR Fee (%)</label>
+                                    <input class="form-input" type="number" name="mdr_fee" value="{{ old('mdr_fee', '0.70') }}" step="0.01">
+                                </div>
+                            </div>
+
+                            <label style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm)">
+                                <span style="font-size:13px; font-weight:500">Initial Status: Active</span>
+                                <label class="toggle">
+                                    <input type="hidden" name="is_active" value="0">
+                                    <input type="checkbox" name="is_active" value="1" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </label>
+
+                            <div class="form-group">
+                                <label class="form-label">Internal Notes</label>
+                                <textarea class="form-input" name="notes" rows="2" placeholder="Optional notes for administration..." style="resize:none">{{ old('notes') }}</textarea>
+                            </div>
+
+                            <div style="display:flex; gap:8px; justify-content:flex-end; border-top:1px solid var(--border-light); padding-top:12px; margin-top:8px">
+                                <button type="button" class="btn btn--secondary" @click="openModal = null">Cancel</button>
+                                <button type="submit" class="btn btn--primary">Save Channel</button>
+                            </div>
+                        </form>
                     </div>
                 </template>
             </div>

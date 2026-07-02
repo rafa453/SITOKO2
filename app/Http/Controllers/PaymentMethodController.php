@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class PaymentMethodController extends Controller
@@ -64,10 +65,11 @@ class PaymentMethodController extends Controller
         ));
     }
 
-    public function storePaymentMethod(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:100|unique:payment_methods,name',
+            'name'     => 'required|string|max:255',
+            'code'     => 'required|string|unique:payment_methods,code|max:50',
             'type'     => 'required|in:digital,cash,edc',
             'provider' => 'nullable|string|max:100',
             'mdr_fee'  => 'nullable|numeric|min:0|max:100',
@@ -76,6 +78,7 @@ class PaymentMethodController extends Controller
 
         PaymentMethod::create([
             'name'      => $request->name,
+            'code'      => Str::slug($request->code),
             'type'      => $request->type,
             'provider'  => $request->provider,
             'mdr_fee'   => $request->mdr_fee ?? 0,
@@ -83,7 +86,7 @@ class PaymentMethodController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
-        return back()->with('success', 'Payment method berhasil ditambahkan.');
+        return redirect()->back()->with('success', 'Metode pembayaran berhasil ditambahkan!');
     }
 
     public function togglePaymentMethod(PaymentMethod $paymentMethod)
@@ -96,13 +99,17 @@ class PaymentMethodController extends Controller
     {
         $request->validate([
             'name'     => 'required|string|max:100|unique:payment_methods,name,' . $paymentMethod->id,
+            'code'     => 'required|string|max:50|unique:payment_methods,code,' . $paymentMethod->id,
             'type'     => 'required|in:digital,cash,edc',
             'provider' => 'nullable|string|max:100',
             'mdr_fee'  => 'nullable|numeric|min:0|max:100',
             'notes'    => 'nullable|string',
         ]);
 
-        $paymentMethod->update($request->only('name', 'type', 'provider', 'mdr_fee', 'notes'));
+        $data = $request->only('name', 'type', 'provider', 'mdr_fee', 'notes');
+        $data['code'] = \Illuminate\Support\Str::slug($request->code);
+        
+        $paymentMethod->update($data);
 
         return back()->with('success', 'Payment method berhasil diupdate.');
     }
