@@ -7,6 +7,7 @@ use App\Models\Shift;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use App\Models\ActivityLog;
 
@@ -95,7 +96,13 @@ class StaffController extends Controller
             'phone'    => 'nullable|string|max:20',
             'shift'    => 'required|in:pagi,siang',
             'password' => 'required|string|min:8',
+            'photo'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
+
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')->store('staff-photos', 'public');
+        }
 
         User::create([
             'name'     => $request->name,
@@ -105,6 +112,7 @@ class StaffController extends Controller
             'shift'    => $request->shift,
             'status'   => 'active',
             'password' => Hash::make($request->password),
+            'photo'    => $photoPath,
         ]);
 
         return back()->with('success', 'Staff berhasil ditambahkan.');
@@ -117,6 +125,7 @@ class StaffController extends Controller
             'phone'  => 'nullable|string|max:20',
             'shift'  => 'required|in:pagi,siang',
             'status' => 'required|in:active,inactive',
+            'photo'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if ($request->status === 'inactive') {
@@ -128,7 +137,17 @@ class StaffController extends Controller
             }
         }
 
-        $staff->update($request->only('name', 'phone', 'shift', 'status'));
+        $data = $request->only('name', 'phone', 'shift', 'status');
+
+        if ($request->hasFile('photo')) {
+            // Hapus foto lama kalau ada, biar storage nggak numpuk file yatim
+            if ($staff->photo) {
+                Storage::disk('public')->delete($staff->photo);
+            }
+            $data['photo'] = $request->file('photo')->store('staff-photos', 'public');
+        }
+
+        $staff->update($data);
 
         return back()->with('success', 'Data staff berhasil diperbarui.');
     }
