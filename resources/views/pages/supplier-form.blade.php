@@ -51,7 +51,7 @@
                 <label class="form-label">Nomor Telepon</label>
                 <input type="text" name="phone" class="form-input"
                     value="{{ old('phone', $supplier->phone ?? '') }}"
-                    placeholder="0812-xxxx-xxxx">
+                    placeholder="+62812-xxxx-xxxx">
             </div>
 
             {{-- Alamat --}}

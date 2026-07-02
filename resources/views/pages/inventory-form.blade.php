@@ -40,6 +40,40 @@
                 </div>
                 <div class="card-body" style="display:flex; flex-direction:column; gap:16px">
 
+                    {{-- Supplier --}}
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
+                            Supplier <span style="color:var(--red-500)">*</span>
+                        </label>
+                        <select name="supplier_ids[]" id="supplier_select" class="form-input" style="width:100%; min-height:80px" multiple required>
+                            @foreach($suppliers as $sup)
+                                <option value="{{ $sup->id }}" {{ (isset($product) && $product->suppliers->contains($sup->id)) ? 'selected' : '' }}>
+                                    {{ $sup->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Tahan Ctrl/Cmd untuk memilih lebih dari satu.</p>
+                    </div>
+
+                    {{-- Brand / Merek --}}
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
+                            Brand / Merek <span style="color:var(--red-500)">*</span>
+                        </label>
+                        <select name="brand_id" id="brand_select" class="form-input" style="width:100%" @if(!isset($product)) disabled @endif required>
+                            @if(!isset($product))
+                                <option value="">-- Pilih Supplier Dahulu --</option>
+                            @else
+                                <option value="">-- Tidak ada Merek --</option>
+                                @foreach($brands as $brand)
+                                    <option value="{{ $brand->id }}" {{ (isset($product) && $product->brand_id == $brand->id) ? 'selected' : '' }}>
+                                        {{ $brand->name }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
                     {{-- Nama --}}
                     <div>
                         <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
@@ -54,34 +88,6 @@
                             value="{{ old('name', $product->name ?? '') }}"
                             required
                         >
-                    </div>
-
-                    {{-- SKU --}}
-                    <div>
-                        <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
-                            SKU <span style="color:var(--red-500)">*</span>
-                        </label>
-                        @if(!isset($product))
-                            <input
-                                type="text"
-                                name="sku"
-                                class="form-input"
-                                style="width:100%; background-color:#F3F4F6; cursor:not-allowed;"
-                                placeholder="SKU otomatis dibuat oleh sistem"
-                                readonly
-                            >
-                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">SKU akan otomatis dibuat oleh sistem setelah disimpan.</p>
-                        @else
-                            <input
-                                type="text"
-                                name="sku"
-                                class="form-input"
-                                style="width:100%; background-color:#F3F4F6; cursor:not-allowed;"
-                                value="{{ old('sku', $product->sku ?? '') }}"
-                                readonly
-                            >
-                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">SKU tidak dapat diubah setelah dibuat.</p>
-                        @endif
                     </div>
 
                     {{-- Kategori + Satuan --}}
@@ -125,38 +131,32 @@
                         </div>
                     </div>
 
-                    {{-- Supplier & Merek (Dependent Dropdown) --}}
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; border-top:1px solid var(--border-light); padding-top:16px">
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
-                                Supplier <span style="color:var(--red-500)">*</span>
-                            </label>
-                            <select name="supplier_ids[]" id="supplier_select" class="form-input" style="width:100%; min-height:80px" multiple required>
-                                @foreach($suppliers as $sup)
-                                    <option value="{{ $sup->id }}" {{ (isset($product) && $product->suppliers->contains($sup->id)) ? 'selected' : '' }}>
-                                        {{ $sup->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Tahan Ctrl/Cmd untuk memilih lebih dari satu.</p>
-                        </div>
-                        <div>
-                            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
-                                Brand / Merek <span style="color:var(--red-500)">*</span>
-                            </label>
-                            <select name="brand_id" id="brand_select" class="form-input" style="width:100%" @if(!isset($product)) disabled @endif required>
-                                @if(!isset($product))
-                                    <option value="">-- Pilih Supplier Dahulu --</option>
-                                @else
-                                    <option value="">-- Tidak ada Merek --</option>
-                                    @foreach($brands as $brand)
-                                        <option value="{{ $brand->id }}" {{ (isset($product) && $product->brand_id == $brand->id) ? 'selected' : '' }}>
-                                            {{ $brand->name }}
-                                        </option>
-                                    @endforeach
-                                @endif
-                            </select>
-                        </div>
+                    {{-- SKU --}}
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px">
+                            SKU <span style="color:var(--red-500)">*</span>
+                        </label>
+                        @if(!isset($product))
+                            <input
+                                type="text"
+                                name="sku"
+                                class="form-input"
+                                style="width:100%; background-color:#F3F4F6; cursor:not-allowed;"
+                                placeholder="SKU otomatis dibuat oleh sistem"
+                                readonly
+                            >
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">SKU akan otomatis dibuat oleh sistem setelah disimpan.</p>
+                        @else
+                            <input
+                                type="text"
+                                name="sku"
+                                class="form-input"
+                                style="width:100%; background-color:#F3F4F6; cursor:not-allowed;"
+                                value="{{ old('sku', $product->sku ?? '') }}"
+                                readonly
+                            >
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:4px">SKU tidak dapat diubah setelah dibuat.</p>
+                        @endif
                     </div>
 
                 </div>
@@ -321,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 1. Konsistensi ID elemen HTML
     const supplierSelect = document.getElementById('supplier_select');
     const brandSelect = document.getElementById('brand_select');
+    const nameInput = document.querySelector('input[name="name"]');
 
     if(supplierSelect && brandSelect) {
         supplierSelect.addEventListener('change', function() {
@@ -357,6 +358,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Fetch error:', err);
                     brandSelect.innerHTML = '<option value="">Gagal memuat data</option>';
                 });
+        });
+    }
+
+    // Auto-fill product name dari brand yang dipilih
+    if (brandSelect && nameInput) {
+        brandSelect.addEventListener('change', function () {
+            const selectedText = this.options[this.selectedIndex]?.text?.trim();
+            // Hanya auto-fill kalau ada pilihan valid & input name masih kosong
+            if (selectedText && this.value && nameInput.value === '') {
+                nameInput.value = selectedText;
+            }
         });
     }
 });
