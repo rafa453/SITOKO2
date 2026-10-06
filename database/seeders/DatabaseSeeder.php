@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -11,6 +13,20 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // =========================================================================
+        // 0. USER ADMIN DEFAULT (IDEMPOTEN)
+        // =========================================================================
+        // purchase_orders.created_by FK ke users; di DB bersih users kosong → 1452.
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@sitoko.test'],
+            [
+                'name'     => 'Admin SITOKO',
+                'password' => Hash::make(env('SEEDER_ADMIN_PASSWORD', 'admin123')),
+                'role'     => 'admin',
+                'status'   => 'active',
+            ]
+        );
+
         // =========================================================================
         // 1. TRUNCATE DATA DENGAN AMAN (KECUALI USERS)
         // =========================================================================
@@ -307,7 +323,7 @@ class DatabaseSeeder extends Seeder
         // 3.5 SEEDING PURCHASE ORDERS (ERP REAL-WORLD SIMULATION)
         // =========================================================================
         
-        $adminId = DB::table('users')->value('id') ?? 1;
+        $adminId = $admin->id;
         $suppliersDb = DB::table('suppliers')->get();
         $productsInDb = DB::table('products')->get();
         $poCount = 1;

@@ -234,12 +234,22 @@ class TransactionController extends Controller
                 $total = 0;
                 $itemsToCreate = [];
 
+                // Agregasi qty per product_id agar produk sama di payload tidak lolos cek stok
+                $qtyByProduct = [];
                 foreach ($request->items as $item) {
-                    $product = Product::lockForUpdate()->findOrFail($item['id']);
+                    $qtyByProduct[$item['id']] = ($qtyByProduct[$item['id']] ?? 0) + $item['qty'];
+                }
 
-                    if ($product->qty < $item['qty']) {
+                foreach ($qtyByProduct as $productId => $qty) {
+                    $product = Product::lockForUpdate()->findOrFail($productId);
+
+                    if ($product->qty < $qty) {
                         throw new \Exception("Stok {$product->name} tidak cukup.");
                     }
+                }
+
+                foreach ($request->items as $item) {
+                    $product = Product::lockForUpdate()->findOrFail($item['id']);
 
                     $subtotal = $product->sell_price * $item['qty'];
                     $total   += $subtotal;
@@ -254,6 +264,10 @@ class TransactionController extends Controller
                     ];
 
                     $product->decrement('qty', $item['qty']);
+                }
+
+                if ($request->amount_paid < $total) {
+                    throw new \Exception('Jumlah bayar kurang dari total transaksi.');
                 }
 
                 $transaction = Transaction::create([

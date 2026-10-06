@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -9,23 +10,26 @@ class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_screen_can_be_rendered(): void
+    public function test_registration_screen_redirects_guests_to_login(): void
     {
         $response = $this->get('/register');
 
-        $response->assertStatus(200);
+        $response->assertRedirect('/login');
     }
 
-    public function test_new_users_can_register(): void
+    public function test_registration_screen_requires_admin(): void
     {
-        $response = $this->post('/register', [
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ]);
+        $response = $this->actingAs(User::factory()->create(['role' => 'cashier']))
+            ->get('/register');
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_can_render_registration_screen(): void
+    {
+        $response = $this->actingAs(User::factory()->create(['role' => 'admin']))
+            ->get('/register');
+
+        $response->assertStatus(200);
     }
 }
