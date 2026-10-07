@@ -67,7 +67,7 @@ class PurchaseOrder extends Model
         }
 
         return $this->items->some(
-            fn($item) => $item->qty_received < $item->qty_ordered
+            fn ($item) => $item->qty_received < $item->qty_ordered
         );
     }
 

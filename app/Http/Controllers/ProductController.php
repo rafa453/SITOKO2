@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
 use App\Http\Requests\ProductRequest;
-use Illuminate\Http\Request;
 use App\Models\ActivityLog;
+use App\Models\Brand;
+use App\Models\Product;
+use App\Models\Supplier;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
@@ -16,8 +18,8 @@ class ProductController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('sku', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -27,8 +29,8 @@ class ProductController extends Controller
 
         if ($request->filled('status')) {
             match ($request->status) {
-                'low'  => $query->where('is_low_stock', 1),
-                'out'  => $query->where('qty', 0),
+                'low' => $query->where('is_low_stock', 1),
+                'out' => $query->where('qty', 0),
                 default => null,
             };
         }
@@ -45,13 +47,13 @@ class ProductController extends Controller
             });
         }
 
-        $products   = $query->paginate(10)->withQueryString();
+        $products = $query->paginate(10)->withQueryString();
         $categories = Product::select('category')->distinct()->pluck('category');
 
-        $totalSkus       = Product::count();
-        $lowStockCount   = Product::where('is_low_stock', 1)->count();
+        $totalSkus = Product::count();
+        $lowStockCount = Product::where('is_low_stock', 1)->count();
         $outOfStockCount = Product::where('qty', 0)->count();
-        $stockValue      = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
+        $stockValue = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
 
         // ===== Stock Alert: produk mendekati / sudah kadaluarsa (H-7) =====
         $expiringProducts = Product::whereNotNull('expired_at')
@@ -75,8 +77,8 @@ class ProductController extends Controller
             ->limit(5)
             ->get();
 
-        $filterBrands    = \App\Models\Brand::orderBy('name')->get();
-        $filterSuppliers = \App\Models\Supplier::orderBy('name')->get();
+        $filterBrands = Brand::orderBy('name')->get();
+        $filterSuppliers = Supplier::orderBy('name')->get();
         $categoryLabels = [
             'BT' => 'Beras & Tepung',
             'ML' => 'Minyak & Lemak',
@@ -99,8 +101,9 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Product::select('category')->distinct()->pluck('category');
-        $brands     = \App\Models\Brand::orderBy('name')->get();
-        $suppliers  = \App\Models\Supplier::where('is_active', true)->orderBy('name')->get();
+        $brands = Brand::orderBy('name')->get();
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+
         return view('pages.inventory-form', compact('categories', 'brands', 'suppliers'));
     }
 
@@ -109,34 +112,35 @@ class ProductController extends Controller
         $validated = $request->validated();
 
         $product = DB::transaction(function () use ($validated) {
-            $brandName = !empty($validated['brand_id'])
-                ? \App\Models\Brand::find($validated['brand_id'])->name
+            $brandName = ! empty($validated['brand_id'])
+                ? Brand::find($validated['brand_id'])->name
                 : 'NOBRAND';
 
-            $supplierName = !empty($validated['supplier_ids']) 
-                ? \App\Models\Supplier::find($validated['supplier_ids'][0])->name 
+            $supplierName = ! empty($validated['supplier_ids'])
+                ? Supplier::find($validated['supplier_ids'][0])->name
                 : 'NOSUPP';
 
-            $validated['sku'] = \App\Models\Product::generateSku(
+            $validated['sku'] = Product::generateSku(
                 $validated['category'],
                 $brandName,
                 $supplierName
             );
 
             $product = retry(5, function () use (&$validated, $brandName, $supplierName) {
-                $validated['sku'] = \App\Models\Product::generateSku(
+                $validated['sku'] = Product::generateSku(
                     $validated['category'],
                     $brandName,
                     $supplierName
                 );
+
                 return Product::create($validated);
             }, 100);
 
             // Attach suppliers dengan supplier_sku
-            if (!empty($validated['supplier_ids'])) {
+            if (! empty($validated['supplier_ids'])) {
                 foreach ($validated['supplier_ids'] as $index => $supplierId) {
-                    $supplier = \App\Models\Supplier::find($supplierId);
-                    $supplierSku = \App\Models\Product::generateSupplierSku(
+                    $supplier = Supplier::find($supplierId);
+                    $supplierSku = Product::generateSupplierSku(
                         $validated['category'],
                         $brandName,
                         $supplier->name
@@ -144,7 +148,7 @@ class ProductController extends Controller
 
                     $product->suppliers()->attach($supplierId, [
                         'supplier_sku' => $supplierSku,
-                        'price'        => $validated['supplier_prices'][$index] ?? 0,
+                        'price' => $validated['supplier_prices'][$index] ?? 0,
                     ]);
                 }
             }
@@ -160,8 +164,9 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Product::select('category')->distinct()->pluck('category');
-        $brands     = \App\Models\Brand::orderBy('name')->get();
-        $suppliers  = \App\Models\Supplier::where('is_active', true)->orderBy('name')->get();
+        $brands = Brand::orderBy('name')->get();
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+
         return view('pages.inventory-form', compact('product', 'categories', 'brands', 'suppliers'));
     }
 
@@ -177,9 +182,9 @@ class ProductController extends Controller
 
             // Sync suppliers — supplier baru dapat supplier_sku baru
             $syncData = [];
-            if (!empty($validated['supplier_ids'])) {
-                $brandName = !empty($validated['brand_id'])
-                    ? \App\Models\Brand::find($validated['brand_id'])->name
+            if (! empty($validated['supplier_ids'])) {
+                $brandName = ! empty($validated['brand_id'])
+                    ? Brand::find($validated['brand_id'])->name
                     : 'NOBRAND';
 
                 foreach ($validated['supplier_ids'] as $index => $supplierId) {
@@ -188,15 +193,15 @@ class ProductController extends Controller
 
                     $supplierSku = $existing
                         ? $existing->pivot->supplier_sku
-                        : \App\Models\Product::generateSupplierSku(
+                        : Product::generateSupplierSku(
                             $validated['category'],
                             $brandName,
-                            \App\Models\Supplier::find($supplierId)->name
+                            Supplier::find($supplierId)->name
                         );
 
                     $syncData[$supplierId] = [
                         'supplier_sku' => $supplierSku,
-                        'price'        => $validated['supplier_prices'][$index] ?? 0,
+                        'price' => $validated['supplier_prices'][$index] ?? 0,
                     ];
                 }
             }
@@ -209,7 +214,7 @@ class ProductController extends Controller
 
         // Audit Trail Pencatatan Qty
         if ($oldQty !== $product->qty) {
-            \App\Models\ActivityLog::record(
+            ActivityLog::record(
                 'STOCK_ADJUSTMENT',
                 'Penyesuaian stok manual (Update Product)',
                 $product->name,
@@ -240,6 +245,7 @@ class ProductController extends Controller
         }
 
         $product->delete();
+
         return redirect()->route('inventory.index')
             ->with('success', 'Produk berhasil dihapus.');
     }
@@ -254,42 +260,43 @@ class ProductController extends Controller
             $product->name,
             ['qty_added' => $request->qty]
         );
+
         return back()->with('success', "Restock {$product->name} berhasil.");
     }
 
-    public function bySupplier(\App\Models\Supplier $supplier)
+    public function bySupplier(Supplier $supplier)
     {
         $products = $supplier->products()
             ->select('products.id', 'products.name', 'products.unit')
             ->withPivot(['supplier_sku', 'price'])
             ->get()
-            ->map(fn($p) => [
-                'id'           => $p->id,
-                'name'         => $p->name,
-                'unit'         => $p->unit,
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'unit' => $p->unit,
                 'supplier_sku' => $p->pivot->supplier_sku,
-                'price'        => $p->pivot->price,
+                'price' => $p->pivot->price,
             ]);
 
         return response()->json($products);
     }
 
     public function detail(Product $product)
-        {
-            $product->load(['brand', 'suppliers']);
+    {
+        $product->load(['brand', 'suppliers']);
 
-            return response()->json([
-                'name'        => $product->name,
-                'sku'         => $product->sku,
-                'brand'       => $product->brand?->name,
-                'stock'       => $product->qty,
-                'price'       => $product->sell_price,
-                'expired_at'  => $product->expired_at?->format('d M Y'),
-                'suppliers'   => $product->suppliers->map(fn($s) => [
-                    'name'         => $s->name,
-                    'supplier_sku' => $s->pivot->supplier_sku,
-                    'price'        => $s->pivot->price,
-                ]),
-            ]);
-        }
+        return response()->json([
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'brand' => $product->brand?->name,
+            'stock' => $product->qty,
+            'price' => $product->sell_price,
+            'expired_at' => $product->expired_at?->format('d M Y'),
+            'suppliers' => $product->suppliers->map(fn ($s) => [
+                'name' => $s->name,
+                'supplier_sku' => $s->pivot->supplier_sku,
+                'price' => $s->pivot->price,
+            ]),
+        ]);
+    }
 }

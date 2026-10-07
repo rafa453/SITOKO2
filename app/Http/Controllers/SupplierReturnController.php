@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SupplierReturnStoreRequest;
+use App\Models\ActivityLog;
+use App\Models\Product;
+use App\Models\PurchaseOrder;
 use App\Models\SupplierReturn;
 use App\Models\SupplierReturnItem;
-use App\Models\PurchaseOrder;
-use App\Models\ActivityLog;
-use App\Http\Requests\SupplierReturnStoreRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +18,7 @@ class SupplierReturnController extends Controller
         $query = SupplierReturn::with(['supplier', 'purchaseOrder', 'creator'])->latest();
 
         if ($request->filled('search')) {
-            $query->where('code', 'like', '%' . $request->search . '%');
+            $query->where('code', 'like', '%'.$request->search.'%');
         }
 
         if ($request->filled('status')) {
@@ -27,16 +28,16 @@ class SupplierReturnController extends Controller
         $returns = $query->paginate(10)->withQueryString();
 
         // ===== Stat cards (angka utama) =====
-        $totalDraft     = SupplierReturn::where('status', 'draft')->count();
+        $totalDraft = SupplierReturn::where('status', 'draft')->count();
         $totalConfirmed = SupplierReturn::where('status', 'confirmed')->count();
         $totalCompleted = SupplierReturn::where('status', 'completed')
             ->whereMonth('completed_at', now()->month)
             ->whereYear('completed_at', now()->year)
             ->count();
-        $totalValue     = SupplierReturn::where('status', 'confirmed')->sum('total');
+        $totalValue = SupplierReturn::where('status', 'confirmed')->sum('total');
 
         // ===== Breakdown untuk popup: DRAFT =====
-        $draftValue  = SupplierReturn::where('status', 'draft')->sum('total');
+        $draftValue = SupplierReturn::where('status', 'draft')->sum('total');
         $oldestDraft = SupplierReturn::where('status', 'draft')
             ->with('supplier')
             ->oldest()
@@ -91,7 +92,7 @@ class SupplierReturnController extends Controller
 
         // Hitung qty yang sudah diretur per PO item
         $returnedQtys = SupplierReturnItem::whereIn('purchase_order_item_id', $po->items->pluck('id'))
-            ->whereHas('supplierReturn', fn($q) => $q->whereIn('status', ['draft', 'confirmed', 'completed']))
+            ->whereHas('supplierReturn', fn ($q) => $q->whereIn('status', ['draft', 'confirmed', 'completed']))
             ->selectRaw('purchase_order_item_id, SUM(qty_returned) as total_returned')
             ->groupBy('purchase_order_item_id')
             ->pluck('total_returned', 'purchase_order_item_id');
@@ -99,6 +100,7 @@ class SupplierReturnController extends Controller
         // Filter item yang masih bisa diretur
         $returnableItems = $po->items->filter(function ($item) use ($returnedQtys) {
             $alreadyReturned = $returnedQtys[$item->id] ?? 0;
+
             return ($item->qty_received - $alreadyReturned) > 0;
         })->values();
 
@@ -110,36 +112,38 @@ class SupplierReturnController extends Controller
     public function store(SupplierReturnStoreRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $po    = PurchaseOrder::findOrFail($request->purchase_order_id);
-            $code  = 'RTR-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
+            $po = PurchaseOrder::findOrFail($request->purchase_order_id);
+            $code = 'RTR-'.now()->format('Ymd').'-'.strtoupper(substr(uniqid(), -5));
             $total = 0;
             $itemsToCreate = [];
 
             foreach ($request->items as $item) {
-                if (($item['qty_returned'] ?? 0) <= 0) continue;
+                if (($item['qty_returned'] ?? 0) <= 0) {
+                    continue;
+                }
 
                 $subtotal = $item['qty_returned'] * $item['buy_price'];
-                $total   += $subtotal;
+                $total += $subtotal;
 
                 $itemsToCreate[] = [
                     'purchase_order_item_id' => $item['po_item_id'],
-                    'product_id'             => $item['product_id'],
-                    'qty_returned'           => $item['qty_returned'],
-                    'buy_price'              => $item['buy_price'],
-                    'subtotal'               => $subtotal,
+                    'product_id' => $item['product_id'],
+                    'qty_returned' => $item['qty_returned'],
+                    'buy_price' => $item['buy_price'],
+                    'subtotal' => $subtotal,
                 ];
             }
 
             abort_if(empty($itemsToCreate), 422, 'Tidak ada item yang valid untuk diretur.');
 
             $return = SupplierReturn::create([
-                'code'               => $code,
-                'purchase_order_id'  => $po->id,
-                'supplier_id'        => $po->supplier_id,
-                'created_by'         => auth()->id(),
-                'status'             => 'draft',
-                'reason'             => $request->reason,
-                'total'              => $total,
+                'code' => $code,
+                'purchase_order_id' => $po->id,
+                'supplier_id' => $po->supplier_id,
+                'created_by' => auth()->id(),
+                'status' => 'draft',
+                'reason' => $request->reason,
+                'total' => $total,
             ]);
 
             $return->items()->createMany($itemsToCreate);
@@ -159,6 +163,7 @@ class SupplierReturnController extends Controller
     public function show(SupplierReturn $supplierReturn)
     {
         $supplierReturn->load(['supplier', 'purchaseOrder', 'creator', 'confirmer', 'completer', 'items.product']);
+
         return view('pages.supplier-return-show', compact('supplierReturn'));
     }
 
@@ -167,10 +172,10 @@ class SupplierReturnController extends Controller
         $action = $request->get('action');
 
         match ($action) {
-            'confirm'  => $this->confirmReturn($supplierReturn),
+            'confirm' => $this->confirmReturn($supplierReturn),
             'complete' => $this->completeReturn($supplierReturn),
-            'cancel'   => $this->cancelReturn($supplierReturn),
-            default    => abort(422, 'Aksi tidak valid.'),
+            'cancel' => $this->cancelReturn($supplierReturn),
+            default => abort(422, 'Aksi tidak valid.'),
         };
 
         return back()->with('success', 'Status retur berhasil diupdate.');
@@ -178,13 +183,13 @@ class SupplierReturnController extends Controller
 
     private function confirmReturn(SupplierReturn $return): void
     {
-        abort_if(!$return->canBeConfirmed(), 422, 'Retur tidak bisa dikonfirmasi.');
+        abort_if(! $return->canBeConfirmed(), 422, 'Retur tidak bisa dikonfirmasi.');
 
         DB::transaction(function () use ($return) {
             // Kurangi stok saat confirmed — barang sudah keluar gudang
             foreach ($return->items as $item) {
                 // 1. LOCK row produk terlebih dahulu
-                $product = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
+                $product = Product::lockForUpdate()->findOrFail($item->product_id);
 
                 // 2. VALIDASI kecukupan stok setelah data ter-lock
                 if ($product->qty < $item->qty_returned) {
@@ -196,7 +201,7 @@ class SupplierReturnController extends Controller
             }
 
             $return->update([
-                'status'       => 'confirmed',
+                'status' => 'confirmed',
                 'confirmed_at' => now(),
                 'confirmed_by' => auth()->id(),
             ]);
@@ -207,10 +212,10 @@ class SupplierReturnController extends Controller
 
     private function completeReturn(SupplierReturn $return): void
     {
-        abort_if(!$return->canBeCompleted(), 422, 'Retur tidak bisa diselesaikan.');
+        abort_if(! $return->canBeCompleted(), 422, 'Retur tidak bisa diselesaikan.');
 
         $return->update([
-            'status'       => 'completed',
+            'status' => 'completed',
             'completed_at' => now(),
             'completed_by' => auth()->id(),
         ]);
@@ -220,7 +225,7 @@ class SupplierReturnController extends Controller
 
     private function cancelReturn(SupplierReturn $return): void
     {
-        abort_if(!$return->canBeCancelled(), 422, 'Retur tidak bisa dibatalkan.');
+        abort_if(! $return->canBeCancelled(), 422, 'Retur tidak bisa dibatalkan.');
 
         $return->update(['status' => 'cancelled']);
 

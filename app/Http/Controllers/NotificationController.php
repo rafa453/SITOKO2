@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
@@ -15,15 +14,15 @@ class NotificationController extends Controller
         $notifications = auth()->user()->unreadNotifications;
 
         return response()->json([
-            'success'       => true,
+            'success' => true,
             'notifications' => $notifications->map(function ($notification) {
                 return [
-                    'id'         => $notification->id,
-                    'data'       => $notification->data,
+                    'id' => $notification->id,
+                    'data' => $notification->data,
                     'created_at' => $notification->created_at->diffForHumans(),
                 ];
             }),
-            'unread_count'  => $notifications->count(),
+            'unread_count' => $notifications->count(),
         ]);
     }
 
@@ -35,7 +34,7 @@ class NotificationController extends Controller
         $notification = DatabaseNotification::findOrFail($id);
 
         // Otorisasi: Pastikan notifikasi ini milik user yang sedang login
-        if ((string) $notification->notifiable_id !== (string) auth()->id() || 
+        if ((string) $notification->notifiable_id !== (string) auth()->id() ||
             $notification->notifiable_type !== get_class(auth()->user())) {
             abort(403, 'Tindakan tidak diizinkan. Notifikasi ini bukan milik Anda.');
         }

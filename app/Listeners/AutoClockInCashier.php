@@ -2,10 +2,10 @@
 
 namespace App\Listeners;
 
-use Illuminate\Auth\Events\Login;
+use App\Models\ActivityLog;
 use App\Models\Shift;
 use Carbon\Carbon;
-use App\Models\ActivityLog;
+use Illuminate\Auth\Events\Login;
 
 class AutoClockInCashier
 {
@@ -41,11 +41,11 @@ class AutoClockInCashier
         }
 
         Shift::create([
-            'user_id'    => $user->id,
-            'type'       => $type,
+            'user_id' => $user->id,
+            'type' => $type,
             'started_at' => now(),
         ]);
 
-        ActivityLog::record('SHIFT', 'Auto clock in shift ' . $type, $user->name);
+        ActivityLog::record('SHIFT', 'Auto clock in shift '.$type, $user->name);
     }
 }

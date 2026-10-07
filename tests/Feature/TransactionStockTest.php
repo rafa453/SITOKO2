@@ -19,13 +19,13 @@ class TransactionStockTest extends TestCase
     private function product(int $qty): Product
     {
         return Product::create([
-            'sku'        => 'TST-0001',
-            'name'       => 'Produk Test',
-            'category'   => 'Sembako',
-            'unit'       => 'Pcs',
-            'qty'        => $qty,
-            'threshold'  => 10,
-            'buy_price'  => 1000,
+            'sku' => 'TST-0001',
+            'name' => 'Produk Test',
+            'category' => 'Sembako',
+            'unit' => 'Pcs',
+            'qty' => $qty,
+            'threshold' => 10,
+            'buy_price' => 1000,
             'sell_price' => 2000,
         ]);
     }
@@ -40,7 +40,7 @@ class TransactionStockTest extends TestCase
                 ['id' => $product->id, 'qty' => 2],
             ],
             'payment_method' => 'Tunai',
-            'amount_paid'    => 8000,
+            'amount_paid' => 8000,
         ]);
 
         $response->assertStatus(422);
@@ -57,7 +57,7 @@ class TransactionStockTest extends TestCase
                 ['id' => $product->id, 'qty' => 2],
             ],
             'payment_method' => 'Tunai',
-            'amount_paid'    => 8000,
+            'amount_paid' => 8000,
         ]);
 
         $response->assertOk();
@@ -73,7 +73,7 @@ class TransactionStockTest extends TestCase
                 ['id' => $product->id, 'qty' => 2],
             ],
             'payment_method' => 'Tunai',
-            'amount_paid'    => 3000,
+            'amount_paid' => 3000,
         ]);
 
         $response->assertStatus(422);

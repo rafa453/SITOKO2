@@ -11,7 +11,18 @@ class SupplierReturnItem extends Model
         'product_id', 'qty_returned', 'buy_price', 'subtotal',
     ];
 
-    public function supplierReturn()    { return $this->belongsTo(SupplierReturn::class); }
-    public function purchaseOrderItem() { return $this->belongsTo(PurchaseOrderItem::class); }
-    public function product()           { return $this->belongsTo(Product::class); }
+    public function supplierReturn()
+    {
+        return $this->belongsTo(SupplierReturn::class);
+    }
+
+    public function purchaseOrderItem()
+    {
+        return $this->belongsTo(PurchaseOrderItem::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
 }

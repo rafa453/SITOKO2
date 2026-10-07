@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Shift;
-use App\Models\User;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
 use App\Models\ActivityLog;
+use App\Models\Shift;
+use App\Models\Transaction;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ShiftController extends Controller
 {
@@ -53,7 +53,7 @@ class ShiftController extends Controller
         ]);
 
         $userId = auth()->id();
-        $today  = Carbon::today();
+        $today = Carbon::today();
 
         // Cek apakah sudah ada shift aktif
         $activeShift = Shift::where('user_id', $userId)
@@ -66,12 +66,11 @@ class ShiftController extends Controller
         }
 
         Shift::create([
-            'user_id'    => $userId,
-            'type'       => $request->type,
+            'user_id' => $userId,
+            'type' => $request->type,
             'started_at' => now(),
         ]);
-        ActivityLog::record('SHIFT', 'Clock in shift ' . $request->type, auth()->user()->name);
-
+        ActivityLog::record('SHIFT', 'Clock in shift '.$request->type, auth()->user()->name);
 
         return back()->with('success', 'Clock in berhasil. Shift dimulai.');
     }
@@ -86,7 +85,7 @@ class ShiftController extends Controller
             ->latest('started_at')
             ->first();
 
-        if (!$activeShift) {
+        if (! $activeShift) {
             return back()->with('error', 'Tidak ada shift aktif yang bisa diakhiri.');
         }
 
@@ -102,9 +101,9 @@ class ShiftController extends Controller
             ->count();
 
         $activeShift->update([
-            'ended_at'   => now(),
-            'revenue'    => $shiftRevenue,
-            'trx_count'  => $shiftTrxCount,
+            'ended_at' => now(),
+            'revenue' => $shiftRevenue,
+            'trx_count' => $shiftTrxCount,
         ]);
         ActivityLog::record(
             'SHIFT',
@@ -113,15 +112,15 @@ class ShiftController extends Controller
             ['revenue' => $shiftRevenue, 'trx_count' => $shiftTrxCount]
         );
 
-        return back()->with('success', "Shift selesai. Total: {$shiftTrxCount} transaksi, Rp " . number_format($shiftRevenue));
+        return back()->with('success', "Shift selesai. Total: {$shiftTrxCount} transaksi, Rp ".number_format($shiftRevenue));
     }
 
     // Admin assign shift manual ke staff tertentu
     public function store(Request $request)
     {
         $request->validate([
-            'user_id'    => 'required|exists:users,id',
-            'type'       => 'required|in:pagi,siang',
+            'user_id' => 'required|exists:users,id',
+            'type' => 'required|in:pagi,siang',
             'started_at' => 'required|date',
         ]);
 
@@ -134,8 +133,8 @@ class ShiftController extends Controller
         }
 
         Shift::create([
-            'user_id'    => $request->user_id,
-            'type'       => $request->type,
+            'user_id' => $request->user_id,
+            'type' => $request->type,
             'started_at' => $request->started_at,
         ]);
 
@@ -146,7 +145,7 @@ class ShiftController extends Controller
     public function update(Request $request, Shift $shift)
     {
         $request->validate([
-            'type'       => 'required|in:pagi,siang',
+            'type' => 'required|in:pagi,siang',
             'started_at' => 'required|date',
         ]);
 
@@ -181,12 +180,12 @@ class ShiftController extends Controller
             ->whereDate('started_at', $date)
             ->get()
             ->groupBy('type')
-            ->map(fn($shifts, $type) => [
-                'type'      => $type,
-                'staff'     => $shifts->count(),
-                'trx'       => $shifts->sum('trx_count'),
-                'revenue'   => $shifts->sum('revenue'),
-                'avg'       => $shifts->count() > 0
+            ->map(fn ($shifts, $type) => [
+                'type' => $type,
+                'staff' => $shifts->count(),
+                'trx' => $shifts->sum('trx_count'),
+                'revenue' => $shifts->sum('revenue'),
+                'avg' => $shifts->count() > 0
                     ? $shifts->sum('revenue') / $shifts->count()
                     : 0,
             ]);

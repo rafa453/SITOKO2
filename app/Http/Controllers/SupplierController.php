@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Supplier;
 use App\Models\ActivityLog;
+use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 
 class SupplierController extends Controller
@@ -14,8 +15,8 @@ class SupplierController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('category', 'like', '%' . $request->search . '%');
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('category', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -23,8 +24,8 @@ class SupplierController extends Controller
             $query->where('is_active', $request->status === 'active');
         }
 
-        $suppliers  = $query->paginate(10)->withQueryString();
-        $categories = \App\Models\Product::distinct()->pluck('category')
+        $suppliers = $query->paginate(10)->withQueryString();
+        $categories = Product::distinct()->pluck('category')
             ->merge(Supplier::distinct()->pluck('category'))
             ->filter()->unique()->sort()->values();
 
@@ -33,22 +34,23 @@ class SupplierController extends Controller
 
     public function create()
     {
-        $categories = \App\Models\Product::distinct()->pluck('category')
+        $categories = Product::distinct()->pluck('category')
             ->merge(Supplier::distinct()->pluck('category'))
             ->filter()->unique()->sort()->values();
+
         return view('pages.supplier-form', compact('categories'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'                 => 'required|string|max:255',
-            'phone'                => 'nullable|string|max:20',
-            'address'              => 'nullable|string|max:500',
-            'category'             => 'nullable|string|max:255',
-            'bank_name'            => 'nullable|string|max:100',
-            'bank_account_number'  => 'nullable|string|max:50',
-            'bank_account_holder'  => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'category' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:100',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_account_holder' => 'nullable|string|max:255',
         ]);
 
         $supplier = Supplier::create($validated);
@@ -66,22 +68,23 @@ class SupplierController extends Controller
 
     public function edit(Supplier $supplier)
     {
-        $categories = \App\Models\Product::distinct()->pluck('category')
+        $categories = Product::distinct()->pluck('category')
             ->merge(Supplier::distinct()->pluck('category'))
             ->filter()->unique()->sort()->values();
+
         return view('pages.supplier-form', compact('supplier', 'categories'));
     }
 
     public function update(Request $request, Supplier $supplier)
     {
         $validated = $request->validate([
-            'name'                 => 'required|string|max:255',
-            'phone'                => 'nullable|string|max:20',
-            'address'              => 'nullable|string|max:500',
-            'category'             => 'nullable|string|max:255',
-            'bank_name'            => 'nullable|string|max:100',
-            'bank_account_number'  => 'nullable|string|max:50',
-            'bank_account_holder'  => 'nullable|string|max:255',
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'category' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:100',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_account_holder' => 'nullable|string|max:255',
         ]);
 
         $supplier->update($validated);
@@ -99,7 +102,7 @@ class SupplierController extends Controller
 
     public function toggleActive(Supplier $supplier)
     {
-        $supplier->update(['is_active' => !$supplier->is_active]);
+        $supplier->update(['is_active' => ! $supplier->is_active]);
 
         ActivityLog::record(
             'SUPPLIER',
@@ -129,9 +132,10 @@ class SupplierController extends Controller
             ->with('success', 'Supplier berhasil dihapus.');
     }
 
-    public function getBrands(\App\Models\Supplier $supplier)
+    public function getBrands(Supplier $supplier)
     {
         $brands = $supplier->brands()->select('brands.id', 'brands.name')->orderBy('name')->get();
+
         return response()->json($brands);
     }
 }

@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -20,11 +20,11 @@ return new class extends Migration
         });
 
         DB::table('store_profile')->insert([
-            'store_name'     => 'SITOKO2',
+            'store_name' => 'SITOKO2',
             'store_subtitle' => 'Toko Sembako',
-            'address'        => 'Jl. Contoh No. 1, Bogor',
-            'phone'          => '0812-xxxx-xxxx',
-            'city'           => 'Bogor',
+            'address' => 'Jl. Contoh No. 1, Bogor',
+            'phone' => '0812-xxxx-xxxx',
+            'city' => 'Bogor',
         ]);
     }
 

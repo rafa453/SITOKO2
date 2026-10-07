@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Shift;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
 use App\Http\Requests\StaffStoreRequest;
 use App\Http\Requests\StaffUpdateRequest;
+use App\Models\ActivityLog;
+use App\Models\Shift;
+use App\Models\Transaction;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
-use App\Models\ActivityLog;
 
 class StaffController extends Controller
 {
@@ -23,8 +23,8 @@ class StaffController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%');
+                $q->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('email', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -39,10 +39,10 @@ class StaffController extends Controller
         $staff = $query->paginate(8)->withQueryString();
 
         // Stat cards
-        $totalStaff    = User::where('role', 'cashier')->count(); // ← filter cashier
-        $onDuty        = Shift::whereDate('started_at', $today)->whereNull('ended_at')->count();
-        $avgTrans      = 0;
-        $onDutyShifts  = Shift::with('user')->whereNull('ended_at')->get();
+        $totalStaff = User::where('role', 'cashier')->count(); // ← filter cashier
+        $onDuty = Shift::whereDate('started_at', $today)->whereNull('ended_at')->count();
+        $avgTrans = 0;
+        $onDutyShifts = Shift::with('user')->whereNull('ended_at')->get();
         $trxPerCashier = Transaction::whereDate('created_at', $today)
             ->selectRaw('cashier_id, COUNT(*) as cnt')
             ->groupBy('cashier_id')
@@ -57,17 +57,15 @@ class StaffController extends Controller
             ->whereDate('started_at', $today)
             ->get()
             ->groupBy('type')
-            ->map(fn($group) => $group->take(1));
+            ->map(fn ($group) => $group->take(1));
 
         // Top 3 performers hari ini
         $topPerformers = User::where('role', 'cashier') // ← filter cashier
             ->withCount([
-                'transactions as trx_today' => fn($q) =>
-                    $q->whereDate('created_at', $today)->where('status', 'completed')
+                'transactions as trx_today' => fn ($q) => $q->whereDate('created_at', $today)->where('status', 'completed'),
             ])
             ->withSum([
-                'transactions as revenue_today' => fn($q) =>
-                    $q->whereDate('created_at', $today)->where('status', 'completed')
+                'transactions as revenue_today' => fn ($q) => $q->whereDate('created_at', $today)->where('status', 'completed'),
             ], 'total')
             ->orderByDesc('trx_today')
             ->limit(3)
@@ -82,9 +80,9 @@ class StaffController extends Controller
             $activityQuery->where('type', $request->log_type);
         }
         if ($request->filled('log_search')) {
-            $activityQuery->where(function($q) use ($request) {
-                $q->where('action', 'like', '%' . $request->log_search . '%')
-                  ->orWhere('subject', 'like', '%' . $request->log_search . '%');
+            $activityQuery->where(function ($q) use ($request) {
+                $q->where('action', 'like', '%'.$request->log_search.'%')
+                    ->orWhere('subject', 'like', '%'.$request->log_search.'%');
             });
         }
 
@@ -112,14 +110,14 @@ class StaffController extends Controller
         }
 
         User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'role'     => 'cashier',
-            'phone'    => $request->phone,
-            'shift'    => $request->shift,
-            'status'   => 'active',
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => 'cashier',
+            'phone' => $request->phone,
+            'shift' => $request->shift,
+            'status' => 'active',
             'password' => Hash::make($request->password),
-            'photo'    => $photoPath,
+            'photo' => $photoPath,
         ]);
 
         return back()->with('success', 'Staff berhasil ditambahkan.');

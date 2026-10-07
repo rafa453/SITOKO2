@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
-use App\Models\Product;
 use App\Models\User;
-use App\Models\Shift;
-use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
@@ -67,14 +67,12 @@ class ReportController extends Controller
 
         // Cashier performance — withCount/withSum tidak pakai JOIN eksplisit
         $cashierPerformance = User::withCount([
-                'transactions as trx_count' => fn($q) =>
-                    $q->whereBetween('created_at', [$startDate, $endDate])
-                      ->where('status', 'completed')
-            ])
+            'transactions as trx_count' => fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate])
+                ->where('status', 'completed'),
+        ])
             ->withSum([
-                'transactions as revenue' => fn($q) =>
-                    $q->whereBetween('created_at', [$startDate, $endDate])
-                      ->where('status', 'completed')
+                'transactions as revenue' => fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate])
+                    ->where('status', 'completed'),
             ], 'total')
             ->orderByDesc('revenue')
             ->limit(3)
@@ -88,23 +86,22 @@ class ReportController extends Controller
             ->orderByDesc('sold')
             ->limit(5)
             ->get()
-            ->map(fn($item) => [
-                'name'    => $item->name,
+            ->map(fn ($item) => [
+                'name' => $item->name,
                 'opening' => $item->closing + $item->sold,
-                'sold'    => $item->sold,
+                'sold' => $item->sold,
                 'closing' => $item->closing,
             ]);
 
         // Shift summary — ada JOIN, prefix transactions
         $shiftSummary = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
             ->where('transactions.status', 'completed')
-            ->join('shifts', fn($j) =>
-                $j->on('transactions.cashier_id', '=', 'shifts.user_id')
-                  ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
-                  ->where(function($q) {
-                      $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+            ->join('shifts', fn ($j) => $j->on('transactions.cashier_id', '=', 'shifts.user_id')
+                ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                ->where(function ($q) {
+                    $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
                         ->orWhereNull('shifts.ended_at');
-                  })
+                })
             )
             ->selectRaw('shifts.type as shift, COUNT(DISTINCT shifts.user_id) as staff_count,
                          COUNT(transactions.id) as trx_count, SUM(transactions.total) as revenue')
@@ -121,10 +118,10 @@ class ReportController extends Controller
 
     public function exportCustom(Request $request)
     {
-        $type    = $request->get('type', 'sales');
-        $range   = $request->get('range', 'this_month');
+        $type = $request->get('type', 'sales');
+        $range = $request->get('range', 'this_month');
         $groupBy = $request->get('group_by', 'product');
-        $format  = $request->get('format', 'csv');
+        $format = $request->get('format', 'csv');
 
         [$startDate, $endDate] = $this->resolvePeriod($range);
 
@@ -139,29 +136,30 @@ class ReportController extends Controller
         }
 
         if ($format === 'pdf') {
-            $filename = 'report_' . $type . '_' . $groupBy . '_' . now()->format('Ymd_His') . '.pdf';
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.custom-report', [
+            $filename = 'report_'.$type.'_'.$groupBy.'_'.now()->format('Ymd_His').'.pdf';
+            $pdf = Pdf::loadView('pdf.custom-report', [
                 'headers' => $headers,
-                'rows'    => $rows,
-                'type'    => $type,
+                'rows' => $rows,
+                'type' => $type,
                 'groupBy' => $groupBy,
-                'range'   => $range,
+                'range' => $range,
                 'startDate' => $startDate,
                 'endDate' => $endDate,
             ])->setPaper('a4', 'landscape');
+
             return $pdf->download($filename);
         }
 
         // Output CSV
-        $filename = 'report_' . $type . '_' . $groupBy . '_' . now()->format('Ymd_His') . '.csv';
+        $filename = 'report_'.$type.'_'.$groupBy.'_'.now()->format('Ymd_His').'.csv';
         $headersResp = [
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
         $callback = function () use ($headers, $rows) {
             $out = fopen('php://output', 'w');
-            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF)); // BOM
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
             fputcsv($out, $headers);
             foreach ($rows as $r) {
                 fputcsv($out, $r);
@@ -199,7 +197,7 @@ class ReportController extends Controller
                     $r->jumlah_trx,
                     $r->total_qty,
                     $r->revenue,
-                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                    round($r->revenue / $totalRevenue * 100, 2).'%',
                 ];
             }
         } elseif ($groupBy === 'product') {
@@ -222,7 +220,7 @@ class ReportController extends Controller
                     $r->kategori,
                     $r->total_qty,
                     $r->revenue,
-                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                    round($r->revenue / $totalRevenue * 100, 2).'%',
                 ];
             }
         } elseif ($groupBy === 'cashier') {
@@ -242,20 +240,19 @@ class ReportController extends Controller
                     $r->nama,
                     $r->jumlah_trx,
                     $r->revenue,
-                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                    round($r->revenue / $totalRevenue * 100, 2).'%',
                 ];
             }
         } elseif ($groupBy === 'shift') {
             $headers = ['Shift', 'Jumlah Transaksi', 'Total Revenue (Rp)', '% dari Total'];
             $rows = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
                 ->where('transactions.status', 'completed')
-                ->join('shifts', fn($j) =>
-                    $j->on('transactions.cashier_id', '=', 'shifts.user_id')
-                      ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
-                      ->where(function($q) {
-                          $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                ->join('shifts', fn ($j) => $j->on('transactions.cashier_id', '=', 'shifts.user_id')
+                    ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                    ->where(function ($q) {
+                        $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
                             ->orWhereNull('shifts.ended_at');
-                      })
+                    })
                 )
                 ->selectRaw('shifts.type as shift,
                              COUNT(DISTINCT transactions.id) as jumlah_trx,
@@ -269,10 +266,11 @@ class ReportController extends Controller
                     ucfirst($r->shift),
                     $r->jumlah_trx,
                     $r->revenue,
-                    round($r->revenue / $totalRevenue * 100, 2) . '%',
+                    round($r->revenue / $totalRevenue * 100, 2).'%',
                 ];
             }
         }
+
         return [$headers, $data];
     }
 
@@ -326,6 +324,7 @@ class ReportController extends Controller
                 ];
             }
         }
+
         return [$headers, $data];
     }
 
@@ -337,14 +336,12 @@ class ReportController extends Controller
         if ($groupBy === 'cashier' || $groupBy === 'product' || $groupBy === 'category') {
             $headers = ['Kasir', 'Jumlah Transaksi', 'Total Revenue (Rp)', 'Rata-rata per Transaksi (Rp)'];
             $rows = User::withCount([
-                    'transactions as jumlah_trx' => fn($q) =>
-                        $q->whereBetween('created_at', [$startDate, $endDate])
-                          ->where('status', 'completed')
-                ])
+                'transactions as jumlah_trx' => fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate])
+                    ->where('status', 'completed'),
+            ])
                 ->withSum([
-                    'transactions as revenue' => fn($q) =>
-                        $q->whereBetween('created_at', [$startDate, $endDate])
-                          ->where('status', 'completed')
+                    'transactions as revenue' => fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate])
+                        ->where('status', 'completed'),
                 ], 'total')
                 ->having('jumlah_trx', '>', 0)
                 ->orderByDesc('revenue')
@@ -362,13 +359,12 @@ class ReportController extends Controller
             $headers = ['Shift', 'Jumlah Staff', 'Jumlah Transaksi', 'Total Revenue (Rp)', 'Rata-rata per Staff (Rp)'];
             $rows = Transaction::whereBetween('transactions.created_at', [$startDate, $endDate])
                 ->where('transactions.status', 'completed')
-                ->join('shifts', fn($j) =>
-                    $j->on('transactions.cashier_id', '=', 'shifts.user_id')
-                      ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
-                      ->where(function($q) {
-                          $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
+                ->join('shifts', fn ($j) => $j->on('transactions.cashier_id', '=', 'shifts.user_id')
+                    ->whereColumn('transactions.created_at', '>=', 'shifts.started_at')
+                    ->where(function ($q) {
+                        $q->whereColumn('transactions.created_at', '<=', 'shifts.ended_at')
                             ->orWhereNull('shifts.ended_at');
-                      })
+                    })
                 )
                 ->selectRaw('shifts.type as shift,
                              COUNT(DISTINCT shifts.user_id) as jumlah_staff,
@@ -388,18 +384,17 @@ class ReportController extends Controller
                 ];
             }
         }
+
         return [$headers, $data];
     }
 
     private function resolvePeriod(string $period): array
     {
         return match ($period) {
-            'today'      => [Carbon::today(),            Carbon::now()],
-            'last_7'     => [Carbon::now()->subDays(7),  Carbon::now()],
+            'today' => [Carbon::today(),            Carbon::now()],
+            'last_7' => [Carbon::now()->subDays(7),  Carbon::now()],
             'last_month' => [Carbon::now()->startOfMonth()->subMonth(), Carbon::now()->subMonth()->endOfMonth()],
-            default      => [Carbon::now()->startOfMonth(), Carbon::now()],
+            default => [Carbon::now()->startOfMonth(), Carbon::now()],
         };
     }
-
-    
 }

@@ -1,8 +1,12 @@
 <?php
+
 // app/Http/Controllers/BrandController.php
+
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Brand;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 
 class BrandController extends Controller
@@ -10,14 +14,14 @@ class BrandController extends Controller
     public function index()
     {
         $brands = Brand::with('suppliers')
-                   ->withCount('products')
-                   ->orderBy('name')
-                   ->paginate(20);
-                   
-        $suppliers = \App\Models\Supplier::where('is_active', true)
-                                         ->orderBy('name')
-                                         ->get();
-                                         
+            ->withCount('products')
+            ->orderBy('name')
+            ->paginate(20);
+
+        $suppliers = Supplier::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return view('pages.brands', compact('brands', 'suppliers'));
     }
 
@@ -27,7 +31,9 @@ class BrandController extends Controller
             'name' => 'required|string|max:100|unique:brands,name',
         ]);
 
-        Brand::create($validated);
+        $brand = Brand::create($validated);
+
+        ActivityLog::record('BRAND', 'Tambah merek', $brand->name);
 
         return redirect()->route('brands.index')->with('success', 'Merek berhasil ditambahkan.');
     }
@@ -35,10 +41,12 @@ class BrandController extends Controller
     public function update(Request $request, Brand $brand)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:100|unique:brands,name,' . $brand->id,
+            'name' => 'required|string|max:100|unique:brands,name,'.$brand->id,
         ]);
 
         $brand->update($validated);
+
+        ActivityLog::record('BRAND', 'Update merek', $brand->name);
 
         return redirect()->route('brands.index')->with('success', 'Merek berhasil diupdate.');
     }
@@ -49,7 +57,10 @@ class BrandController extends Controller
             return redirect()->route('brands.index')->with('error', 'Merek tidak bisa dihapus karena masih dipakai produk.');
         }
 
+        $brandName = $brand->name;
         $brand->delete();
+
+        ActivityLog::record('BRAND', 'Hapus merek', $brandName);
 
         return back()->with('success', 'Brand dihapus.');
     }
@@ -61,6 +72,9 @@ class BrandController extends Controller
         ]);
 
         $brand->suppliers()->sync([$request->supplier_id]);
+
+        ActivityLog::record('BRAND', 'Assign supplier ke merek', $brand->name, ['supplier_id' => $request->supplier_id]);
+
         return back()->with('success', "Brand {$brand->name} berhasil di-assign ke supplier.");
     }
 }

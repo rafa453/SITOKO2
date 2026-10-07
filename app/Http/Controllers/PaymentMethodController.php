@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\PaymentMethod;
+use App\Models\StoreProfile;
 use App\Models\Transaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class PaymentMethodController extends Controller
 {
@@ -22,7 +24,7 @@ class PaymentMethodController extends Controller
 
         if ($dateFrom->gt($dateTo)) {
             $dateFrom = Carbon::today()->subDays(30)->startOfDay();
-            $dateTo   = Carbon::today()->endOfDay();
+            $dateTo = Carbon::today()->endOfDay();
         }
 
         $methods = PaymentMethod::all();
@@ -41,12 +43,10 @@ class PaymentMethodController extends Controller
 
         // Performance tabel
         $performance = PaymentMethod::withCount([
-                'transactions as trx_count' => fn($q) =>
-                    $q->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])->where('status', 'completed')
-            ])
+            'transactions as trx_count' => fn ($q) => $q->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])->where('status', 'completed'),
+        ])
             ->withSum([
-                'transactions as revenue' => fn($q) =>
-                    $q->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])->where('status', 'completed')
+                'transactions as revenue' => fn ($q) => $q->whereBetween('created_at', [$dateFrom->toDateTimeString(), $dateTo->toDateTimeString()])->where('status', 'completed'),
             ], 'total')
             ->get();
 
@@ -68,48 +68,59 @@ class PaymentMethodController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'code'     => 'required|string|unique:payment_methods,code|max:50',
-            'type'     => 'required|in:digital,cash,edc',
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|unique:payment_methods,code|max:50',
+            'type' => 'required|in:digital,cash,edc',
             'provider' => 'nullable|string|max:100',
-            'mdr_fee'  => 'nullable|numeric|min:0|max:100',
-            'notes'    => 'nullable|string',
+            'mdr_fee' => 'nullable|numeric|min:0|max:100',
+            'notes' => 'nullable|string',
         ]);
 
-        PaymentMethod::create([
-            'name'      => $request->name,
-            'code'      => Str::slug($request->code),
-            'type'      => $request->type,
-            'provider'  => $request->provider,
-            'mdr_fee'   => $request->mdr_fee ?? 0,
-            'notes'     => $request->notes,
+        $pm = PaymentMethod::create([
+            'name' => $request->name,
+            'code' => Str::slug($request->code),
+            'type' => $request->type,
+            'provider' => $request->provider,
+            'mdr_fee' => $request->mdr_fee ?? 0,
+            'notes' => $request->notes,
             'is_active' => $request->boolean('is_active', true),
         ]);
+
+        ActivityLog::record('PAYMENT_METHOD', 'Tambah metode pembayaran', $pm->name);
 
         return redirect()->back()->with('success', 'Metode pembayaran berhasil ditambahkan!');
     }
 
     public function togglePaymentMethod(PaymentMethod $paymentMethod)
     {
-        $paymentMethod->update(['is_active' => !$paymentMethod->is_active]);
+        $paymentMethod->update(['is_active' => ! $paymentMethod->is_active]);
+
+        ActivityLog::record(
+            'PAYMENT_METHOD',
+            $paymentMethod->is_active ? 'Aktifkan metode pembayaran' : 'Nonaktifkan metode pembayaran',
+            $paymentMethod->name
+        );
+
         return back()->with('success', 'Status payment method diperbarui.');
     }
 
     public function updatePaymentMethod(Request $request, PaymentMethod $paymentMethod)
     {
         $request->validate([
-            'name'     => 'required|string|max:100|unique:payment_methods,name,' . $paymentMethod->id,
-            'code'     => 'required|string|max:50|unique:payment_methods,code,' . $paymentMethod->id,
-            'type'     => 'required|in:digital,cash,edc',
+            'name' => 'required|string|max:100|unique:payment_methods,name,'.$paymentMethod->id,
+            'code' => 'required|string|max:50|unique:payment_methods,code,'.$paymentMethod->id,
+            'type' => 'required|in:digital,cash,edc',
             'provider' => 'nullable|string|max:100',
-            'mdr_fee'  => 'nullable|numeric|min:0|max:100',
-            'notes'    => 'nullable|string',
+            'mdr_fee' => 'nullable|numeric|min:0|max:100',
+            'notes' => 'nullable|string',
         ]);
 
         $data = $request->only('name', 'type', 'provider', 'mdr_fee', 'notes');
-        $data['code'] = \Illuminate\Support\Str::slug($request->code);
-        
+        $data['code'] = Str::slug($request->code);
+
         $paymentMethod->update($data);
+
+        ActivityLog::record('PAYMENT_METHOD', 'Update metode pembayaran', $paymentMethod->name);
 
         return back()->with('success', 'Payment method berhasil diupdate.');
     }
@@ -117,14 +128,14 @@ class PaymentMethodController extends Controller
     public function updateStoreProfile(Request $request)
     {
         $request->validate([
-            'store_name'     => 'required|string|max:255',
+            'store_name' => 'required|string|max:255',
             'store_subtitle' => 'nullable|string|max:255',
-            'address'        => 'nullable|string|max:255',
-            'phone'          => 'nullable|string|max:50',
-            'city'           => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:50',
+            'city' => 'nullable|string|max:100',
         ]);
 
-        $store = \App\Models\StoreProfile::get();
+        $store = StoreProfile::get();
         $store->update($request->only('store_name', 'store_subtitle', 'address', 'phone', 'city'));
 
         return back()->with('success', 'Store profile berhasil diperbarui.');

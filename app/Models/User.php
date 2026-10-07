@@ -32,12 +32,12 @@ class User extends Authenticatable
 
     public function transactions()
     {
-        return $this->hasMany(\App\Models\Transaction::class, 'cashier_id');
+        return $this->hasMany(Transaction::class, 'cashier_id');
     }
 
     public function shifts()
     {
-        return $this->hasMany(\App\Models\Shift::class);
+        return $this->hasMany(Shift::class);
     }
 
     public function isAdmin(): bool

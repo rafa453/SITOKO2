@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\PaymentMethod;
 
 class Transaction extends Model
 {
@@ -19,9 +18,9 @@ class Transaction extends Model
     ];
 
     protected $casts = [
-        'total'       => 'integer',
+        'total' => 'integer',
         'amount_paid' => 'integer',
-        'change'      => 'integer',
+        'change' => 'integer',
     ];
 
     public function cashier()
@@ -37,5 +36,29 @@ class Transaction extends Model
     public function paymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class, 'payment_method', 'name');
+    }
+
+    /**
+     * Batasi query ke transaksi milik kasir sendiri. Admin/supervisor melihat semua.
+     */
+    public function scopeVisibleTo($query, ?User $user)
+    {
+        if ($user && $user->isCashier()) {
+            $query->where('cashier_id', $user->id);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Cek apakah transaksi boleh dilihat user. Kasir hanya miliknya sendiri.
+     */
+    public function isVisibleTo(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return ! $user->isCashier() || $this->cashier_id === $user->id;
     }
 }

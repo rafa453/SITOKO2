@@ -39,9 +39,9 @@ class TransactionCreatedNotification extends Notification
     {
         return [
             'transaction_id' => $this->transaction->id,
-            'code'           => $this->transaction->code,
-            'total'          => $this->transaction->total,
-            'cashier_name'   => $this->transaction->cashier->name ?? 'Kasir',
+            'code' => $this->transaction->code,
+            'total' => $this->transaction->total,
+            'cashier_name' => $this->transaction->cashier->name ?? 'Kasir',
         ];
     }
 }

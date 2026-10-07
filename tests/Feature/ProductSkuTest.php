@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Product;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,13 +16,13 @@ class ProductSkuTest extends TestCase
         $sku1 = Product::generateSku('Sembako', 'Indomie', 'Indofood');
 
         Product::create([
-            'sku'        => $sku1,
-            'name'       => 'Produk A',
-            'category'   => 'Sembako',
-            'unit'       => 'Pcs',
-            'qty'        => 1,
-            'threshold'  => 1,
-            'buy_price'  => 1000,
+            'sku' => $sku1,
+            'name' => 'Produk A',
+            'category' => 'Sembako',
+            'unit' => 'Pcs',
+            'qty' => 1,
+            'threshold' => 1,
+            'buy_price' => 1000,
             'sell_price' => 2000,
         ]);
 
@@ -40,7 +41,7 @@ class ProductSkuTest extends TestCase
             'qty' => 1, 'threshold' => 1, 'buy_price' => 1000, 'sell_price' => 2000,
         ]);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         Product::create([
             'sku' => $sku, 'name' => 'B', 'category' => 'Sembako', 'unit' => 'Pcs',

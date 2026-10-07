@@ -16,8 +16,8 @@ class TransactionItem extends Model
     ];
 
     protected $casts = [
-        'qty'      => 'integer',
-        'price'    => 'integer',
+        'qty' => 'integer',
+        'price' => 'integer',
         'subtotal' => 'integer',
     ];
 
@@ -30,6 +30,4 @@ class TransactionItem extends Model
     {
         return $this->belongsTo(Transaction::class);
     }
-
-    
 }

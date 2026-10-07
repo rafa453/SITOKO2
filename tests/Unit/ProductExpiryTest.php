@@ -10,7 +10,7 @@ class ProductExpiryTest extends TestCase
 {
     public function test_expiry_status_logic(): void
     {
-        $product = new Product();
+        $product = new Product;
 
         // 1. null expired_at -> null
         $this->assertNull($product->expiry_status);

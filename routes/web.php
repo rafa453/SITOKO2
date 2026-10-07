@@ -1,21 +1,21 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\StaffController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\PaymentMethodController;
-use App\Http\Controllers\ShiftController;
-use App\Http\Controllers\SupplierController;
-use App\Http\Controllers\PurchaseOrderController;
-use App\Http\Controllers\SupplierReturnController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentMethodController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\StaffController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierReturnController;
+use App\Http\Controllers\TransactionController;
+use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => redirect()->route('dashboard'));
+Route::get('/', fn () => redirect()->route('dashboard'));
 
 Route::middleware(['auth'])->group(function () {
 
@@ -24,7 +24,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo'); 
+    Route::patch('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
 
     // Inventory — static routes DULU, baru wildcard
     Route::get('/inventory', [ProductController::class, 'index'])->name('inventory.index');
@@ -75,8 +75,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/purchase-orders/{purchaseOrder}/payment', [PurchaseOrderController::class, 'storePayment'])->name('purchase-orders.payment');
         Route::post('/purchase-orders/{purchaseOrder}/payment/settle', [PurchaseOrderController::class, 'settlePayment'])->name('purchase-orders.payment.settle');
         Route::get('/purchase-orders/{purchaseOrder}/pdf', [PurchaseOrderController::class, 'downloadPdf'])->name('purchase-orders.pdf');
-        Route::get('/purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit'); 
-        Route::put('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update'); 
+        Route::get('/purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
+        Route::put('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
         Route::post('/purchase-orders/{purchaseOrder}/status', [PurchaseOrderController::class, 'updateStatus'])->name('purchase-orders.update-status');
         Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show')->whereNumber('purchaseOrder');
 
@@ -116,7 +116,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/api/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/api/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
-        
+
     });
 
 });

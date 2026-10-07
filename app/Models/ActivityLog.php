@@ -29,11 +29,11 @@ class ActivityLog extends Model
     {
         static::create([
             'user_id' => auth()->id(),
-            'type'    => $type,
-            'action'  => $action,
+            'type' => $type,
+            'action' => $action,
             'subject' => $subject,
-            'meta'    => $meta,
-            'ip'      => request()->ip(),
+            'meta' => $meta,
+            'ip' => request()->ip(),
         ]);
     }
 }

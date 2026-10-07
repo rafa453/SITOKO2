@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PurchaseOrder;
-use App\Models\PurchaseOrderItem;
-use App\Models\Product;
-use App\Models\Supplier;
-use App\Models\ActivityLog;
 use App\Http\Requests\PurchaseOrderStoreRequest;
+use App\Models\ActivityLog;
+use App\Models\Product;
+use App\Models\PurchaseOrder;
+use App\Models\StoreProfile;
+use App\Models\Supplier;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class PurchaseOrderController extends Controller
 {
@@ -20,7 +19,7 @@ class PurchaseOrderController extends Controller
         $query = PurchaseOrder::with(['supplier', 'creator'])->latest();
 
         if ($request->filled('search')) {
-            $query->where('code', 'like', '%' . $request->search . '%');
+            $query->where('code', 'like', '%'.$request->search.'%');
         }
 
         if ($request->filled('status')) {
@@ -36,26 +35,26 @@ class PurchaseOrderController extends Controller
         }
 
         $purchaseOrders = $query->paginate(10)->withQueryString();
-        $suppliers      = Supplier::where('is_active', true)->orderBy('name')->get();
+        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
 
         // ===== Stat cards (angka utama) =====
-        $totalDraft    = PurchaseOrder::where('status', 'draft')->count();
-        $totalOrdered  = PurchaseOrder::where('status', 'ordered')->count();
+        $totalDraft = PurchaseOrder::where('status', 'draft')->count();
+        $totalOrdered = PurchaseOrder::where('status', 'ordered')->count();
         $totalReceived = PurchaseOrder::where('status', 'received')
             ->whereMonth('received_at', now()->month)
             ->whereYear('received_at', now()->year)
             ->count();
-        $totalValue    = PurchaseOrder::where('status', 'ordered')->sum('total');
+        $totalValue = PurchaseOrder::where('status', 'ordered')->sum('total');
 
         // ===== Breakdown untuk popup: DRAFT =====
-        $draftValue  = PurchaseOrder::where('status', 'draft')->sum('total');
+        $draftValue = PurchaseOrder::where('status', 'draft')->sum('total');
         $oldestDraft = PurchaseOrder::where('status', 'draft')
             ->with('supplier')
             ->oldest()
             ->first();
 
         // ===== Breakdown untuk popup: ORDERED =====
-        $orderedValue   = PurchaseOrder::where('status', 'ordered')->sum('total');
+        $orderedValue = PurchaseOrder::where('status', 'ordered')->sum('total');
         $overdueOrdered = PurchaseOrder::where('status', 'ordered')
             ->whereNotNull('expected_at')
             ->where('expected_at', '<', now()->startOfDay())
@@ -94,38 +93,39 @@ class PurchaseOrderController extends Controller
     public function create()
     {
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
-        $products  = Product::where('is_active', true)->orderBy('name')->get();
+        $products = Product::where('is_active', true)->orderBy('name')->get();
+
         return view('pages.purchase-order-form', compact('suppliers', 'products'));
     }
 
     public function store(PurchaseOrderStoreRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $code  = 'PO-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
+            $code = 'PO-'.now()->format('Ymd').'-'.strtoupper(substr(uniqid(), -5));
             $total = 0;
             $itemsToCreate = [];
 
             foreach ($request->items as $item) {
                 $subtotal = $item['qty'] * $item['buy_price'];
-                $total   += $subtotal;
+                $total += $subtotal;
 
                 $itemsToCreate[] = [
-                    'product_id'  => $item['product_id'],
+                    'product_id' => $item['product_id'],
                     'qty_ordered' => $item['qty'],
-                    'qty_received'=> 0,
-                    'buy_price'   => $item['buy_price'],
-                    'subtotal'    => $subtotal,
+                    'qty_received' => 0,
+                    'buy_price' => $item['buy_price'],
+                    'subtotal' => $subtotal,
                 ];
             }
 
             $po = PurchaseOrder::create([
-                'code'        => $code,
+                'code' => $code,
                 'supplier_id' => $request->supplier_id,
-                'created_by'  => auth()->id(),
-                'status'      => 'draft',
+                'created_by' => auth()->id(),
+                'status' => 'draft',
                 'expected_at' => $request->expected_at,
-                'total'       => $total,
-                'notes'       => $request->notes,
+                'total' => $total,
+                'notes' => $request->notes,
             ]);
 
             $po->items()->createMany($itemsToCreate);
@@ -145,6 +145,7 @@ class PurchaseOrderController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         $purchaseOrder->load(['supplier', 'creator', 'receiver', 'items.product']);
+
         return view('pages.purchase-order-show', compact('purchaseOrder'));
     }
 
@@ -166,16 +167,16 @@ class PurchaseOrderController extends Controller
 
         $purchaseOrder->load(['supplier', 'items.product']);
         $supplierPhone = ltrim($purchaseOrder->supplier->phone, '0+');
-        $store = \App\Models\StoreProfile::get();
+        $store = StoreProfile::get();
 
         $pdf = Pdf::loadView('pdf.purchase-order', [
             'purchaseOrder' => $purchaseOrder,
             'supplierPhone' => $supplierPhone,
-            'isNota'        => $isNota, // pass sebagai variabel eksplisit, bukan dihitung ulang di view
-            'store'         => $store,
+            'isNota' => $isNota, // pass sebagai variabel eksplisit, bukan dihitung ulang di view
+            'store' => $store,
         ]);
 
-        $filename = ($isNota ? 'NOTA-' : 'PO-') . $purchaseOrder->code . '.pdf';
+        $filename = ($isNota ? 'NOTA-' : 'PO-').$purchaseOrder->code.'.pdf';
 
         return $pdf->download($filename);
     }
@@ -183,7 +184,9 @@ class PurchaseOrderController extends Controller
     public function storePayment(Request $request, PurchaseOrder $purchaseOrder)
     {
         // Hanya admin
-        if (auth()->user()->role !== 'admin') abort(403);
+        if (auth()->user()->role !== 'admin') {
+            abort(403);
+        }
 
         // Guard: PO tidak boleh draft
         abort_if($purchaseOrder->status === 'draft', 422, 'PO belum dikonfirmasi.');
@@ -193,21 +196,21 @@ class PurchaseOrderController extends Controller
 
         $request->validate([
             'payment_type' => 'required|in:full,dp',
-            'amount_paid'  => 'required_if:payment_type,dp|nullable|numeric|min:1|max:' . $purchaseOrder->total,
+            'amount_paid' => 'required_if:payment_type,dp|nullable|numeric|min:1|max:'.$purchaseOrder->total,
         ]);
 
         DB::transaction(function () use ($request, $purchaseOrder) {
             if ($request->payment_type === 'full') {
                 $purchaseOrder->update([
-                    'payment_type'   => 'full',
+                    'payment_type' => 'full',
                     'payment_status' => 'paid',
-                    'amount_paid'    => $purchaseOrder->total,
+                    'amount_paid' => $purchaseOrder->total,
                 ]);
             } else {
                 $purchaseOrder->update([
-                    'payment_type'   => 'dp',
+                    'payment_type' => 'dp',
                     'payment_status' => 'partial',
-                    'amount_paid'    => $request->amount_paid,
+                    'amount_paid' => $request->amount_paid,
                 ]);
             }
 
@@ -226,7 +229,9 @@ class PurchaseOrderController extends Controller
     public function settlePayment(PurchaseOrder $purchaseOrder)
     {
         // Hanya admin
-        if (auth()->user()->role !== 'admin') abort(403);
+        if (auth()->user()->role !== 'admin') {
+            abort(403);
+        }
 
         // Guard: hanya boleh dari status partial
         abort_if($purchaseOrder->payment_status !== 'partial', 422, 'Status pembayaran tidak valid untuk dilunasi.');
@@ -239,7 +244,7 @@ class PurchaseOrderController extends Controller
 
             $po->update([
                 'payment_status' => 'paid',
-                'amount_paid'    => $po->total,
+                'amount_paid' => $po->total,
             ]);
 
             ActivityLog::record(
@@ -256,26 +261,26 @@ class PurchaseOrderController extends Controller
 
     public function edit(PurchaseOrder $purchaseOrder)
     {
-        abort_if(!$purchaseOrder->canBeEdited(), 403, 'PO ini tidak bisa diedit.');
+        abort_if(! $purchaseOrder->canBeEdited(), 403, 'PO ini tidak bisa diedit.');
 
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
-        $products  = Product::where('is_active', true)->orderBy('name')->get();
+        $products = Product::where('is_active', true)->orderBy('name')->get();
 
         return view('pages.purchase-order-form', compact('purchaseOrder', 'suppliers', 'products'));
     }
 
     public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
-        abort_if(!$purchaseOrder->canBeEdited(), 403, 'PO ini tidak bisa diedit.');
+        abort_if(! $purchaseOrder->canBeEdited(), 403, 'PO ini tidak bisa diedit.');
 
         $request->validate([
-            'supplier_id'        => 'required|exists:suppliers,id',
-            'expected_at'        => 'nullable|date',
-            'notes'              => 'nullable|string|max:500',
-            'items'              => 'required|array|min:1',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'expected_at' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+            'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.qty'        => 'required|integer|min:1',
-            'items.*.buy_price'  => 'required|numeric|min:0',
+            'items.*.qty' => 'required|integer|min:1',
+            'items.*.buy_price' => 'required|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($request, $purchaseOrder) {
@@ -284,22 +289,22 @@ class PurchaseOrderController extends Controller
 
             foreach ($request->items as $item) {
                 $subtotal = $item['qty'] * $item['buy_price'];
-                $total   += $subtotal;
+                $total += $subtotal;
 
                 $itemsToSync[] = [
-                    'product_id'   => $item['product_id'],
-                    'qty_ordered'  => $item['qty'],
+                    'product_id' => $item['product_id'],
+                    'qty_ordered' => $item['qty'],
                     'qty_received' => 0,
-                    'buy_price'    => $item['buy_price'],
-                    'subtotal'     => $subtotal,
+                    'buy_price' => $item['buy_price'],
+                    'subtotal' => $subtotal,
                 ];
             }
 
             $purchaseOrder->update([
                 'supplier_id' => $request->supplier_id,
                 'expected_at' => $request->expected_at,
-                'notes'       => $request->notes,
-                'total'       => $total,
+                'notes' => $request->notes,
+                'total' => $total,
             ]);
 
             // Hapus items lama, replace dengan yang baru
@@ -323,10 +328,10 @@ class PurchaseOrderController extends Controller
         $action = $request->get('action');
 
         match ($action) {
-            'order'   => $this->markOrdered($purchaseOrder),
+            'order' => $this->markOrdered($purchaseOrder),
             'receive' => $this->markReceived($purchaseOrder, $request->input('received_qtys', [])),
-            'cancel'  => $this->markCancelled($purchaseOrder),
-            default   => abort(422, 'Aksi tidak valid.'),
+            'cancel' => $this->markCancelled($purchaseOrder),
+            default => abort(422, 'Aksi tidak valid.'),
         };
 
         return back()->with('success', 'Status Purchase Order berhasil diupdate.');
@@ -334,7 +339,7 @@ class PurchaseOrderController extends Controller
 
     private function markOrdered(PurchaseOrder $po): void
     {
-        abort_if(!$po->canBeOrdered(), 422, 'PO tidak bisa diubah ke status ordered.');
+        abort_if(! $po->canBeOrdered(), 422, 'PO tidak bisa diubah ke status ordered.');
 
         $po->update(['status' => 'ordered']);
 
@@ -343,7 +348,7 @@ class PurchaseOrderController extends Controller
 
     private function markReceived(PurchaseOrder $po, array $receivedQtys): void
     {
-        abort_if(!$po->canBeReceived(), 422, 'PO tidak bisa diubah ke status received.');
+        abort_if(! $po->canBeReceived(), 422, 'PO tidak bisa diubah ke status received.');
 
         DB::transaction(function () use ($po, $receivedQtys) {
             // Lock PO & items dulu supaya qty_received yang dibaca selalu fresh
@@ -361,28 +366,29 @@ class PurchaseOrderController extends Controller
                     if ($item->qty_received < $item->qty_ordered) {
                         $allFulfilled = false;
                     }
+
                     continue;
                 }
 
                 // Maksimal yang bisa diterima = sisa yang belum diterima
                 $maxReceivable = $item->qty_ordered - $item->qty_received;
-                $actualQty     = min($inputQty, $maxReceivable);
+                $actualQty = min($inputQty, $maxReceivable);
 
                 if ($actualQty > 0) {
                     // 1. LOCK row produk terlebih dahulu
-                    $product = \App\Models\Product::lockForUpdate()->findOrFail($item->product_id);
-                    
+                    $product = Product::lockForUpdate()->findOrFail($item->product_id);
+
                     // 2. Kalkulasi HPP Moving Average
                     $oldValue = $product->qty * $product->buy_price;
                     $newValue = $actualQty * $item->buy_price;
                     $totalQty = $product->qty + $actualQty;
-                    
+
                     $newAvgPrice = $totalQty > 0 ? round(($oldValue + $newValue) / $totalQty) : $product->buy_price;
 
                     // 3. OPERASI update stok & HPP
                     $product->update([
-                        'qty'       => $totalQty,
-                        'buy_price' => $newAvgPrice
+                        'qty' => $totalQty,
+                        'buy_price' => $newAvgPrice,
                     ]);
 
                     $item->increment('qty_received', $actualQty);
@@ -396,7 +402,7 @@ class PurchaseOrderController extends Controller
             $newStatus = $allFulfilled ? 'received' : 'ordered';
 
             $po->update([
-                'status'      => $newStatus,
+                'status' => $newStatus,
                 'received_at' => $allFulfilled ? now() : $po->received_at,
                 'received_by' => $allFulfilled ? auth()->id() : $po->received_by,
             ]);
@@ -412,7 +418,7 @@ class PurchaseOrderController extends Controller
 
     private function markCancelled(PurchaseOrder $po): void
     {
-        abort_if(!$po->canBeCancelled(), 422, 'PO tidak bisa dibatalkan.');
+        abort_if(! $po->canBeCancelled(), 422, 'PO tidak bisa dibatalkan.');
 
         $po->update(['status' => 'cancelled']);
 
