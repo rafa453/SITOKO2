@@ -86,15 +86,16 @@ class TransactionController extends Controller
             ->get();
 
         $popupQuery = fn() => Transaction::with(['cashier'])
+            ->select('id', 'code', 'cashier_id', 'total', 'status', 'created_at')
             ->whereBetween('created_at', [
                 $dateFrom->toDateTimeString(),
                 $dateTo->toDateTimeString(),
             ])
             ->when(auth()->user()->role === 'cashier', fn($q) => $q->where('cashier_id', auth()->id()));
 
-        $popupAllTx     = $popupQuery()->latest()->get();
-        $popupRevenueTx = $popupQuery()->where('status', 'completed')->latest()->get();
-        $popupVoidedTx  = $popupQuery()->where('status', 'voided')->latest()->get();
+        $popupAllTx     = $popupQuery()->latest()->limit(50)->get();
+        $popupRevenueTx = $popupQuery()->where('status', 'completed')->latest()->limit(50)->get();
+        $popupVoidedTx  = $popupQuery()->where('status', 'voided')->latest()->limit(50)->get();
 
         $query = Transaction::with(['cashier', 'items.product'])->latest();
 

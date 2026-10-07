@@ -63,11 +63,13 @@
                 return null;
             }
 
-            if ($this->expired_at->isPast()) {
+            $days = (int) now()->startOfDay()->diffInDays($this->expired_at->startOfDay(), false);
+
+            if ($days < 0) {
                 return 'expired';
             }
 
-            if ($this->expired_at->diffInDays(now()) <= 7) {
+            if ($days <= 7) {
                 return 'near';
             }
 

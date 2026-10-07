@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Shift;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use App\Http\Requests\StaffStoreRequest;
+use App\Http\Requests\StaffUpdateRequest;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -102,17 +104,8 @@ class StaffController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function store(StaffStoreRequest $request)
     {
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'phone'    => 'nullable|string|max:20',
-            'shift'    => 'required|in:pagi,siang',
-            'password' => 'required|string|min:8',
-            'photo'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
-
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photoPath = $request->file('photo')->store('staff-photos', 'public');
@@ -132,16 +125,8 @@ class StaffController extends Controller
         return back()->with('success', 'Staff berhasil ditambahkan.');
     }
 
-    public function update(Request $request, User $staff)
+    public function update(StaffUpdateRequest $request, User $staff)
     {
-        $request->validate([
-            'name'   => 'required|string|max:255',
-            'phone'  => 'nullable|string|max:20',
-            'shift'  => 'required|in:pagi,siang',
-            'status' => 'required|in:active,inactive',
-            'photo'  => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
-
         if ($request->status === 'inactive') {
             if ($staff->id === auth()->id()) {
                 return back()->with('error', 'Anda tidak dapat menonaktifkan akun Anda sendiri.');

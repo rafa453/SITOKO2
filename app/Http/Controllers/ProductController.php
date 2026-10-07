@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Http\Requests\ProductRequest;
 use Illuminate\Http\Request;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ class ProductController extends Controller
 
         if ($request->filled('status')) {
             match ($request->status) {
-                'low'  => $query->whereColumn('qty', '<=', 'threshold')->where('qty', '>', 0),
+                'low'  => $query->where('is_low_stock', 1),
                 'out'  => $query->where('qty', 0),
                 default => null,
             };
@@ -48,7 +49,7 @@ class ProductController extends Controller
         $categories = Product::select('category')->distinct()->pluck('category');
 
         $totalSkus       = Product::count();
-        $lowStockCount   = Product::whereColumn('qty', '<=', 'threshold')->where('qty', '>', 0)->count();
+        $lowStockCount   = Product::where('is_low_stock', 1)->count();
         $outOfStockCount = Product::where('qty', 0)->count();
         $stockValue      = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
 
@@ -69,16 +70,10 @@ class ProductController extends Controller
             ->orderByDesc('value')
             ->get();
 
-        $stockAlerts = Product::whereColumn('qty', '<=', 'threshold')
+        $stockAlerts = Product::where('is_low_stock', 1)
             ->orderBy('qty')
             ->limit(5)
             ->get();
-
-        $suppliers = collect([
-            ['initials'=>'SJ','name'=>'Sembako Jaya',  'desc'=>'Rice, Flour, Staple Goods','phone'=>'+62 21 555-0123','last'=>'Oct 24, 2023'],
-            ['initials'=>'SM','name'=>'Sumber Makmur', 'desc'=>'Cooking Oil, Margarine',   'phone'=>'+62 21 555-0987','last'=>'Oct 21, 2023'],
-            ['initials'=>'BP','name'=>'Bumbu Pusaka',  'desc'=>'Spices, Condiments',       'phone'=>'+62 21 555-0456','last'=>'Oct 18, 2023'],
-        ]);
 
         $filterBrands    = \App\Models\Brand::orderBy('name')->get();
         $filterSuppliers = \App\Models\Supplier::orderBy('name')->get();
@@ -96,7 +91,7 @@ class ProductController extends Controller
             'products', 'categories',
             'totalSkus', 'lowStockCount', 'outOfStockCount', 'stockValue',
             'expiringProducts', 'expiringCount',
-            'categoryBreakdown', 'stockValueByCategory', 'stockAlerts', 'suppliers',
+            'categoryBreakdown', 'stockValueByCategory', 'stockAlerts',
             'filterBrands', 'filterSuppliers', 'categoryLabels'
         ));
     }
@@ -109,24 +104,9 @@ class ProductController extends Controller
         return view('pages.inventory-form', compact('categories', 'brands', 'suppliers'));
     }
 
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
-        $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'brand_id'    => 'nullable|exists:brands,id',
-            'category'    => 'required|string|max:100',
-            'unit'        => 'required|string|max:50',
-            'buy_price'   => 'required|numeric|min:0',
-            'sell_price'  => 'required|numeric|min:0',
-            'qty'         => 'required|integer|min:0',
-            'threshold'   => 'required|integer|min:0',
-            'expired_at'  => 'nullable|date',
-            'description' => 'nullable|string',
-            'supplier_ids'      => 'nullable|array',
-            'supplier_ids.*'    => 'exists:suppliers,id',
-            'supplier_prices'   => 'nullable|array',
-            'supplier_prices.*' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         $product = DB::transaction(function () use ($validated) {
             $brandName = !empty($validated['brand_id'])
@@ -143,7 +123,14 @@ class ProductController extends Controller
                 $supplierName
             );
 
-            $product = Product::create($validated);
+            $product = retry(5, function () use (&$validated, $brandName, $supplierName) {
+                $validated['sku'] = \App\Models\Product::generateSku(
+                    $validated['category'],
+                    $brandName,
+                    $supplierName
+                );
+                return Product::create($validated);
+            }, 100);
 
             // Attach suppliers dengan supplier_sku
             if (!empty($validated['supplier_ids'])) {
@@ -178,24 +165,9 @@ class ProductController extends Controller
         return view('pages.inventory-form', compact('product', 'categories', 'brands', 'suppliers'));
     }
 
-    public function update(Request $request, Product $product)
+    public function update(ProductRequest $request, Product $product)
     {
-        $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'brand_id'    => 'nullable|exists:brands,id',
-            'category'    => 'required|string|max:100',
-            'unit'        => 'required|string|max:50',
-            'buy_price'   => 'required|numeric|min:0',
-            'sell_price'  => 'required|numeric|min:0',
-            'qty'         => 'required|integer|min:0',
-            'threshold'   => 'required|integer|min:0',
-            'expired_at'  => 'nullable|date',
-            'description' => 'nullable|string',
-            'supplier_ids'      => 'nullable|array',
-            'supplier_ids.*'    => 'exists:suppliers,id',
-            'supplier_prices'   => 'nullable|array',
-            'supplier_prices.*' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         // Ambil stok awal SEBELUM update dipanggil (Terintegrasi dengan perbaikan temuan #7)
         $oldQty = $product->qty;
@@ -255,6 +227,16 @@ class ProductController extends Controller
         if ($product->transactionItems()->exists()) {
             return redirect()->route('inventory.index')
                 ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena memiliki riwayat transaksi.");
+        }
+
+        if ($product->purchaseOrderItems()->exists()) {
+            return redirect()->route('inventory.index')
+                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena terhubung ke Purchase Order.");
+        }
+
+        if ($product->supplierReturnItems()->exists()) {
+            return redirect()->route('inventory.index')
+                ->with('error', "Produk \"{$product->name}\" tidak bisa dihapus karena terhubung ke Retur Supplier.");
         }
 
         $product->delete();

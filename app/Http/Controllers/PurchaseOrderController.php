@@ -7,6 +7,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\ActivityLog;
+use App\Http\Requests\PurchaseOrderStoreRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -97,18 +98,8 @@ class PurchaseOrderController extends Controller
         return view('pages.purchase-order-form', compact('suppliers', 'products'));
     }
 
-    public function store(Request $request)
+    public function store(PurchaseOrderStoreRequest $request)
     {
-        $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
-            'expected_at' => 'nullable|date|after_or_equal:today',
-            'notes'       => 'nullable|string|max:500',
-            'items'       => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.qty'        => 'required|integer|min:1',
-            'items.*.buy_price'  => 'required|numeric|min:0',
-        ]);
-
         DB::transaction(function () use ($request) {
             $code  = 'PO-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
             $total = 0;

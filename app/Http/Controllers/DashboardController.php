@@ -52,9 +52,7 @@ class DashboardController extends Controller
     }
 
     try {
-        $lowStockCount = Product::whereColumn('qty', '<=', 'threshold')
-            ->where('qty', '>', 0)
-            ->count();
+        $lowStockCount = Product::where('is_low_stock', 1)->count();
     } catch (\Exception $e) {
         $lowStockCount = 0;
     }
@@ -68,7 +66,7 @@ class DashboardController extends Controller
     try {
         $stockAlertProducts = Product::where('qty', 0)
             ->orWhere(function ($q) {
-                $q->whereColumn('qty', '<=', 'threshold')->where('qty', '>', 0);
+                $q->where('is_low_stock', 1);
             })
             ->orderBy('qty')
             ->get();

@@ -6,6 +6,7 @@ use App\Models\SupplierReturn;
 use App\Models\SupplierReturnItem;
 use App\Models\PurchaseOrder;
 use App\Models\ActivityLog;
+use App\Http\Requests\SupplierReturnStoreRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -106,18 +107,8 @@ class SupplierReturnController extends Controller
         return view('pages.supplier-return-form', compact('po', 'returnableItems', 'returnedQtys'));
     }
 
-    public function store(Request $request)
+    public function store(SupplierReturnStoreRequest $request)
     {
-        $request->validate([
-            'purchase_order_id' => 'required|exists:purchase_orders,id',
-            'reason'            => 'nullable|string|max:500',
-            'items'             => 'required|array|min:1',
-            'items.*.po_item_id'    => 'required|exists:purchase_order_items,id',
-            'items.*.product_id'    => 'required|exists:products,id',
-            'items.*.qty_returned'  => 'required|integer|min:1',
-            'items.*.buy_price'     => 'required|numeric|min:0',
-        ]);
-
         DB::transaction(function () use ($request) {
             $po    = PurchaseOrder::findOrFail($request->purchase_order_id);
             $code  = 'RTR-' . now()->format('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
