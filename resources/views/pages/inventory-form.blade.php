@@ -28,7 +28,7 @@
         @method('PUT')
     @endif
 
-    <div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start">
+    <div class="inventory-form-layout" style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start">
 
         {{-- ===== KIRI: DETAIL PRODUK ===== --}}
         <div style="display:flex; flex-direction:column; gap:16px">

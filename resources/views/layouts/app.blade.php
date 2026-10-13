@@ -6,9 +6,18 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>sitoko – @yield('title', 'Dashboard')</title>
 
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Theme Init (prevent FOUC) -->
+        <script>
+            document.documentElement.classList.toggle('dark', (() => {
+                const saved = localStorage.getItem('theme');
+                if (saved) return saved === 'dark';
+                return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            })());
+        </script>
+
+        <!-- Google Fonts: Inter -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -331,6 +340,24 @@
             <div class="page-header-right">
                 @yield('header-actions')
 
+                <!-- Theme Toggle -->
+                <div x-data="themeToggle" x-cloak>
+                    <button class="btn-icon" @click="toggle()" :title="dark ? 'Light Mode' : 'Dark Mode'" :aria-label="dark ? 'Light Mode' : 'Dark Mode'">
+                        <!-- Sun (show in dark) -->
+                        <svg x-show="dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <!-- Moon (show in light) -->
+                        <svg x-show="!dark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                </div>
+
                 @if(auth()->user()?->isAdmin())
                 <!-- Notification Bell -->
                 <div class="notification-dropdown-wrapper" x-data="notificationDropdown()" x-init="init()">
@@ -435,9 +462,17 @@
 
 </div>
 
-@if(auth()->user()?->isAdmin())
 <script>
     document.addEventListener('alpine:init', () => {
+        Alpine.data('themeToggle', () => ({
+            dark: document.documentElement.classList.contains('dark'),
+            toggle() {
+                this.dark = !this.dark;
+                document.documentElement.classList.toggle('dark', this.dark);
+                localStorage.setItem('theme', this.dark ? 'dark' : 'light');
+            }
+        }));
+        @if(auth()->user()?->isAdmin())
         Alpine.data('notificationDropdown', () => ({
             isOpen: false,
             isLoading: false,
@@ -504,9 +539,9 @@
                 return new Intl.NumberFormat('id-ID').format(num);
             }
         }));
+        @endif
     });
 </script>
-@endif
 
 @stack('scripts')
 </body>

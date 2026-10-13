@@ -46,7 +46,7 @@
     </div>
 @endif
 
-<div x-data="{ openModal: null }" @open-modal.window="openModal = $event.detail">
+<div x-data="{ openModal: null }" class="settings-stack" @open-modal.window="openModal = $event.detail">
 
 {{-- ===== STAT CARDS ===== --}}
 <div class="stats-grid stats-grid--3">

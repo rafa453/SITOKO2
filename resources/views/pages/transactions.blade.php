@@ -5,7 +5,7 @@
 @section('page-subtitle', 'Monitor, search, and review all sales transactions.')
 
 @section('header-actions')
-    <form method="GET" action="{{ route('transactions.index') }}" class="filter-bar" id="filterForm">
+    <form method="GET" action="{{ route('transactions.index') }}" class="filter-bar" id="filterForm" style="display:flex; align-items:center; gap:8px">
         <div class="search-input-wrapper" style="width:200px">
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -14,52 +14,59 @@
                 value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
 
-        <div style="display:flex; align-items:center; gap:6px">
-            <input
-                type="date"
-                name="date_from"
-                class="form-input"
-                style="width:145px"
-                value="{{ $dateFrom }}"
-                onchange="this.form.submit()"
-            >
-            <span style="font-size:12px; color:var(--text-muted)">—</span>
-            <input
-                type="date"
-                name="date_to"
-                class="form-input"
-                style="width:145px"
-                value="{{ $dateTo }}"
-                onchange="this.form.submit()"
-            >
+        <div style="position: relative;" x-data="{ showFilters: false }">
+            <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--indigo-600)' : ''">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+            </button>
+
+            {{-- Floating Filter Popover --}}
+            <div x-show="showFilters" 
+                 @click.away="showFilters = false" 
+                 style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:280px; margin-top:8px;"
+                 x-cloak>
+            
+                <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
+                    Filter Transactions
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:12px">
+                    <div style="display:flex; gap:6px; align-items:center">
+                        <input type="date" name="date_from" class="form-input" style="flex:1" value="{{ $dateFrom }}" onchange="this.form.submit()">
+                        <span style="font-size:12px; color:var(--text-muted)">—</span>
+                        <input type="date" name="date_to" class="form-input" style="flex:1" value="{{ $dateTo }}" onchange="this.form.submit()">
+                    </div>
+
+                    <select name="method" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Methods</option>
+                        @foreach($paymentBreakdown as $pm)
+                            <option value="{{ $pm->payment_method }}" {{ request('method')===$pm->payment_method ? 'selected' : '' }}>
+                                {{ $pm->payment_method }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Completed</option>
+                        <option value="voided"    {{ request('status')==='voided'    ? 'selected' : '' }}>Voided</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <select name="method" class="form-select" style="width:140px" onchange="this.form.submit()">
-            <option value="">All Methods</option>
-            @foreach($paymentBreakdown as $pm)
-                <option value="{{ $pm->payment_method }}" {{ request('method')===$pm->payment_method ? 'selected' : '' }}>
-                    {{ $pm->payment_method }}
-                </option>
-            @endforeach
-        </select>
-
-        <select name="status" class="form-select" style="width:130px" onchange="this.form.submit()">
-            <option value="">All Status</option>
-            <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Completed</option>
-            <option value="voided"    {{ request('status')==='voided'    ? 'selected' : '' }}>Voided</option>
-        </select>
+        @if(auth()->user()->role === 'admin')
+        <a href="{{ route('transactions.export', request()->only(['date_from','date_to','search','method','status'])) }}"
+           class="btn btn--secondary btn--sm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export
+        </a>
+        @endif
     </form>
-
-    @if(auth()->user()->role === 'admin')
-    <a href="{{ route('transactions.export', request()->only(['date_from','date_to','search','method','status'])) }}"
-       class="btn btn--secondary btn--sm">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Export CSV
-    </a>
-    @endif
 @endsection
 
 @section('content')
@@ -296,7 +303,7 @@
 @endif
 
 {{-- ===== TRANSACTION LOG + DETAIL PANEL ===== --}}
-<div class="card-grid" style="grid-template-columns:1fr 380px; margin-top: 24px;"
+<div class="card-grid trx-detail-layout" style="grid-template-columns:1fr 380px; margin-top: 24px;"
      x-data="{
          selectedId: null,
          selected: null,

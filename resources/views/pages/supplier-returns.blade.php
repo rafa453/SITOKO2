@@ -4,6 +4,15 @@
 @section('page-title', 'Retur Supplier')
 @section('page-subtitle', 'Kelola pengembalian barang ke supplier.')
 
+@section('header-actions')
+    <a href="{{ route('supplier-returns.create') }}" class="btn btn--primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Buat Retur Baru
+    </a>
+@endsection
+
 @section('content')
 
 {{-- Stat Cards --}}
@@ -33,32 +42,57 @@
     </div>
 </div>
 
-{{-- Filter --}}
-<div class="card" style="margin-bottom:0">
-    <div class="card-body" style="padding:14px 20px">
-        <form method="GET" action="{{ route('supplier-returns.index') }}"
-              style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-            <input type="text" name="search" value="{{ request('search') }}"
-                   placeholder="Cari nomor retur..."
-                   class="form-input" style="width:200px">
-            <select name="status" class="form-select" style="width:160px">
-                <option value="">Semua Status</option>
-                <option value="draft"     {{ request('status') === 'draft'     ? 'selected' : '' }}>Draft</option>
-                <option value="confirmed" {{ request('status') === 'confirmed' ? 'selected' : '' }}>Dikonfirmasi</option>
-                <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai</option>
-                <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
-            </select>
-            <button type="submit" class="btn btn--secondary">Filter</button>
-            @if(request('search') || request('status'))
-                <a href="{{ route('supplier-returns.index') }}" class="btn btn--ghost">Reset</a>
-            @endif
+{{-- Table --}}
+<div class="card" id="supplierReturnsCard" style="overflow:visible">
+    <div class="card-header">
+        <div class="card-title">Data Retur Supplier</div>
+        
+        <form method="GET" action="{{ route('supplier-returns.index') }}" id="filterForm" style="display:flex; align-items:center; gap:8px;">
+            <div class="search-input-wrapper" style="width:230px">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" name="search" class="form-input w-full" placeholder="Cari nomor retur..."
+                    value="{{ request('search') }}"
+                    onchange="this.form.submit()">
+            </div>
+            <button type="submit" style="display:none"></button>
+
+            <div style="position: relative;" x-data="{ showFilters: false }">
+                <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--indigo-600)' : ''">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                </button>
+
+                <div x-show="showFilters" 
+                     @click.away="showFilters = false" 
+                     style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:260px; margin-top:8px;"
+                     x-cloak>
+                
+                    <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
+                        Filter Retur
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; gap:10px">
+                        <select name="status" class="form-select w-full" onchange="this.form.submit()">
+                            <option value="">Semua Status</option>
+                            <option value="draft"     {{ request('status') === 'draft'     ? 'selected' : '' }}>Draft</option>
+                            <option value="confirmed" {{ request('status') === 'confirmed' ? 'selected' : '' }}>Dikonfirmasi</option>
+                            <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Selesai</option>
+                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                        </select>
+                        
+                        @if(request('search') || request('status'))
+                            <a href="{{ route('supplier-returns.index') }}" class="btn btn--secondary btn--sm" style="justify-content:center">Reset Filter</a>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </form>
     </div>
-</div>
-
-{{-- Table --}}
-<div class="card">
-    <div class="data-table-wrapper">
+    
+    <div class="data-table-wrapper" style="border:none; border-radius:0">
         <table class="data-table">
             <thead>
                 <tr>

@@ -27,6 +27,7 @@
 
 <div
     x-data="cashierApp({{ $products->toJson() }}, {{ $paymentMethods->toJson() }})"
+    class="pos-layout"
     style="display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start"
 >
 
@@ -54,7 +55,7 @@
                 </div>
 
                 {{-- Product grid --}}
-                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; max-height:420px; overflow-y:auto">
+                <div class="pos-product-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; max-height:420px; overflow-y:auto">
                     <template x-for="p in filteredProducts" :key="p.id">
                         <div
                             @click="p.qty > 0 && addToCart(p)"
