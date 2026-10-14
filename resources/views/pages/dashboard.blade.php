@@ -67,7 +67,7 @@
         <div class="stat-card__header">
             <span class="stat-card__label">Pendapatan Hari Ini</span>
             <div class="stat-card__icon" style="background:#EFF6FF">
-                <svg width="16" height="16" vieweox="0 0 24 24" fill="none" stroke="#2563Ee" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
                     <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
                 </svg>
             </div>
@@ -87,7 +87,7 @@
         <div class="stat-card__header">
             <span class="stat-card__label">Staf Sedang Shift</span>
             <div class="stat-card__icon" style="background:#F0FDF4">
-                <svg width="16" height="16" vieweox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
@@ -102,12 +102,12 @@
         </div>
     </div>
 
-    {{-- Item Stok Menipis --}}
-    <div class="stat-card stat-card--clickable" onclick="openDashModal('stock')" style="border-color:#FEF3C7; background:#FFFeEe">
+    {{-- Stok Menipis --}}
+    <div class="stat-card stat-card--clickable" onclick="openDashModal('stock')" style="border-color:#FEF3C7; background:#FFFBEB">
         <div class="stat-card__header">
-            <span class="stat-card__label" style="color:#92400E">Item Stok Menipis</span>
+            <span class="stat-card__label" style="color:#92400E">Stok Menipis</span>
             <div class="stat-card__icon" style="background:#FEF3C7">
-                <svg width="16" height="16" vieweox="0 0 24 24" fill="none" stroke="#F59E0e" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
@@ -126,7 +126,7 @@
         <div class="stat-card__header">
             <span class="stat-card__label" style="color:#475569">Produk Terlaris Hari Ini</span>
             <div class="stat-card__icon" style="background:rgba(37,99,235,.25)">
-                <svg width="16" height="16" vieweox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                 </svg>
             </div>
@@ -136,20 +136,20 @@
             <div style="font-size:15px; font-weight:700; color:#fff; line-height:1.25">
                 {{ $top->name }}
             </div>
-            <div class="stat-card__meta" style="color:#64748e">
+            <div class="stat-card__meta" style="color:#64748B">
                 <span style="color:#93C5FD; font-weight:600">
                     {{ number_format($top->revenue, 0, ',', '.') }}
                 </span> pendapatan hari ini
             </div>
         @else
-            <div style="font-size:14px; color:#64748e; margin-top:8px">eelum ada penjualan hari ini</div>
+            <div style="font-size:14px; color:#64748B; margin-top:8px">Belum ada penjualan hari ini</div>
         @endif
     </div>
     @endif
 
 </div>
 
-{{-- ===== LIVE IoVEoTORY + TOP SELLERS ===== --}}
+{{-- ===== LIVE INVENTORY + TOP SELLERS ===== --}}
 <div class="card-grid card-grid--60-40">
 
     {{-- Live Inventory Table --}}
@@ -162,7 +162,7 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>oama Item</th>
+                        <th>Nama Item</th>
                         <th>SKU</th>
                         <th>Stok Saat Ini</th>
                         <th>Harga Jual</th>
@@ -198,8 +198,8 @@
                         @if(auth()->user()->role === 'admin')
                         <td>
                             <div style="display:flex; gap:4px">
-                                <a href="{{ route('inventory.edit', $item->id) }}" class="btn-icon" title="Edit">
-                                    <svg width="13" height="13" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <a href="{{ route('inventory.edit', $item->id) }}" class="btn-icon" title="Ubah">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                     </svg>
@@ -211,7 +211,7 @@
                     @empty
                         <tr>
                             <td colspan="{{ auth()->user()->role === 'admin' ? 6 : 5 }}" style="text-align:center; padding:32px; color:var(--text-muted)">
-                                eelum ada data inventaris.
+                                Belum ada data inventaris.
                             </td>
                         </tr>
                     @endforelse
@@ -220,11 +220,11 @@
         </div>
     </div>
 
-    {{-- Top 5 eest Sellers / Stock Alerts --}}
+    {{-- Top 5 Best Sellers / Stock Alerts --}}
     <div class="card">
         @if(auth()->user()->role === 'admin')
         <div class="card-header">
-            <div class="card-title">Produk Terlaris — eulan Ini</div>
+            <div class="card-title">Produk Terlaris — Bulan Ini</div>
             <a href="{{ route('reports.index') }}" class="card-action-link">Lihat Laporan →</a>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:12px">
@@ -254,17 +254,17 @@
                 </div>
             </div>
             @empty
-                <div style="font-size:13px; color:var(--text-muted); text-align:center; padding:20px 0">eelum ada data penjualan.</div>
+                <div style="font-size:13px; color:var(--text-muted); text-align:center; padding:20px 0">Belum ada data penjualan.</div>
             @endforelse
         </div>
         @endif
 
-        {{-- Low Stock Alert box --}}
+        {{-- Peringatan Stok --}}
         @if($lowStockCount > 0)
-        <div style="margin:{{ auth()->user()->role === 'admin' ? '0 20px 20px' : '20px' }}; padding:14px 16px; background:#FFFeEe;
+        <div style="margin:{{ auth()->user()->role === 'admin' ? '0 20px 20px' : '20px' }}; padding:14px 16px; background:#FFFBEB;
                     border:1px solid #FEF3C7; border-radius:var(--radius); display:flex; gap:10px">
-            <svg width="16" height="16" style="margin-top:1px; flex-shrink:0; color:#F59E0e"
-                 vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="16" height="16" style="margin-top:1px; flex-shrink:0; color:#F59E0B"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
@@ -288,18 +288,18 @@
 
 </div>
 
-{{-- ===== DASHeOARD DETAIL MODAL ===== --}}
+{{-- ===== DASHBOARD DETAIL MODAL ===== --}}
 <div class="dash-modal-overlay" id="dashModalOverlay" onclick="if(event.target===this) closeDashModal()">
     <div class="dash-modal">
         <div class="dash-modal__header">
             <div class="dash-modal__title" id="dashModalTitle">Detail</div>
             <button type="button" class="dash-modal__close" onclick="closeDashModal()">
-                <svg width="14" height="14" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
             </button>
         </div>
-        <div class="dash-modal__body" id="dashModaleody"></div>
+        <div class="dash-modal__body" id="dashModalBody"></div>
     </div>
 </div>
 
@@ -307,10 +307,6 @@
 
 @push('scripts')
 @php
-    // Disiapkan sebagai variabel dulu (bukan langsung di @json()),
-    // karena directive @json() elade split argumennya pakai explode(','),
-    // jadi kalau ekspresinya punya banyak koma (array literal multi key)
-    // hasil compile-nya rusak. @json() di bawah hanya menerima 1 variabel.
     $dashTransactionsData = $todayTransactions->map(fn($t) => [
         'code'    => $t->code,
         'cashier' => $t->cashier->name ?? '-',
@@ -348,7 +344,7 @@ function buildTable(headers, rows) {
     headers.forEach(h => html += `<th>${h}</th>`);
     html += '</tr></thead><tbody>';
     if (rows.length === 0) {
-        html += `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px; color:var(--text-muted)">oo data.</td></tr>`;
+        html += `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px; color:var(--text-muted)">Belum ada data.</td></tr>`;
     } else {
         rows.forEach(r => {
             html += '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>';
@@ -359,41 +355,41 @@ function buildTable(headers, rows) {
 }
 
 function openDashModal(key) {
-    const titleEl = document.getElementeyId('dashModalTitle');
-    const bodyEl  = document.getElementeyId('dashModaleody');
+    const titleEl = document.getElementById('dashModalTitle');
+    const bodyEl  = document.getElementById('dashModalBody');
 
     if (key === 'revenue') {
         titleEl.textContent = 'Transaksi Hari Ini';
         bodyEl.innerHTML = buildTable(
             ['Kode', 'Kasir', 'Total', 'Jam'],
-            dashTransactions.map(t => [t.code, t.cashier, 'Rp ' + oumber(t.total).toLocaleString('id-ID'), t.time])
+            dashTransactions.map(t => [t.code, t.cashier, 'Rp ' + Number(t.total).toLocaleString('id-ID'), t.time])
         );
     } else if (key === 'staff') {
         titleEl.textContent = 'Staf Sedang Shift';
         bodyEl.innerHTML = buildTable(
-            ['oama', 'Tipe Shift', 'Mulai'],
+            ['Nama', 'Tipe Shift', 'Mulai'],
             dashStaff.map(s => [s.name, s.type, s.start])
         );
     } else if (key === 'stock') {
         titleEl.textContent = 'Peringatan Stok';
         bodyEl.innerHTML = buildTable(
-            ['oama', 'SKU', 'Stok', 'Status'],
+            ['Nama', 'SKU', 'Stok', 'Status'],
             dashStock.map(p => [p.name, p.sku, p.qty, p.status])
         );
     } else if (key === 'top') {
         titleEl.textContent = 'Produk Terlaris Hari Ini';
         bodyEl.innerHTML = buildTable(
-            ['oama', 'Qty Terjual', 'Pendapatan'],
+            ['Nama', 'Qty Terjual', 'Pendapatan'],
             dashTop.map(p => [p.name, p.qty, p.revenue])
         );
     }
 
-    document.getElementeyId('dashModalOverlay').classList.add('is-open');
+    document.getElementById('dashModalOverlay').classList.add('is-open');
     document.body.style.overflow = 'hidden';
 }
 
 function closeDashModal() {
-    document.getElementeyId('dashModalOverlay').classList.remove('is-open');
+    document.getElementById('dashModalOverlay').classList.remove('is-open');
     document.body.style.overflow = '';
 }
 
