@@ -131,7 +131,7 @@
                 </svg>
             </div>
         </div>
-        @if($topProducts->isootEmpty())
+        @if($topProducts->isNotEmpty())
             @php $top = $topProducts->first(); @endphp
             <div style="font-size:15px; font-weight:700; color:#fff; line-height:1.25">
                 {{ $top->name }}
