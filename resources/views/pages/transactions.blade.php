@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Transactions')
-@section('page-title', 'Transactions')
-@section('page-subtitle', 'Monitor, search, and review all sales transactions.')
+@section('title', 'Transaksi')
+@section('page-title', 'Transaksi')
+@section('page-subtitle', 'Pantau, cari, dan tinjau semua transaksi penjualan.')
 
 @section('header-actions')
     <form method="GET" action="{{ route('transactions.index') }}" class="filter-bar" id="filterForm" style="display:flex; align-items:center; gap:8px">
@@ -10,7 +10,7 @@
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input type="text" name="search" class="form-input" placeholder="Search ID..."
+            <input type="text" name="search" class="form-input" placeholder="Cari ID..."
                 value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
 
@@ -28,7 +28,7 @@
                  x-cloak>
             
                 <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                    Filter Transactions
+                    Filter Transaksi
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:12px">
@@ -39,7 +39,7 @@
                     </div>
 
                     <select name="method" class="form-select" onchange="this.form.submit()">
-                        <option value="">All Methods</option>
+                        <option value="">Semua Metode</option>
                         @foreach($paymentBreakdown as $pm)
                             <option value="{{ $pm->payment_method }}" {{ request('method')===$pm->payment_method ? 'selected' : '' }}>
                                 {{ $pm->payment_method }}
@@ -48,9 +48,9 @@
                     </select>
 
                     <select name="status" class="form-select" onchange="this.form.submit()">
-                        <option value="">All Status</option>
-                        <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Completed</option>
-                        <option value="voided"    {{ request('status')==='voided'    ? 'selected' : '' }}>Voided</option>
+                        <option value="">Semua Status</option>
+                        <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Selesai</option>
+                        <option value="voided"    {{ request('status')==='voided'    ? 'selected' : '' }}>Dibatal</option>
                     </select>
                 </div>
             </div>
@@ -90,7 +90,7 @@
 
         <div class="stat-card" style="cursor:pointer" @click="openModal = 'all'">
             <div class="stat-card__header">
-                <span class="stat-card__label">Total Transactions</span>
+                <span class="stat-card__label">Total Transaksi</span>
             </div>
             <div class="stat-card__value">{{ number_format($totalTransactions) }}</div>
             <div class="stat-card__meta text-muted text-sm">{{ $dateLabel }}</div>
@@ -98,7 +98,7 @@
 
         <div class="stat-card" style="cursor:pointer" @click="openModal = 'revenue'">
             <div class="stat-card__header">
-                <span class="stat-card__label">Total Revenue</span>
+                <span class="stat-card__label">Total Pendapatan</span>
             </div>
             <div>
                 <div class="stat-card__rp">Rp</div>
@@ -109,9 +109,9 @@
 
         <div class="stat-card" style="cursor:pointer; border-color:#FEE2E2; background:#FEF2F2" @click="openModal = 'voided'">
             <div class="stat-card__header">
-                <span class="stat-card__label" style="color:#991B1B">Voided</span>
+                <span class="stat-card__label" style="color:#991B1B">Dibatal</span>
                 @if($voidedCount > 0)
-                    <span class="badge badge--red">Action Req.</span>
+                    <span class="badge badge--red">Perlu Tindakan</span>
                 @endif
             </div>
             <div class="stat-card__value" style="color:#EF4444">{{ $voidedCount }}</div>
@@ -122,13 +122,13 @@
 
         <div class="stat-card" style="cursor:pointer" @click="openModal = 'basket'">
             <div class="stat-card__header">
-                <span class="stat-card__label">Avg. Basket Size</span>
+                <span class="stat-card__label">Rata-rata Nilai Belanja</span>
             </div>
             <div>
                 <div class="stat-card__rp">Rp</div>
                 <div class="stat-card__value">{{ number_format($avgBasket, 0, ',', '.') }}</div>
             </div>
-            <div class="stat-card__meta text-muted text-sm">Average ({{ $dateLabel }})</div>
+            <div class="stat-card__meta text-muted text-sm">Rata-rata ({{ $dateLabel }})</div>
         </div>
 
     </div>
@@ -148,9 +148,9 @@
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light)">
                 <div class="card-title" style="font-weight: 700; font-size: 16px;" x-text="
                     openModal === 'all' ? 'All Transactions Today' :
-                    openModal === 'revenue' ? 'Completed Transactions' :
-                    openModal === 'voided' ? 'Voided Transactions' :
-                    'Avg. Basket Size Analysis'
+                    openModal === 'revenue' ? 'Transaksi Selesai' :
+                    openModal === 'voided' ? 'Transaksi Dibatalkan' :
+                    'Analisis Rata-rata Nilai Belanja'
                 "></div>
                 <button class="btn-icon" @click="openModal = null" style="background: none; border: none; cursor: pointer; color: var(--text-muted)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -179,7 +179,7 @@
                             </div>
                         </div>
                         @empty
-                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">No transactions today.</p>
+                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">Tidak ada transaksi hari ini.</p>
                         @endforelse
                     </div>
                 </template>
@@ -195,7 +195,7 @@
                             <div style="font-weight:600; align-self: center;">Rp {{ number_format($trx->total, 0, ',', '.') }}</div>
                         </div>
                         @empty
-                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">No completed transactions today.</p>
+                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">Tidak ada transaksi selesai hari ini.</p>
                         @endforelse
                     </div>
                 </template>
@@ -211,7 +211,7 @@
                             <div style="font-weight:600; color:#EF4444; align-self: center;">Rp {{ number_format($trx->total, 0, ',', '.') }}</div>
                         </div>
                         @empty
-                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">No voided transactions today.</p>
+                            <p class="text-muted text-sm" style="padding:20px; text-align: center;">Tidak ada transaksi dibatalkan hari ini.</p>
                         @endforelse
                     </div>
                 </template>
@@ -256,7 +256,7 @@
     <div class="card">
         <div class="card-header">
             <div>
-                <div class="card-title">Daily Transaction Volume</div>
+                <div class="card-title">Volume Transaksi Harian</div>
                 <div class="card-subtitle">Activity patterns ({{ $dateLabel }})</div>
             </div>
         </div>
@@ -270,7 +270,7 @@
     {{-- Payment Breakdown --}}
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Payment Breakdown</div>
+            <div class="card-title">Rincian Pembayaran</div>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
             @php
@@ -294,7 +294,7 @@
                 </div>
             </div>
             @empty
-                <p class="text-muted text-sm">No transactions today.</p>
+                <p class="text-muted text-sm">Tidak ada transaksi hari ini.</p>
             @endforelse
         </div>
     </div>
@@ -316,7 +316,7 @@
     {{-- Detailed Log --}}
     <div class="card card--overflow-x">
         <div class="card-header">
-            <div class="card-title">Detailed Log</div>
+            <div class="card-title">Log Detail</div>
         </div>
 
         <div class="data-table-wrapper" style="border:none; border-radius:0">
@@ -391,7 +391,7 @@
                     @empty
                     <tr>
                         <td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted)">
-                            No transactions found.
+                            Transaksi tidak ditemukan.
                         </td>
                     </tr>
                     @endforelse

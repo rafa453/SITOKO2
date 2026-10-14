@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Inventory')
-@section('page-title', 'Inventory')
-@section('page-subtitle', 'Manage your stock, categories, and supplier data.')
+@section('title', 'Inventaris')
+@section('page-title', 'Inventaris')
+@section('page-subtitle', 'Kelola stok, kategori, dan data supplier Anda.')
 
 @section('header-actions')
     @if(auth()->user()->role === 'admin')
@@ -10,7 +10,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Add Product
+        Tambah Produk
     </a>
     @endif
 @endsection
@@ -107,7 +107,7 @@
 
     <div class="stat-card stat-card--clickable" onclick="openInvModal('productInventoryCard', 'Product Inventory')">
         <div class="stat-card__header">
-            <span class="stat-card__label">Total SKUs</span>
+            <span class="stat-card__label">Total SKU</span>
             <div class="stat-card__icon" style="background:#EFF6FF">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -115,12 +115,12 @@
             </div>
         </div>
         <div class="stat-card__value">{{ number_format($totalSkus) }}</div>
-        <div class="stat-card__meta text-muted text-sm">Active Products</div>
+        <div class="stat-card__meta text-muted text-sm">Produk Aktif</div>
     </div>
 
-    <div class="stat-card stat-card--clickable" style="border-color:#FEF3C7; background:#FFFBEB" onclick="openInvModal('stockAlertsCard', 'Stock Alerts')">
+    <div class="stat-card stat-card--clickable" style="border-color:#FEF3C7; background:#FFFBEB" onclick="openInvModal('stockAlertsCard', 'Peringatan Stok')">
         <div class="stat-card__header">
-            <span class="stat-card__label" style="color:#92400E">Low Stock</span>
+            <span class="stat-card__label" style="color:#92400E">Stok Menipis</span>
             <div class="stat-card__icon" style="background:#FEF3C7">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -131,7 +131,7 @@
         <div class="stat-card__value" style="color:#D97706">{{ $lowStockCount }}</div>
         <div class="stat-card__meta">
             <span class="badge badge--red">CRITICAL</span>
-            <span class="text-sm" style="color:#92400E">Items below threshold</span>
+            <span class="text-sm" style="color:#92400E">Item di bawah ambang</span>
         </div>
     </div>
 
@@ -153,9 +153,9 @@
     </div>
 
     @if(auth()->user()->role === 'admin')
-    <div class="stat-card stat-card--clickable" onclick="openInvModal('stockValueByCategoryCard', 'Stock Value by Category')">
+    <div class="stat-card stat-card--clickable" onclick="openInvModal('stockValueByCategoryCard', 'Nilai Stok per Kategori')">
         <div class="stat-card__header">
-            <span class="stat-card__label">Stock Value</span>
+            <span class="stat-card__label">Nilai Stok</span>
             <div class="stat-card__icon" style="background:#F0FDF4">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
                     <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
@@ -166,7 +166,7 @@
             <div class="stat-card__rp">Rp</div>
             <div class="stat-card__value">{{ number_format($stockValue, 0, ',', '.') }}</div>
         </div>
-        <div class="stat-card__meta text-muted text-sm">Estimated asset value</div>
+        <div class="stat-card__meta text-muted text-sm">Estimasi nilai aset</div>
     </div>
     @endif
 
@@ -177,8 +177,8 @@
 
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Category Breakdown</div>
-            <span class="card-subtitle">BY ITEM COUNT</span>
+            <div class="card-title">Rincian Kategori</div>
+            <span class="card-subtitle">BERDASARKAN JUMLAH ITEM</span>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
             @php
@@ -189,7 +189,7 @@
             @foreach($categoryBreakdown as $i => $cat)
             <div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px">
-                    <span style="font-size:13px; font-weight:500">{{ $cat->category ?? 'Uncategorized' }}</span>
+                    <span style="font-size:13px; font-weight:500">{{ $cat->category ?? 'Tanpa Kategori' }}</span>
                     <span style="font-size:13px; color:var(--text-muted)">{{ $cat->count }} items</span>
                 </div>
                 <div class="progress-bar">
@@ -202,14 +202,14 @@
             @endforeach
 
             @if($categoryBreakdown->isEmpty())
-                <p class="text-muted text-sm">No category data available.</p>
+                <p class="text-muted text-sm">Belum ada data kategori.</p>
             @endif
         </div>
     </div>
 
     <div class="card" id="stockAlertsCard">
         <div class="card-header">
-            <div class="card-title">Stock Alerts</div>
+            <div class="card-title">Peringatan Stok</div>
             <span class="badge badge--red">{{ $stockAlerts->count() }}</span>
         </div>
         <div class="card-body" style="padding-top:8px; padding-bottom:8px">
@@ -225,10 +225,10 @@
                     <div class="alert-item__detail {{ $alert->qty == 0 ? 'text-danger' : 'text-warning' }}">
                         @if($alert->qty == 0)
                             <span class="status-dot status-dot--red" style="margin-right:4px"></span>
-                            Out of Stock
+                            Stok Habis
                         @else
                             <span style="color:var(--amber-500)">⚠ </span>
-                            {{ $alert->qty }} {{ $alert->unit }} Left (threshold: {{ $alert->threshold }})
+                            {{ $alert->qty }} {{ $alert->unit }} tersisa (ambang: {{ $alert->threshold }})
                         @endif
                     </div>
                 </div>
@@ -241,7 +241,7 @@
                 </div>
             </a>
             @empty
-                <p class="text-muted text-sm" style="padding:8px 0; margin-left:12px;">No stock alerts. All items are healthy.</p>
+                <p class="text-muted text-sm" style="padding:8px 0; margin-left:12px;">Tidak ada peringatan stok. Semua item sehat.</p>
             @endforelse
         </div>
     </div>
@@ -255,7 +255,7 @@
         @foreach($stockValueByCategory as $i => $cat)
         <div>
             <div style="display:flex; justify-content:space-between; margin-bottom:5px">
-                <span style="font-size:13px; font-weight:500">{{ $cat->category ?? 'Uncategorized' }}</span>
+                <span style="font-size:13px; font-weight:500">{{ $cat->category ?? 'Tanpa Kategori' }}</span>
                 <span style="font-size:13px; color:var(--text-muted)">Rp {{ number_format($cat->value, 0, ',', '.') }}</span>
             </div>
             <div class="progress-bar">
@@ -267,7 +267,7 @@
         </div>
         @endforeach
         @if($stockValueByCategory->isEmpty())
-            <p class="text-muted text-sm">No data available.</p>
+            <p class="text-muted text-sm">Belum ada data.</p>
         @endif
     </div>
 </div>
@@ -319,14 +319,14 @@
 {{-- ===== PRODUCT INVENTORY TABLE ===== --}}
 <div class="card" id="productInventoryCard" style="overflow: visible;">
     <div class="card-header">
-        <div class="card-title">Product Inventory</div>
+        <div class="card-title">Inventaris Produk</div>
         
         <form method="GET" action="{{ route('inventory.index') }}" id="filterForm" style="display:flex; align-items:center; gap:8px;">
             <div class="search-input-wrapper" style="width:250px">
                 <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input type="text" name="search" class="form-input w-full" placeholder="Search product..."
+                <input type="text" name="search" class="form-input w-full" placeholder="Cari produk..."
                     value="{{ request('search') }}"
                     onchange="this.form.submit()">
             </div>
@@ -350,7 +350,7 @@
             
             <div style="display:flex; flex-direction:column; gap:10px">
                 <select name="category" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                    <option value="">All Categories</option>
+                    <option value="">Semua Kategori</option>
                     @foreach($categories as $cat)
                         <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
                             {{ $categoryLabels[$cat] ?? $cat }}
@@ -359,7 +359,7 @@
                 </select>
 
                 <select name="brand_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                    <option value="">All Brands</option>
+                    <option value="">Semua Brand</option>
                     @foreach($filterBrands as $brand)
                         <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
                             {{ $brand->name }}
@@ -368,7 +368,7 @@
                 </select>
 
                 <select name="supplier_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                    <option value="">All Suppliers</option>
+                    <option value="">Semua Supplier</option>
                     @foreach($filterSuppliers as $sup)
                         <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
                             {{ $sup->name }}
@@ -377,9 +377,9 @@
                 </select>
 
                 <select name="status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                    <option value="">Stock Status</option>
-                    <option value="low" {{ request('status') == 'low' ? 'selected' : '' }}>Low Stock</option>
-                    <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Out of Stock</option>
+                    <option value="">Status Stok</option>
+                    <option value="low" {{ request('status') == 'low' ? 'selected' : '' }}>Stok Menipis</option>
+                    <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Stok Habis</option>
                 </select>
             </div>
         </div>
@@ -424,9 +424,9 @@
                     <td style="font-weight:600">Rp {{ number_format($p->sell_price, 0, ',', '.') }}</td>
                     <td>
                         @if($p->qty == 0)
-                            <span class="badge badge--red">Out of Stock</span>
+                            <span class="badge badge--red">Stok Habis</span>
                         @elseif($p->qty <= $p->threshold)
-                            <span class="badge badge--yellow">Low Stock</span>
+                            <span class="badge badge--yellow">Stok Menipis</span>
                         @else
                             <span class="badge badge--green">Healthy</span>
                         @endif
@@ -450,7 +450,7 @@
                                   onsubmit="return confirm('Hapus produk {{ addslashes($p->name) }}?')">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn-icon" title="Delete" style="color:var(--red-500)">
+                                <button type="submit" class="btn-icon" title="Hapus" style="color:var(--red-500)">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"/>
                                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -466,7 +466,7 @@
                 @empty
                     <tr>
                         <td colspan="10" style="text-align:center; padding:32px; color:var(--text-muted)">
-                            No products found.
+                            Produk tidak ditemukan.
                         </td>
                     </tr>
                 @endforelse

@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'New Transaction')
-@section('page-title', 'New Transaction')
-@section('page-subtitle', 'Add items to cart and process payment.')
+@section('title', 'Transaksi Baru')
+@section('page-title', 'Transaksi Baru')
+@section('page-subtitle', 'Tambahkan item ke keranjang dan proses pembayaran.')
 
 @section('header-actions')
     <a href="{{ route('transactions.index') }}" class="btn btn--secondary">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
         </svg>
-        Back to Transactions
+        Kembali ke Transaksi
     </a>
 @endsection
 
@@ -48,7 +48,7 @@
                     <input
                         type="text"
                         class="form-input"
-                        placeholder="Search product by name or SKU..."
+                        placeholder="Cari produk berdasarkan nama atau SKU..."
                         x-model="search"
                         style="width:100%"
                     >
@@ -68,13 +68,13 @@
                             <div style="margin-top:6px">
                                 <span
                                     :class="p.qty === 0 ? 'badge badge--red' : (p.qty <= p.threshold ? 'badge badge--amber' : 'badge badge--green')"
-                                    x-text="p.qty === 0 ? 'Out of Stock' : 'Stock: ' + p.qty"
+                                    x-text="p.qty === 0 ? 'Stok Habis' : 'Stok: ' + p.qty"
                                 ></span>
                             </div>
                         </div>
                     </template>
                     <div x-show="filteredProducts.length === 0" style="grid-column:1/-1; text-align:center; padding:32px; color:var(--text-muted); font-size:13px">
-                        No products found.
+                        Produk tidak ditemukan.
                     </div>
                 </div>
             </div>

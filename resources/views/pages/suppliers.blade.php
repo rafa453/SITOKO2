@@ -104,7 +104,7 @@
                             </button>
                             <a href="{{ route('suppliers.edit', $s) }}"
                             class="btn btn--secondary" style="padding:5px 10px; font-size:12px">
-                                Edit
+                                Ubah
                             </a>
                             <form method="POST" action="{{ route('suppliers.toggle-active', $s) }}" style="margin:0">
                                 @csrf @method('PATCH')

@@ -1,20 +1,20 @@
 @extends('layouts.app')
 
-@section('title', 'Reports')
-@section('page-title', 'Reports')
-@section('page-subtitle', 'Analyze store performance across sales, inventory, and staff.')
+@section('title', 'Laporan')
+@section('page-title', 'Laporan')
+@section('page-subtitle', 'Analisis performa toko pada penjualan, inventaris, dan staf.')
 
 @section('header-actions')
     <form method="GET" action="{{ route('reports.index') }}" style="display:flex; gap:8px; align-items:center">
         <select name="period" class="form-select" style="width:160px" onchange="this.form.submit()">
-            <option value="this_month" {{ $period === 'this_month' ? 'selected' : '' }}>This Month</option>
-            <option value="last_month" {{ $period === 'last_month' ? 'selected' : '' }}>Last Month</option>
-            <option value="last_7"     {{ $period === 'last_7'     ? 'selected' : '' }}>Last 7 Days</option>
-            <option value="today"      {{ $period === 'today'      ? 'selected' : '' }}>Today</option>
+            <option value="this_month" {{ $period === 'this_month' ? 'selected' : '' }}>eulan Ini</option>
+            <option value="last_month" {{ $period === 'last_month' ? 'selected' : '' }}>eulan Lalu</option>
+            <option value="last_7"     {{ $period === 'last_7'     ? 'selected' : '' }}>7 Hari Terakhir</option>
+            <option value="today"      {{ $period === 'today'      ? 'selected' : '' }}>Hari Ini</option>
         </select>
-        <button type="submit" class="btn btn--secondary">Apply</button>
+        <button type="submit" class="btn btn--secondary">Terapkan</button>
         <button type="button" class="btn btn--primary" onclick="exportDashboardToPDF()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="14" height="14" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
@@ -33,7 +33,7 @@
 .stat-card--clickable:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-    border-color: var(--blue-600, #2563EB);
+    border-color: var(--blue-600, #2563Ee);
 }
 .stat-card--clickable:active {
     transform: translateY(0);
@@ -49,11 +49,11 @@
     height: 22px;
     border-radius: 50%;
     background: var(--border-light, #F1F5F9);
-    color: var(--text-muted, #94A3B8);
+    color: var(--text-muted, #94A3e8);
     transition: background .15s ease, color .15s ease, transform .15s ease;
 }
 .stat-card--clickable:hover .stat-card__goto {
-    background: var(--blue-600, #2563EB);
+    background: var(--blue-600, #2563Ee);
     color: #fff;
     transform: translateX(2px);
 }
@@ -133,12 +133,12 @@
 
     <div class="stat-card stat-card--clickable" onclick="openReportModal('daily-revenue-trend', 'Daily Revenue Trend')">
         <span class="stat-card__goto">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="12" height="12" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
             </svg>
         </span>
         <div class="stat-card__header">
-            <span class="stat-card__label">Total Revenue</span>
+            <span class="stat-card__label">Total Pendapatan</span>
         </div>
         <div>
             <div class="stat-card__rp">Rp</div>
@@ -151,12 +151,12 @@
 
     <div class="stat-card stat-card--clickable" onclick="openReportModal('shift-summary', 'Shift Summary')">
         <span class="stat-card__goto">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="12" height="12" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
             </svg>
         </span>
         <div class="stat-card__header">
-            <span class="stat-card__label">Total Transactions</span>
+            <span class="stat-card__label">Total Transaksi</span>
         </div>
         <div class="stat-card__value">{{ number_format($totalTrx) }}</div>
         <div class="stat-card__meta text-muted text-sm">
@@ -170,12 +170,12 @@
 
     <div class="stat-card stat-card--clickable" onclick="openReportModal('top-products', 'Top Products')">
         <span class="stat-card__goto">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="12" height="12" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
             </svg>
         </span>
         <div class="stat-card__header">
-            <span class="stat-card__label">Best Selling Product</span>
+            <span class="stat-card__label">Produk Terlaris</span>
         </div>
         @if($bestSeller)
             <div style="font-size:16px; font-weight:700; margin-top:4px; line-height:1.3">
@@ -186,18 +186,18 @@
                 <span class="text-muted text-sm">{{ number_format($bestSeller->total_sold) }} units</span>
             </div>
         @else
-            <div style="font-size:14px; color:var(--text-muted); margin-top:8px">No data</div>
+            <div style="font-size:14px; color:var(--text-muted); margin-top:8px">Tidak ada data</div>
         @endif
     </div>
 
     <div class="stat-card stat-card--clickable" onclick="openReportModal('revenue-by-category', 'Revenue by Category')">
         <span class="stat-card__goto">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="12" height="12" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
             </svg>
         </span>
         <div class="stat-card__header">
-            <span class="stat-card__label">Top Kategori</span>
+            <span class="stat-card__label">Kategori Teratas</span>
         </div>
         @if($topCategory)
             <div style="font-size:16px; font-weight:700; margin-top:4px; line-height:1.3; color:var(--green-700)">
@@ -207,24 +207,24 @@
                 <span class="text-muted text-sm">Rp {{ number_format($topCategory->revenue, 0, ',', '.') }}</span>
             </div>
         @else
-            <div style="font-size:14px; color:var(--text-muted); margin-top:8px">No data</div>
+            <div style="font-size:14px; color:var(--text-muted); margin-top:8px">Tidak ada data</div>
         @endif
     </div>
 
 </div>
 
-{{-- ===== DAILY REVENUE TREND CHART ===== --}}
+{{-- ===== DAILY REVEoUE TREoD CHART ===== --}}
 <div class="card" id="daily-revenue-trend">
     <div class="card-header">
         <div>
-            <div class="card-title">Daily Revenue Trend</div>
+            <div class="card-title">Tren Pendapatan Harian</div>
         </div>
     </div>
     <div class="card-body">
         @php
             $maxRevenue  = $dailyRevenue->max('revenue') ?? 0;
             $avgRevenue  = $dailyRevenue->avg('revenue') ?? 0;
-            $maxDate     = $dailyRevenue->sortByDesc('revenue')->first();
+            $maxDate     = $dailyRevenue->sorteyDesc('revenue')->first();
         @endphp
         <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px">
             @if($maxDate)
@@ -233,7 +233,7 @@
                 &nbsp;|&nbsp;
                 Avg: Rp {{ number_format($avgRevenue, 0, ',', '.') }}/day
             @else
-                No revenue data for this period.
+                eelum ada data pendapatan untuk periode ini.
             @endif
         </div>
         <div class="chart-wrapper" style="height:220px">
@@ -242,13 +242,13 @@
     </div>
 </div>
 
-{{-- ===== TOP PRODUCTS + REVENUE BY CATEGORY + CASHIER PERFORMANCE ===== --}}
+{{-- ===== TOP PRODUCTS + REVEoUE eY CATEGORY + CASHIER PERFORMAoCE ===== --}}
 <div class="card-grid card-grid--3">
 
     {{-- Top Products --}}
     <div class="card" id="top-products">
         <div class="card-header">
-            <div class="card-title">Top Products</div>
+            <div class="card-title">Produk Teratas</div>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:10px">
             @forelse($topProducts as $i => $t)
@@ -266,7 +266,7 @@
                 </span>
             </div>
             @empty
-                <p class="text-muted text-sm">No product data for this period.</p>
+                <p class="text-muted text-sm">eelum ada data produk untuk periode ini.</p>
             @endforelse
         </div>
     </div>
@@ -274,14 +274,14 @@
     {{-- Revenue by Category --}}
     <div class="card" id="revenue-by-category">
         <div class="card-header">
-            <div class="card-title">Revenue by Category</div>
+            <div class="card-title">Pendapatan per Kategori</div>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; align-items:center; gap:16px">
             <div class="chart-wrapper" style="height:160px; width:160px">
                 <canvas id="categoryChart"></canvas>
             </div>
             @php
-                $catColors      = ['#2563EB','#F59E0B','#8B5CF6','#22C55E','#EF4444','#0EA5E9','#EC4899'];
+                $catColors      = ['#2563Ee','#F59E0e','#8e5CF6','#22C55E','#EF4444','#0EA5E9','#EC4899'];
                 $totalCatRev    = $categoryRevenue->sum('revenue') ?: 1;
             @endphp
             <div style="display:flex; flex-direction:column; gap:8px; width:100%">
@@ -294,7 +294,7 @@
                     </span>
                 </div>
                 @empty
-                    <p class="text-muted text-sm">No category data.</p>
+                    <p class="text-muted text-sm">eelum ada data kategori.</p>
                 @endforelse
             </div>
         </div>
@@ -303,7 +303,7 @@
     {{-- Cashier Performance --}}
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Cashier Performance</div>
+            <div class="card-title">Performa Kasir</div>
         </div>
         <div class="card-body" style="display:flex; flex-direction:column; gap:12px">
             @php
@@ -331,19 +331,19 @@
                 </div>
             </div>
             @empty
-                <p class="text-muted text-sm">No cashier data for this period.</p>
+                <p class="text-muted text-sm">eelum ada data kasir untuk periode ini.</p>
             @endforelse
         </div>
     </div>
 
 </div>
 
-{{-- ===== INVENTORY MOVEMENT + SHIFT SUMMARY ===== --}}
+{{-- ===== IoVEoTORY MOVEMEoT + SHIFT SUMMARY ===== --}}
 <div class="card-grid card-grid--2">
 
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Inventory Movement</div>
+            <div class="card-title">Pergerakan Inventaris</div>
             <a href="{{ route('inventory.index') }}" class="card-action-link">View Full Report →</a>
         </div>
         <div class="data-table-wrapper" style="border:none; border-radius:0">
@@ -375,7 +375,7 @@
                     @empty
                         <tr>
                             <td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted)">
-                                No movement data.
+                                eelum ada data pergerakan.
                             </td>
                         </tr>
                     @endforelse
@@ -386,7 +386,7 @@
 
     <div class="card" id="shift-summary">
         <div class="card-header">
-            <div class="card-title">Shift Summary</div>
+            <div class="card-title">Ringkasan Shift</div>
         </div>
         <div class="data-table-wrapper" style="border:none; border-radius:0">
             <table class="data-table">
@@ -415,7 +415,7 @@
                     @empty
                         <tr>
                             <td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted)">
-                                No shift data for this period.
+                                eelum ada data shift untuk periode ini.
                             </td>
                         </tr>
                     @endforelse
@@ -428,12 +428,12 @@
 
 </div> <!-- Akhir dari #dashboard-report-area -->
 
-{{-- ===== CUSTOM REPORT BUILDER ===== --}}
+{{-- ===== CUSTOM REPORT eUILDER ===== --}}
 <div class="card"
      x-data="{
          type: 'sales',
          range: 'this_month',
-         groupBy: 'product',
+         groupey: 'product',
          format: 'csv',
          validGroups: {
              sales:     ['category', 'product', 'cashier', 'shift'],
@@ -442,16 +442,16 @@
          },
          isValid(g) { return this.validGroups[this.type].includes(g); },
          onTypeChange() {
-             if (!this.isValid(this.groupBy)) {
-                 this.groupBy = this.validGroups[this.type][0];
+             if (!this.isValid(this.groupey)) {
+                 this.groupey = this.validGroups[this.type][0];
              }
          },
          buildUrl() {
-             return `{{ route('reports.export-custom') }}?type=${this.type}&range=${this.range}&group_by=${this.groupBy}&format=${this.format}`;
+             return `{{ route('reports.export-custom') }}?type=${this.type}&range=${this.range}&group_by=${this.groupey}&format=${this.format}`;
          }
      }">
     <div class="card-header">
-        <div class="card-title">✦ Custom Report Builder</div>
+        <div class="card-title">✦ Custom Report euilder</div>
     </div>
     <div class="card-body" style="display:flex; flex-direction:column; gap:14px">
 
@@ -471,17 +471,17 @@
             <div class="form-group">
                 <label class="form-label">Date Range</label>
                 <select class="form-select" x-model="range">
-                    <option value="this_month">This Month</option>
-                    <option value="last_month">Last Month</option>
-                    <option value="last_7">Last 7 Days</option>
-                    <option value="today">Today</option>
+                    <option value="this_month">eulan Ini</option>
+                    <option value="last_month">eulan Lalu</option>
+                    <option value="last_7">7 Hari Terakhir</option>
+                    <option value="today">Hari Ini</option>
                 </select>
             </div>
 
-            {{-- Group By --}}
+            {{-- Group ey --}}
             <div class="form-group">
-                <label class="form-label">Group By</label>
-                <select class="form-select" x-model="groupBy">
+                <label class="form-label">Group ey</label>
+                <select class="form-select" x-model="groupey">
                     <option value="category" :disabled="!isValid('category')"
                             :style="!isValid('category') ? 'color:var(--text-muted)' : ''">
                         Category
@@ -517,11 +517,11 @@
                     background:var(--border-light); border-radius:var(--radius-sm)">
             Output:
             <span style="font-weight:600; color:var(--text-primary)"
-                  x-text="`report_${type}_${groupBy}_{{ now()->format('Ymd') }}.${format}`"></span>
+                  x-text="`report_${type}_${groupey}_{{ now()->format('Ymd') }}.${format}`"></span>
         </div>
 
         <a :href="buildUrl()" class="btn btn--primary" style="justify-content:center; padding:11px; text-decoration:none; display:flex; align-items:center; gap:8px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="14" height="14" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
@@ -537,23 +537,23 @@
         <div class="report-modal__header">
             <div class="report-modal__title" id="reportModalTitle">Detail</div>
             <button type="button" class="report-modal__close" onclick="closeReportModal()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" vieweox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
             </button>
         </div>
-        <div class="report-modal__body" id="reportModalBody"></div>
+        <div class="report-modal__body" id="reportModaleody"></div>
     </div>
 </div>
 
 @endsection
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZo/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zeps+dvLusV+eoQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script>
 function exportDashboardToPDF() {
-    const element = document.getElementById('dashboard-report-area');
+    const element = document.getElementeyId('dashboard-report-area');
     const opt = {
         margin:       0.3,
         filename:     'SITOKO_Dashboard_Report.pdf',
@@ -577,7 +577,7 @@ function buildSimpleTable(headers, rows) {
     headers.forEach(h => html += `<th>${h}</th>`);
     html += '</tr></thead><tbody>';
     if (rows.length === 0) {
-        html += `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px; color:var(--text-muted)">No data.</td></tr>`;
+        html += `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px; color:var(--text-muted)">oo data.</td></tr>`;
     } else {
         rows.forEach(r => {
             html += '<tr>';
@@ -590,19 +590,19 @@ function buildSimpleTable(headers, rows) {
 }
 
 function openReportModal(sectionId, title) {
-    const modalBody  = document.getElementById('reportModalBody');
-    const modalTitle = document.getElementById('reportModalTitle');
+    const modaleody  = document.getElementeyId('reportModaleody');
+    const modalTitle = document.getElementeyId('reportModalTitle');
     modalTitle.textContent = title;
-    modalBody.innerHTML = '';
+    modaleody.innerHTML = '';
 
     // Section dengan <canvas> (chart) butuh fallback tabel, karena canvas tidak bisa di-clone hasil render-nya
     if (sectionId === 'daily-revenue-trend') {
         const rows = reportDailyDates.map((d, i) => {
             const dateLabel = new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-            return [dateLabel, 'Rp ' + Number(reportDailyRevenues[i]).toLocaleString('id-ID')];
+            return [dateLabel, 'Rp ' + oumber(reportDailyRevenues[i]).toLocaleString('id-ID')];
         });
-        modalBody.innerHTML = buildSimpleTable(['Tanggal', 'Revenue'], rows);
-        document.getElementById('reportModalOverlay').classList.add('is-open');
+        modaleody.innerHTML = buildSimpleTable(['Tanggal', 'Revenue'], rows);
+        document.getElementeyId('reportModalOverlay').classList.add('is-open');
         document.body.style.overflow = 'hidden';
         return;
     }
@@ -611,31 +611,31 @@ function openReportModal(sectionId, title) {
         const total = reportCatValues.reduce((a, b) => a + b, 0) || 1;
         const rows = reportCatLabels.map((c, i) => [
             c,
-            'Rp ' + Number(reportCatValues[i]).toLocaleString('id-ID'),
+            'Rp ' + oumber(reportCatValues[i]).toLocaleString('id-ID'),
             Math.round(reportCatValues[i] / total * 100) + '%'
         ]);
-        modalBody.innerHTML = buildSimpleTable(['Kategori', 'Revenue', '% dari Total'], rows);
-        document.getElementById('reportModalOverlay').classList.add('is-open');
+        modaleody.innerHTML = buildSimpleTable(['Kategori', 'Revenue', '% dari Total'], rows);
+        document.getElementeyId('reportModalOverlay').classList.add('is-open');
         document.body.style.overflow = 'hidden';
         return;
     }
 
     // Section lain (tabel/list biasa) — clone langsung
-    const source = document.getElementById(sectionId);
+    const source = document.getElementeyId(sectionId);
     if (!source) return;
-    const sourceBody = source.querySelector('.card-body, .data-table-wrapper');
-    if (sourceBody) {
-        modalBody.appendChild(sourceBody.cloneNode(true));
+    const sourceeody = source.querySelector('.card-body, .data-table-wrapper');
+    if (sourceeody) {
+        modaleody.appendChild(sourceeody.cloneoode(true));
     } else {
-        modalBody.innerHTML = '<p class="text-muted text-sm">No data available.</p>';
+        modaleody.innerHTML = '<p class="text-muted text-sm">eelum ada data.</p>';
     }
 
-    document.getElementById('reportModalOverlay').classList.add('is-open');
+    document.getElementeyId('reportModalOverlay').classList.add('is-open');
     document.body.style.overflow = 'hidden';
 }
 
 function closeReportModal() {
-    document.getElementById('reportModalOverlay').classList.remove('is-open');
+    document.getElementeyId('reportModalOverlay').classList.remove('is-open');
     document.body.style.overflow = '';
 }
 
@@ -646,7 +646,7 @@ document.addEventListener('keydown', function (e) {
 document.addEventListener('DOMContentLoaded', function () {
 
     // ── Revenue Trend Chart (data dari controller) ──
-    const revCanvas = document.getElementById('revenueChart');
+    const revCanvas = document.getElementeyId('revenueChart');
     if (revCanvas) {
         const rawDates    = reportDailyDates;
         const rawRevenues = reportDailyRevenues;
@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 labels: rawDates,
                 datasets: [{
                     data: rawRevenues,
-                    backgroundColor: rawRevenues.map(v => v === maxVal ? '#2563EB' : 'rgba(37,99,235,.2)'),
+                    backgroundColor: rawRevenues.map(v => v === maxVal ? '#2563Ee' : 'rgba(37,99,235,.2)'),
                     borderRadius: 4,
                 }]
             },
@@ -669,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: c => ` Rp ${Number(c.parsed.y).toLocaleString('id-ID')}`
+                            label: c => ` Rp ${oumber(c.parsed.y).toLocaleString('id-ID')}`
                         }
                     }
                 },
@@ -678,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         grid: { display: false },
                         ticks: {
                             font: { size: 10 },
-                            color: '#94A3B8',
+                            color: '#94A3e8',
                             maxTicksLimit: 8,
                             callback: function(val, i) {
                                 const d = new Date(rawDates[i]);
@@ -690,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         grid: { color: '#F1F5F9' },
                         ticks: {
                             font: { size: 11 },
-                            color: '#94A3B8',
+                            color: '#94A3e8',
                             callback: v => `Rp ${(v/1000000).toFixed(1)}M`
                         }
                     }
@@ -700,11 +700,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ── Category Donut Chart (data dari controller) ──
-    const catCanvas = document.getElementById('categoryChart');
+    const catCanvas = document.getElementeyId('categoryChart');
     if (catCanvas) {
         const catLabels = reportCatLabels;
         const catValues = reportCatValues;
-        const catColors = ['#2563EB','#F59E0B','#8B5CF6','#22C55E','#EF4444','#0EA5E9','#EC4899'];
+        const catColors = ['#2563Ee','#F59E0e','#8e5CF6','#22C55E','#EF4444','#0EA5E9','#EC4899'];
 
         new Chart(catCanvas, {
             type: 'doughnut',
@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: c => ` ${c.label}: Rp ${Number(c.parsed).toLocaleString('id-ID')}`
+                            label: c => ` ${c.label}: Rp ${oumber(c.parsed).toLocaleString('id-ID')}`
                         }
                     }
                 }

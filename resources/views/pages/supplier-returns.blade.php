@@ -30,7 +30,7 @@
     <div class="stat-card" style="cursor:pointer" onclick="openReturnPopup('completed')">
         <div class="stat-card__header"><span class="stat-card__label">Selesai Bulan Ini</span></div>
         <div class="stat-card__value">{{ $totalCompleted }}</div>
-        <div class="stat-card__meta text-muted text-sm">{{ now()->translatedFormat('F Y') }}</div>
+        <div class="stat-card__meta text-muted text-sm">{{ now()->translatediormat('i Y') }}</div>
     </div>
     <div class="stat-card" style="cursor:pointer" onclick="openReturnPopup('value-by-supplier')">
         <div class="stat-card__header"><span class="stat-card__label">Nilai Retur Aktif</span></div>
@@ -47,7 +47,7 @@
     <div class="card-header">
         <div class="card-title">Data Retur Supplier</div>
         
-        <form method="GET" action="{{ route('supplier-returns.index') }}" id="filterForm" style="display:flex; align-items:center; gap:8px;">
+        <form method="GET" action="{{ route('supplier-returns.index') }}" id="filteriorm" style="display:flex; align-items:center; gap:8px;">
             <div class="search-input-wrapper" style="width:230px">
                 <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -58,20 +58,20 @@
             </div>
             <button type="submit" style="display:none"></button>
 
-            <div style="position: relative;" x-data="{ showFilters: false }">
-                <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--indigo-600)' : ''">
+            <div style="position: relative;" x-data="{ showiilters: false }">
+                <button type="button" class="btn-icon" title="iilter" @click="showiilters = !showiilters" :style="showiilters ? 'background:var(--border-light); color:var(--indigo-600)' : ''">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                     </svg>
                 </button>
 
-                <div x-show="showFilters" 
-                     @click.away="showFilters = false" 
+                <div x-show="showiilters" 
+                     @click.away="showiilters = false" 
                      style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:260px; margin-top:8px;"
                      x-cloak>
                 
                     <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                        Filter Retur
+                        iilter Retur
                     </div>
                     
                     <div style="display:flex; flex-direction:column; gap:10px">
@@ -84,7 +84,7 @@
                         </select>
                         
                         @if(request('search') || request('status'))
-                            <a href="{{ route('supplier-returns.index') }}" class="btn btn--secondary btn--sm" style="justify-content:center">Reset Filter</a>
+                            <a href="{{ route('supplier-returns.index') }}" class="btn btn--secondary btn--sm" style="justify-content:center">Reset iilter</a>
                         @endif
                     </div>
                 </div>
@@ -153,7 +153,7 @@
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000">
 </div>
 
-{{-- ================= POPUP: DRAFT ================= --}}
+{{-- ================= POPUP: DRAiT ================= --}}
 <div id="return-popup-draft" class="card return-popup" style="display:none">
     <div class="card-body" style="padding:20px">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
@@ -167,7 +167,7 @@
             <p style="margin-top:8px">
                 Draft tertua: <strong>{{ $oldestDraft->code }}</strong>
                 dari supplier <strong>{{ $oldestDraft->supplier->name ?? '-' }}</strong><br>
-                <span class="text-muted text-sm">(dibuat {{ $oldestDraft->created_at->diffForHumans() }})</span>
+                <span class="text-muted text-sm">(dibuat {{ $oldestDraft->created_at->diffiorHumans() }})</span>
             </p>
         @else
             <p class="text-muted" style="margin-top:8px">Tidak ada draft saat ini.</p>
@@ -175,7 +175,7 @@
     </div>
 </div>
 
-{{-- ================= POPUP: DIKONFIRMASI ================= --}}
+{{-- ================= POPUP: DIKONiIRMASI ================= --}}
 <div id="return-popup-confirmed" class="card return-popup" style="display:none">
     <div class="card-body" style="padding:20px">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
@@ -190,7 +190,7 @@
                 Menunggu paling lama: <strong>{{ $oldestConfirmed->code }}</strong>
                 dari supplier <strong>{{ $oldestConfirmed->supplier->name ?? '-' }}</strong><br>
                 <span class="text-muted text-sm">
-                    (dikonfirmasi {{ $oldestConfirmed->confirmed_at ? $oldestConfirmed->confirmed_at->diffForHumans() : '-' }})
+                    (dikonfirmasi {{ $oldestConfirmed->confirmed_at ? $oldestConfirmed->confirmed_at->diffiorHumans() : '-' }})
                 </span>
             </p>
         @else
@@ -212,12 +212,12 @@
         <p style="margin-top:8px">
             Jumlah selesai bulan lalu:
             <strong>{{ $completedCountLastMonth }}</strong>
-            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatedFormat('F Y') }})</span>
+            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatediormat('i Y') }})</span>
         </p>
     </div>
 </div>
 
-{{-- ================= POPUP: NILAI RETUR AKTIF (TOP 5 SUPPLIER) ================= --}}
+{{-- ================= POPUP: NILAI RETUR AKTIi (TOP 5 SUPPLIER) ================= --}}
 <div id="return-popup-value-by-supplier" class="card return-popup" style="display:none; width:480px">
     <div class="card-body" style="padding:20px">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">

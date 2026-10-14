@@ -230,7 +230,7 @@
                         <input type="text" name="name" class="form-input" style="width:100%" required placeholder="e.g. Indomie, Bimoli">
                     </div>
                     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px">
-                        <button type="button" class="btn btn--secondary" @click="open = false">Cancel</button>
+                        <button type="button" class="btn btn--secondary" @click="open = false">Batal</button>
                         <button type="submit" class="btn btn--primary">Save Brand</button>
                     </div>
                 </form>

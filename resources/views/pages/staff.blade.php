@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Staff Management')
-@section('page-title', 'Staff Management')
-@section('page-subtitle', 'Manage cashier accounts, roles, and shift assignments.')
+@section('title', 'Manajemen Staf')
+@section('page-title', 'Manajemen Staf')
+@section('page-subtitle', 'Kelola akun kasir, peran, dan penugasan shift.')
 
 @section('header-actions')
     <form method="GET" action="{{ route('staff.index') }}" class="filter-bar" id="staffFilterForm" style="display:flex; align-items:center; gap:8px">
@@ -10,7 +10,7 @@
             <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
-            <input type="text" name="search" class="form-input" placeholder="Search staff..."
+            <input type="text" name="search" class="form-input" placeholder="Cari staf..."
                 value="{{ request('search') }}" onchange="this.form.submit()">
         </div>
 
@@ -27,12 +27,12 @@
                  x-cloak>
             
                 <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                    Filter Staff
+                    Filter Staf
                 </div>
                 
                 <div style="display:flex; flex-direction:column; gap:10px">
                     <select name="status" class="form-select w-full" onchange="this.form.submit()">
-                        <option value="">All Status</option>
+                        <option value="">Semua Status</option>
                         <option value="active"   {{ request('status') == 'active'   ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
@@ -51,7 +51,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        Add Staff
+        Tambah Staf
     </button>
 @endsection
 
@@ -268,10 +268,10 @@
 {{-- ===== SHIFT SCHEDULE + TOP PERFORMERS ===== --}}
 <div class="card-grid card-grid--60-40">
 
-    {{-- Today's Shift Schedule --}}
+    {{-- Jadwal Shift Hari Ini --}}
     <div class="card" id="shiftSchedule">
         <div class="card-header">
-            <div class="card-title">Today's Shift Schedule</div>
+            <div class="card-title">Jadwal Shift Hari Ini</div>
             <a href="#" class="card-action-link">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -583,7 +583,7 @@
                 name="log_search"
                 class="form-input"
                 style="width:180px; font-size:13px; padding:6px 12px;"
-                placeholder="Search action/subject..."
+                placeholder="Cari aksi/subjek..."
                 value="{{ request('log_search') }}"
             >
 
@@ -724,8 +724,8 @@
             </div>
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:4px">
                 <button type="button" class="btn btn--secondary"
-                    onclick="document.getElementById('modalAddStaff').style.display='none'">Cancel</button>
-                <button type="submit" class="btn btn--primary">Add Staff</button>
+                    onclick="document.getElementById('modalAddStaff').style.display='none'">Batal</button>
+                <button type="submit" class="btn btn--primary">Tambah Staf</button>
             </div>
         </form>
     </div>
@@ -736,7 +736,7 @@
      z-index:999; align-items:center; justify-content:center">
     <div style="background:var(--surface); border-radius:var(--radius-lg); padding:28px; width:440px; max-width:95vw">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-            <div style="font-size:15px; font-weight:700">Edit Staff</div>
+            <div style="font-size:15px; font-weight:700">Ubah Staf</div>
             <button onclick="document.getElementById('modalEditStaff').style.display='none'"
                     style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px">✕</button>
         </div>
@@ -784,8 +784,8 @@
             </div>
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:4px">
                 <button type="button" class="btn btn--secondary"
-                    onclick="document.getElementById('modalEditStaff').style.display='none'">Cancel</button>
-                <button type="submit" class="btn btn--primary">Save Changes</button>
+                    onclick="document.getElementById('modalEditStaff').style.display='none'">Batal</button>
+                <button type="submit" class="btn btn--primary">Simpan Perubahan</button>
             </div>
         </form>
     </div>
@@ -866,7 +866,7 @@ function openStaffModal(sectionId, title) {
     if (sourceBody) {
         modalBody.appendChild(sourceBody.cloneNode(true));
     } else {
-        modalBody.innerHTML = '<p class="text-muted text-sm">No data available.</p>';
+        modalBody.innerHTML = '<p class="text-muted text-sm">Belum ada data.</p>';
     }
 
     document.getElementById('staffModalOverlay').classList.add('is-open');
