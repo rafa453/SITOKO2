@@ -143,7 +143,7 @@
         <div class="card" 
              x-show="openModal"
              x-transition.scale.85
-             style="width: 520px; max-width: 100%; max-height: 85vh; display: flex; flex-direction: column; background: #fff; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); margin: auto;">
+             style="width: 520px; max-width: 100%; max-height: 85vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); margin: auto;">
             
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-light)">
                 <div class="card-title" style="font-weight: 700; font-size: 16px;" x-text="

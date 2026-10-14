@@ -105,7 +105,7 @@
     display: flex;
 }
 .staff-modal {
-    background: #fff;
+    background: var(--surface);
     border-radius: var(--radius, 10px);
     width: 100%;
     max-width: 640px;

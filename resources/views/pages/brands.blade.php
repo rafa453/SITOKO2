@@ -72,7 +72,7 @@
          x-transition.opacity>
         
         <div @click.outside="isModalOpen = false" 
-             style="background:#fff; border-radius:12px; width:100%; max-width:500px; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);" 
+             style="background:var(--surface); border-radius:12px; width:100%; max-width:500px; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);" 
              x-transition>
             
             {{-- Modal Header --}}
