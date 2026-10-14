@@ -147,7 +147,7 @@
 <div id="supplierDetailOverlay"
      onclick="if(event.target===this) closeSupplierDetail()"
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:16px">
-    <div style="background:var(--bg-card, #fff); border-radius:12px; width:100%; max-width:440px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.25); max-height:85vh; overflow-y:auto">
+    <div style="background:var(--surface); border-radius:12px; width:100%; max-width:440px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.25); max-height:85vh; overflow-y:auto; border:1px solid var(--border)">
         <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px">
             <h3 id="sd-name" style="margin:0; font-size:18px; font-weight:700"></h3>
             <button type="button" onclick="closeSupplierDetail()"

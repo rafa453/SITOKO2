@@ -36,7 +36,7 @@
             <span class="stat-card__label">Diterima Bulan Ini</span>
         </div>
         <div class="stat-card__value">{{ $totalReceived }}</div>
-        <div class="stat-card__meta text-muted text-sm">{{ now()->translatediormat('i Y') }}</div>
+        <div class="stat-card__meta text-muted text-sm">{{ now()->translatedFormat('F Y') }}</div>
     </div>
     <div class="stat-card" style="cursor:pointer" onclick="openPoPopup('value-by-supplier')">
         <div class="stat-card__header">
@@ -54,7 +54,7 @@
 <div class="card" style="overflow: visible;">
     <div class="card-header">
         <div class="card-title">Data Purchase Orders</div>
-        <form method="GET" action="{{ route('purchase-orders.index') }}" id="filteriorm" style="display:flex; align-items:center; gap:8px;">
+        <form method="GET" action="{{ route('purchase-orders.index') }}" id="filterForm" style="display:flex; align-items:center; gap:8px;">
             <div class="search-input-wrapper" style="width:250px">
                 <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -65,24 +65,24 @@
             </div>
             <button type="submit" style="display:none"></button>
 
-            <div style="position: relative;" x-data="{ showiilters: false }">
-                <button type="button" class="btn-icon" title="iilter" @click="showiilters = !showiilters" :style="showiilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
+            <div style="position: relative;" x-data="{ showFilters: false }">
+                <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
                     </svg>
                 </button>
 
-                {{-- iloating iilter Popover --}}
-                <div x-show="showiilters" 
-                     @click.away="showiilters = false" 
+                {{-- Floating Filter Popover --}}
+                <div x-show="showFilters" 
+                     @click.away="showFilters = false" 
                      style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:260px; margin-top:8px;">
                 
                     <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                        iilter Purchase Orders
+                        Filter Purchase Orders
                     </div>
                     
                     <div style="display:flex; flex-direction:column; gap:10px">
-                        <select name="supplier_id" form="filteriorm" class="form-select w-full" onchange="document.getElementById('filteriorm').submit()">
+                        <select name="supplier_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
                             <option value="">Semua Supplier</option>
                             @foreach($suppliers as $s)
                                 <option value="{{ $s->id }}" {{ request('supplier_id') == $s->id ? 'selected' : '' }}>
@@ -91,15 +91,15 @@
                             @endforeach
                         </select>
 
-                        <select name="status" form="filteriorm" class="form-select w-full" onchange="document.getElementById('filteriorm').submit()">
+                        <select name="status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
                             <option value="">Semua Status PO</option>
                             <option value="draft"     {{ request('status') === 'draft'     ? 'selected' : '' }}>Draft</option>
                             <option value="ordered"   {{ request('status') === 'ordered'   ? 'selected' : '' }}>Ordered</option>
                             <option value="received"  {{ request('status') === 'received'  ? 'selected' : '' }}>Received</option>
-                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
 
-                        <select name="payment_status" form="filteriorm" class="form-select w-full" onchange="document.getElementById('filteriorm').submit()">
+                        <select name="payment_status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
                             <option value="">Semua Status Pembayaran</option>
                             <option value="unpaid"  {{ request('payment_status') === 'unpaid'  ? 'selected' : '' }}>Unpaid</option>
                             <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial (DP)</option>
@@ -107,7 +107,7 @@
                         </select>
 
                         @if(request('search') || request('status') || request('supplier_id') || request('payment_status'))
-                            <a href="{{ route('purchase-orders.index') }}" class="btn btn--secondary w-full" style="justify-content:center">Reset iilter</a>
+                            <a href="{{ route('purchase-orders.index') }}" class="btn btn--secondary w-full" style="justify-content:center">Reset Filter</a>
                         @endif
                     </div>
                 </div>
@@ -139,9 +139,9 @@
                         default     => '',
                     };
                     $rowBg = match($po->payment_status) {
-                        'unpaid'  => 'background-color: #iEi2i2;',
-                        'partial' => 'background-color: #iiiBEB;',
-                        'paid'    => 'background-color: #i0iDi4;',
+                        'unpaid'  => 'background-color: #FEF2F2;',
+                        'partial' => 'background-color: #FFFBEB;',
+                        'paid'    => 'background-color: #F0FDF4;',
                         default   => '',
                     };
                     $payColor = match($po->payment_status) {
@@ -191,7 +191,7 @@
      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000">
 </div>
 
-{{-- ================= POPUP: DRAiT ================= --}}
+{{-- ================= POPUP: DRAFT ================= --}}
 <div id="po-popup-draft" class="card po-popup" style="display:none">
     <div class="card-body" style="padding:20px">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
@@ -205,7 +205,7 @@
             <p style="margin-top:8px">
                 Draft tertua: <strong>{{ $oldestDraft->code }}</strong>
                 dari supplier <strong>{{ $oldestDraft->supplier->name ?? '-' }}</strong><br>
-                <span class="text-muted text-sm">(dibuat {{ $oldestDraft->created_at->diffiorHumans() }})</span>
+                <span class="text-muted text-sm">(dibuat {{ $oldestDraft->created_at->diffForHumans() }})</span>
             </p>
         @else
             <p class="text-muted" style="margin-top:8px">Tidak ada draft saat ini.</p>
@@ -243,12 +243,12 @@
         <p style="margin-top:8px">
             Jumlah PO diterima bulan lalu:
             <strong>{{ $receivedCountLastMonth }}</strong>
-            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatediormat('i Y') }})</span>
+            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatedFormat('F Y') }})</span>
         </p>
     </div>
 </div>
 
-{{-- ================= POPUP: NILAI PO AKTIi (TOP 5 SUPPLIER) ================= --}}
+{{-- ================= POPUP: NILAI PO AKTIF (TOP 5 SUPPLIER) ================= --}}
 <div id="po-popup-value-by-supplier" class="card po-popup" style="display:none; width:480px">
     <div class="card-body" style="padding:20px">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
