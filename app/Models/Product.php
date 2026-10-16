@@ -100,14 +100,14 @@ class Product extends Model
         return $sku;
     }
 
-    public static function generateSupplierSku(string $jenis, string $merek, string $supplier): string
+    public static function generateSupplierSku(string $jenis, string $merek, string $supplier, ?int $sequence = null): string
     {
         $jenis = strtoupper(Str::slug($jenis, ''));
         $merek = strtoupper(Str::slug($merek, ''));
         $supplier = strtoupper(Str::slug($supplier, ''));
         $tgl = now()->format('Ymd');
 
-        $count = ProductSupplier::whereDate('created_at', today())->count() + 1;
+        $count = $sequence ?? ProductSupplier::whereDate('created_at', today())->count() + 1;
         $nomor = str_pad($count, 4, '0', STR_PAD_LEFT);
 
         return "{$jenis}-{$merek}-{$supplier}-{$tgl}-{$nomor}";

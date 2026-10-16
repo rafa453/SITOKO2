@@ -392,9 +392,10 @@ class PurchaseOrderController extends Controller
                     ]);
 
                     $item->increment('qty_received', $actualQty);
+                    $item->qty_received += $actualQty;
                 }
 
-                if ($item->fresh()->qty_received < $item->qty_ordered) {
+                if ($item->qty_received < $item->qty_ordered) {
                     $allFulfilled = false;
                 }
             }
@@ -420,8 +421,14 @@ class PurchaseOrderController extends Controller
     {
         abort_if(! $po->canBeCancelled(), 422, 'PO tidak bisa dibatalkan.');
 
-        $po->update(['status' => 'cancelled']);
+        DB::transaction(function () use ($po) {
+            $po = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
 
-        ActivityLog::record('PURCHASE_ORDER', 'PO dibatalkan', $po->code);
+            abort_if(! $po->canBeCancelled(), 422, 'PO tidak bisa dibatalkan.');
+
+            $po->update(['status' => 'cancelled']);
+
+            ActivityLog::record('PURCHASE_ORDER', 'PO dibatalkan', $po->code);
+        });
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Requests\ProductRequest;
 use App\Models\ActivityLog;
 use App\Models\Brand;
 use App\Models\Product;
+use App\Models\ProductSupplier;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -138,12 +139,16 @@ class ProductController extends Controller
 
             // Attach suppliers dengan supplier_sku
             if (! empty($validated['supplier_ids'])) {
+                $baseCount = ProductSupplier::whereDate('created_at', today())->count();
+                $suppliers = Supplier::whereIn('id', $validated['supplier_ids'])->get()->keyBy('id');
+
                 foreach ($validated['supplier_ids'] as $index => $supplierId) {
-                    $supplier = Supplier::find($supplierId);
+                    $supplier = $suppliers->get($supplierId);
                     $supplierSku = Product::generateSupplierSku(
                         $validated['category'],
                         $brandName,
-                        $supplier->name
+                        $supplier?->name ?? 'NOSUPP',
+                        $baseCount + $index + 1
                     );
 
                     $product->suppliers()->attach($supplierId, [
@@ -187,17 +192,26 @@ class ProductController extends Controller
                     ? Brand::find($validated['brand_id'])->name
                     : 'NOBRAND';
 
+                $existingMap = $product->suppliers()->get()->keyBy('id');
+                $suppliersMap = Supplier::whereIn('id', $validated['supplier_ids'])->get()->keyBy('id');
+                $baseCount = ProductSupplier::whereDate('created_at', today())->count();
+                $seq = 0;
+
                 foreach ($validated['supplier_ids'] as $index => $supplierId) {
                     // Cek apakah relasi sudah ada (preserve supplier_sku lama)
-                    $existing = $product->suppliers()->wherePivot('supplier_id', $supplierId)->first();
+                    $existing = $existingMap->get($supplierId);
 
-                    $supplierSku = $existing
-                        ? $existing->pivot->supplier_sku
-                        : Product::generateSupplierSku(
+                    if ($existing) {
+                        $supplierSku = $existing->pivot->supplier_sku;
+                    } else {
+                        $seq++;
+                        $supplierSku = Product::generateSupplierSku(
                             $validated['category'],
                             $brandName,
-                            Supplier::find($supplierId)->name
+                            $suppliersMap->get($supplierId)?->name ?? 'NOSUPP',
+                            $baseCount + $seq
                         );
+                    }
 
                     $syncData[$supplierId] = [
                         'supplier_sku' => $supplierSku,

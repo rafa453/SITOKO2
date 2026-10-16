@@ -13,8 +13,8 @@ class AutoClockInCashier
     {
         $user = $event->user;
 
-        // Cuma berlaku buat role cashier
-        if ($user->role !== 'cashier') {
+        // Cuma berlaku buat role cashier yang sudah verifikasi email
+        if ($user->role !== 'cashier' || ! $user->hasVerifiedEmail()) {
             return;
         }
 
