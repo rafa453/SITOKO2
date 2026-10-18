@@ -50,7 +50,7 @@ class DashboardController extends Controller
         }
 
         try {
-            $lowStockCount = Product::where('is_low_stock', 1)->count();
+            $lowStockCount = Product::lowStock()->count();
         } catch (\Exception $e) {
             $lowStockCount = 0;
         }
@@ -64,7 +64,7 @@ class DashboardController extends Controller
         try {
             $stockAlertProducts = Product::where('qty', 0)
                 ->orWhere(function ($q) {
-                    $q->where('is_low_stock', 1);
+                    $q->lowStock();
                 })
                 ->orderBy('qty')
                 ->get();

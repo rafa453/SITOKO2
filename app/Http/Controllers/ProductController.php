@@ -29,7 +29,7 @@ class ProductController extends Controller
 
         if ($request->filled('status')) {
             match ($request->status) {
-                'low' => $query->where('is_low_stock', 1),
+                'low' => $query->lowStock(),
                 'out' => $query->where('qty', 0),
                 default => null,
             };
@@ -51,7 +51,7 @@ class ProductController extends Controller
         $categories = Product::select('category')->distinct()->pluck('category');
 
         $totalSkus = Product::count();
-        $lowStockCount = Product::where('is_low_stock', 1)->count();
+        $lowStockCount = Product::lowStock()->count();
         $outOfStockCount = Product::where('qty', 0)->count();
         $stockValue = Product::selectRaw('SUM(qty * sell_price) as total')->value('total') ?? 0;
 
@@ -72,7 +72,7 @@ class ProductController extends Controller
             ->orderByDesc('value')
             ->get();
 
-        $stockAlerts = Product::where('is_low_stock', 1)
+        $stockAlerts = Product::lowStock()
             ->orderBy('qty')
             ->limit(5)
             ->get();
