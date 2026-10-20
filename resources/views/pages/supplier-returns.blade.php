@@ -212,7 +212,7 @@
         <p style="margin-top:8px">
             Jumlah selesai bulan lalu:
             <strong>{{ $completedCountLastMonth }}</strong>
-            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatediormat('i Y') }})</span>
+            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatedFormat('i Y') }})</span>
         </p>
     </div>
 </div>
