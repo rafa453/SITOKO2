@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class Product extends Model
@@ -98,6 +99,24 @@ class Product extends Model
         }
 
         return $sku;
+    }
+
+    public function getIsLowStockAttribute()
+    {
+        if (Schema::hasColumn('products', 'is_low_stock') && isset($this->attributes['is_low_stock'])) {
+            return $this->attributes['is_low_stock'];
+        }
+
+        return ($this->qty <= $this->threshold && $this->qty > 0) ? 1 : 0;
+    }
+
+    public function scopeLowStock($query)
+    {
+        if (Schema::hasColumn('products', 'is_low_stock')) {
+            return $query->where('is_low_stock', 1);
+        }
+
+        return $query->whereColumn('qty', '<=', 'threshold')->where('qty', '>', 0);
     }
 
     public static function generateSupplierSku(string $jenis, string $merek, string $supplier, ?int $sequence = null): string

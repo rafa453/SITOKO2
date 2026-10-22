@@ -294,7 +294,26 @@ class TransactionController extends Controller
             $admins = User::where('role', 'admin')->get();
             Notification::send($admins, new TransactionCreatedNotification($transaction));
 
-            return response()->json(['success' => true, 'redirect' => route('transactions.index')]);
+            $transaction->load('items.product');
+
+            return response()->json([
+                'success' => true,
+                'redirect' => route('transactions.index'),
+                'transaction' => [
+                    'id' => $transaction->id,
+                    'code' => $transaction->code,
+                    'total' => $transaction->total,
+                    'amount_paid' => $transaction->amount_paid,
+                    'change' => $transaction->change,
+                    'items' => $transaction->items->map(fn ($item) => [
+                        'name' => $item->product?->name ?? 'Produk Dihapus',
+                        'unit' => $item->unit,
+                        'qty' => $item->qty,
+                        'price' => $item->price,
+                        'subtotal' => $item->subtotal,
+                    ])->values()->all(),
+                ],
+            ]);
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);

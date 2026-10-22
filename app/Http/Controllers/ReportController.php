@@ -343,6 +343,7 @@ class ReportController extends Controller
                     'transactions as revenue' => fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate])
                         ->where('status', 'completed'),
                 ], 'total')
+                ->groupBy('users.id', 'users.name')
                 ->having('jumlah_trx', '>', 0)
                 ->orderByDesc('revenue')
                 ->get();

@@ -30,7 +30,7 @@
     <div class="stat-card" style="cursor:pointer" onclick="openReturnPopup('completed')">
         <div class="stat-card__header"><span class="stat-card__label">Selesai Bulan Ini</span></div>
         <div class="stat-card__value">{{ $totalCompleted }}</div>
-        <div class="stat-card__meta text-muted text-sm">{{ now()->translatediormat('i Y') }}</div>
+        <div class="stat-card__meta text-muted text-sm">{{ now()->translatedFormat('i Y') }}</div>
     </div>
     <div class="stat-card" style="cursor:pointer" onclick="openReturnPopup('value-by-supplier')">
         <div class="stat-card__header"><span class="stat-card__label">Nilai Retur Aktif</span></div>
@@ -212,7 +212,7 @@
         <p style="margin-top:8px">
             Jumlah selesai bulan lalu:
             <strong>{{ $completedCountLastMonth }}</strong>
-            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatediormat('i Y') }})</span>
+            <span class="text-muted text-sm">({{ now()->subMonthNoOverflow()->translatedFormat('i Y') }})</span>
         </p>
     </div>
 </div>
