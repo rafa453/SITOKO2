@@ -70,6 +70,48 @@ class TransactionTest extends TestCase
         return $trx;
     }
 
+    public function test_cashier_success_modal_and_error_message_are_rendered(): void
+    {
+        $response = $this->actingAs($this->admin())->get(route('transactions.create'));
+
+        $response->assertOk();
+        $response->assertSee('x-show="successModalOpen"', false);
+        $response->assertSee('x-show="errorMessage"', false);
+        $response->assertSee('this.successModalOpen = true', false);
+        $response->assertDontSee('window.location.href = data.redirect', false);
+
+        $dom = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $dom->loadHTML($response->getContent());
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+
+        foreach (['successModalOpen', 'errorMessage'] as $model) {
+            $node = $xpath->query(sprintf('//*[@x-show="%s"]', $model))->item(0);
+
+            $this->assertNotNull($node, sprintf('Element with x-show="%s" must exist.', $model));
+
+            $ancestor = $node->parentNode;
+            $insideCashierRoot = false;
+
+            while ($ancestor instanceof \DOMElement) {
+                if ($ancestor->hasAttribute('x-data')
+                    && str_contains($ancestor->getAttribute('x-data'), 'cashierApp')) {
+                    $insideCashierRoot = true;
+                    break;
+                }
+
+                $ancestor = $ancestor->parentNode;
+            }
+
+            $this->assertTrue(
+                $insideCashierRoot,
+                sprintf('Element with x-show="%s" must be nested inside the cashier x-data root.', $model)
+            );
+        }
+    }
+
     public function test_tc_trx_001_cashier_create_transaction(): void
     {
         $cashier = $this->clockedInCashier();

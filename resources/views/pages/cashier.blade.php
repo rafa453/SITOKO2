@@ -243,6 +243,12 @@
                     <input type="hidden" name="amount_paid" :value="isCash ? amountPaid : total">
                     <div id="cart-inputs"></div>
 
+                    {{-- Error message --}}
+                    <div x-show="errorMessage" x-transition x-cloak class="alert alert--error" style="margin-bottom:12px; font-size:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center">
+                        <span x-text="errorMessage"></span>
+                        <button type="button" @click="errorMessage = ''" class="btn-icon" style="color:currentColor">&times;</button>
+                    </div>
+
                     <button
                         type="submit"
                         class="btn btn--primary"
@@ -250,16 +256,59 @@
                         :disabled="!canSubmit"
                         :style="!canSubmit ? 'opacity:0.5; cursor:not-allowed' : ''"
                     >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <svg x-show="!submitting" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
-                        Process Transaction
+                        <span x-show="submitting" class="spinner" style="width:14px; height:14px; border-width:2px; margin-right:8px"></span>
+                        <span x-text="submitting ? 'Memproses...' : 'Process Transaction'"></span>
                     </button>
                 </form>
             </div>
         </div>
 
+    </div>
+
+    {{-- Success Modal --}}
+    <div x-show="successModalOpen" x-cloak style="position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.45)">
+        <div @click.stop style="width:100%; max-width:400px; text-align:center; background:var(--surface); border-radius:var(--radius,10px); box-shadow:0 20px 50px rgba(15,23,42,.25)">
+            <div style="padding:32px 24px">
+                <div style="width:64px; height:64px; background:#F0FDF4; color:#16A34A; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <h3 style="font-size:18px; font-weight:800; margin-bottom:8px">Transaksi Berhasil</h3>
+                <p style="color:var(--text-secondary); font-size:14px; margin-bottom:24px">Pesanan telah diproses dan stok telah diperbarui.</p>
+                <div style="background:var(--border-light); border-radius:var(--radius); padding:16px; margin-bottom:24px; text-align:left">
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:12px">
+                        <template x-for="item in transactionResult.items" :key="item.name">
+                            <div style="display:flex; justify-content:space-between; font-size:13px">
+                                <span style="color:var(--text-secondary)" x-text="item.name + ' ×' + item.qty + ' @ Rp ' + formatNumber(item.price)"></span>
+                                <span style="font-weight:600" x-text="'Rp ' + formatNumber(item.subtotal)"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; border-top:1px solid var(--border-dark); padding-top:8px">
+                        <span style="color:var(--text-muted)">Total</span>
+                        <span style="font-weight:700" x-text="'Rp ' + formatNumber(transactionResult.total)"></span>
+                    </div>
+                    <div x-show="successData.paymentMethod === 'Cash'" style="display:flex; justify-content:space-between; font-size:13px">
+                        <span style="color:var(--text-muted)">Bayar</span>
+                        <span style="font-weight:700" x-text="'Rp ' + formatNumber(transactionResult.amount_paid)"></span>
+                    </div>
+                    <div x-show="successData.paymentMethod === 'Cash'" style="display:flex; justify-content:space-between; font-size:13px">
+                        <span style="color:var(--text-muted)">Kembalian</span>
+                        <span style="font-weight:700; color:#16A34A" x-text="'Rp ' + formatNumber(transactionResult.change)"></span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                    <a :href="successData.redirect" class="btn btn--secondary" style="justify-content:center">Detail</a>
+                    <button @click="window.location.reload()" class="btn btn--primary" style="justify-content:center">Transaksi Baru</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -279,6 +328,9 @@ function cashierApp(products, paymentMethods) {
         change: 0,
         submitting: false,
         errorMessage: '',
+        successModalOpen: false,
+        successData: { total: 0, change: 0, redirect: '#', paymentMethod: '' },
+        transactionResult: { total: 0, amount_paid: 0, change: 0, items: [] },
 
         get filteredProducts() {
             if (!this.search) return this.products;
@@ -294,10 +346,10 @@ function cashierApp(products, paymentMethods) {
         },
 
         get canSubmit() {
+            if (this.submitting) return false;
             if (this.cart.length === 0) return false;
             if (!this.selectedMethod) return false;
             if (this.isCash && this.amountPaid < this.total) return false;
-            if (this.submitting) return false;
             return true;
         },
 
@@ -360,7 +412,7 @@ function cashierApp(products, paymentMethods) {
         },
 
         async submitTransaction() {
-            if (!this.canSubmit) return;
+            if (this.submitting || !this.canSubmit) return;
             this.submitting = true;
             this.errorMessage = '';
 
@@ -384,7 +436,28 @@ function cashierApp(products, paymentMethods) {
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = data.redirect;
+                    this.cart.forEach(item => {
+                        const product = this.products.find(product => product.id === item.id);
+                        if (product) product.qty -= item.qty;
+                    });
+                    this.transactionResult = data.transaction || {
+                        total: this.total,
+                        amount_paid: this.amountPaid,
+                        change: this.change,
+                        items: this.cart.map(i => ({
+                            name: i.name,
+                            qty: i.qty,
+                            price: i.price,
+                            subtotal: i.qty * i.price,
+                        })),
+                    };
+                    this.successData = {
+                        total: this.total,
+                        change: this.change,
+                        paymentMethod: this.selectedMethod,
+                        redirect: data.redirect || '{{ route('transactions.index') }}'
+                    };
+                    this.successModalOpen = true;
                 } else {
                     this.errorMessage = data.message || 'Terjadi kesalahan.';
                     this.submitting = false;
