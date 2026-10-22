@@ -31,6 +31,16 @@
     style="display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start"
 >
 
+    <div x-show="errorMessage" x-cloak class="alert alert--error" role="alert" style="margin-bottom:16px" x-text="errorMessage"></div>
+
+    <div x-show="successModal" x-cloak x-transition.opacity style="position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px" role="presentation">
+        <div class="card" role="dialog" aria-modal="true" aria-labelledby="transaction-success-title" style="width:420px; max-width:100%; padding:24px">
+            <h2 id="transaction-success-title" class="card-title">Transaksi berhasil</h2>
+            <p style="margin:12px 0 20px">Pembayaran berhasil diproses.</p>
+            <button type="button" class="btn btn--primary" @click="window.location.href = successRedirect">Lihat Transaksi</button>
+        </div>
+    </div>
+
     {{-- ===== KIRI: PRODUCT SEARCH + CART ===== --}}
     <div style="display:flex; flex-direction:column; gap:16px">
 
@@ -279,6 +289,8 @@ function cashierApp(products, paymentMethods) {
         change: 0,
         submitting: false,
         errorMessage: '',
+        successModal: false,
+        successRedirect: '',
 
         get filteredProducts() {
             if (!this.search) return this.products;
@@ -384,7 +396,11 @@ function cashierApp(products, paymentMethods) {
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = data.redirect;
+                    this.successRedirect = data.redirect;
+                    this.successModal = true;
+                    this.cart = [];
+                    this.amountPaid = 0;
+                    this.recalc();
                 } else {
                     this.errorMessage = data.message || 'Terjadi kesalahan.';
                     this.submitting = false;

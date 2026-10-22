@@ -354,6 +354,8 @@ class PurchaseOrderController extends Controller
             // Lock PO & items dulu supaya qty_received yang dibaca selalu fresh
             // (mencegah race condition kalau ada 2 request "receive" hampir bersamaan)
             $po = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
+            abort_if(! $po->canBeReceived(), 422, 'PO tidak bisa diubah ke status received.');
+
             $items = $po->items()->lockForUpdate()->get();
 
             $allFulfilled = true;
@@ -420,8 +422,14 @@ class PurchaseOrderController extends Controller
     {
         abort_if(! $po->canBeCancelled(), 422, 'PO tidak bisa dibatalkan.');
 
-        $po->update(['status' => 'cancelled']);
+        DB::transaction(function () use ($po) {
+            $po = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
 
-        ActivityLog::record('PURCHASE_ORDER', 'PO dibatalkan', $po->code);
+            abort_if(! $po->canBeCancelled(), 422, 'PO tidak bisa dibatalkan.');
+
+            $po->update(['status' => 'cancelled']);
+
+            ActivityLog::record('PURCHASE_ORDER', 'PO dibatalkan', $po->code);
+        });
     }
 }
