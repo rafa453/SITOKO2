@@ -60,58 +60,34 @@
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
                 <input type="text" name="search" class="form-input w-full" placeholder="Cari nomor PO..."
-                    value="{{ request('search') }}"
-                    onchange="this.form.submit()">
+                    value="{{ request('search') }}">
             </div>
-            <button type="submit" style="display:none"></button>
 
-            <div style="position: relative;" x-data="{ showFilters: false }">
-                <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                    </svg>
-                </button>
+            <x-filter-popover title="Filter Purchase Orders" form-id="filterForm" :is-active="request()->filled('status') || request()->filled('supplier_id') || request()->filled('payment_status')">
+                <select name="supplier_id" class="form-select w-full">
+                    <option value="">Semua Supplier</option>
+                    @foreach($suppliers as $s)
+                        <option value="{{ $s->id }}" {{ request('supplier_id') == $s->id ? 'selected' : '' }}>
+                            {{ $s->name }}
+                        </option>
+                    @endforeach
+                </select>
 
-                {{-- Floating Filter Popover --}}
-                <div x-show="showFilters" 
-                     @click.away="showFilters = false" 
-                     style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:260px; margin-top:8px;">
-                
-                    <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                        Filter Purchase Orders
-                    </div>
-                    
-                    <div style="display:flex; flex-direction:column; gap:10px">
-                        <select name="supplier_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Semua Supplier</option>
-                            @foreach($suppliers as $s)
-                                <option value="{{ $s->id }}" {{ request('supplier_id') == $s->id ? 'selected' : '' }}>
-                                    {{ $s->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                <select name="status" class="form-select w-full">
+                    <option value="">Semua Status PO</option>
+                    <option value="draft"     {{ request('status') === 'draft'     ? 'selected' : '' }}>Draft</option>
+                    <option value="ordered"   {{ request('status') === 'ordered'   ? 'selected' : '' }}>Ordered</option>
+                    <option value="received"  {{ request('status') === 'received'  ? 'selected' : '' }}>Received</option>
+                    <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                </select>
 
-                        <select name="status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Semua Status PO</option>
-                            <option value="draft"     {{ request('status') === 'draft'     ? 'selected' : '' }}>Draft</option>
-                            <option value="ordered"   {{ request('status') === 'ordered'   ? 'selected' : '' }}>Ordered</option>
-                            <option value="received"  {{ request('status') === 'received'  ? 'selected' : '' }}>Received</option>
-                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                        </select>
-
-                        <select name="payment_status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
-                            <option value="">Semua Status Pembayaran</option>
-                            <option value="unpaid"  {{ request('payment_status') === 'unpaid'  ? 'selected' : '' }}>Unpaid</option>
-                            <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial (DP)</option>
-                            <option value="paid"    {{ request('payment_status') === 'paid'    ? 'selected' : '' }}>Paid (Lunas)</option>
-                        </select>
-
-                        @if(request('search') || request('status') || request('supplier_id') || request('payment_status'))
-                            <a href="{{ route('purchase-orders.index') }}" class="btn btn--secondary w-full" style="justify-content:center">Reset Filter</a>
-                        @endif
-                    </div>
-                </div>
-            </div>
+                <select name="payment_status" class="form-select w-full">
+                    <option value="">Semua Status Pembayaran</option>
+                    <option value="unpaid"  {{ request('payment_status') === 'unpaid'  ? 'selected' : '' }}>Unpaid</option>
+                    <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial (DP)</option>
+                    <option value="paid"    {{ request('payment_status') === 'paid'    ? 'selected' : '' }}>Paid (Lunas)</option>
+                </select>
+            </x-filter-popover>
         </form>
     </div>
     <div class="data-table-wrapper">

@@ -327,29 +327,11 @@
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
                 <input type="text" name="search" class="form-input w-full" placeholder="Cari produk..."
-                    value="{{ request('search') }}"
-                    onchange="this.form.submit()">
+                    value="{{ request('search') }}">
             </div>
-            <button type="submit" style="display:none"></button>
 
-            <div style="position: relative;" x-data="{ showFilters: false }">
-                <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--blue-600)' : ''">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-            </button>
-
-            {{-- Floating Filter Popover --}}
-            <div x-show="showFilters" 
-                 @click.away="showFilters = false" 
-                 style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:260px; margin-top:8px;">
-            
-            <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                Filter Products
-            </div>
-            
-            <div style="display:flex; flex-direction:column; gap:10px">
-                <select name="category" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+            <x-filter-popover title="Filter Products" form-id="filterForm" :is-active="request()->filled('category') || request()->filled('brand_id') || request()->filled('supplier_id') || request()->filled('status')">
+                <select name="category" class="form-select w-full">
                     <option value="">Semua Kategori</option>
                     @foreach($categories as $cat)
                         <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
@@ -358,7 +340,7 @@
                     @endforeach
                 </select>
 
-                <select name="brand_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                <select name="brand_id" class="form-select w-full">
                     <option value="">Semua Brand</option>
                     @foreach($filterBrands as $brand)
                         <option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
@@ -367,7 +349,7 @@
                     @endforeach
                 </select>
 
-                <select name="supplier_id" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                <select name="supplier_id" class="form-select w-full">
                     <option value="">Semua Supplier</option>
                     @foreach($filterSuppliers as $sup)
                         <option value="{{ $sup->id }}" {{ request('supplier_id') == $sup->id ? 'selected' : '' }}>
@@ -376,14 +358,12 @@
                     @endforeach
                 </select>
 
-                <select name="status" form="filterForm" class="form-select w-full" onchange="document.getElementById('filterForm').submit()">
+                <select name="status" class="form-select w-full">
                     <option value="">Status Stok</option>
                     <option value="low" {{ request('status') == 'low' ? 'selected' : '' }}>Stok Menipis</option>
                     <option value="out" {{ request('status') == 'out' ? 'selected' : '' }}>Stok Habis</option>
                 </select>
-            </div>
-        </div>
-        </div>
+            </x-filter-popover>
         </form>
     </div>
 
@@ -505,7 +485,8 @@
                 .then(data => {
                     this.detailData = data;
                     this.loading = false;
-                });
+                })
+                .catch(() => { this.loading = false; });
         }
     }"
     @open-detail.window="fetchDetail($event.detail.id)"
@@ -524,7 +505,7 @@
         </div>
         <div class="inv-modal__body" style="padding: 20px;">
             <div x-show="loading" class="text-center text-muted">Loading...</div>
-            <div x-show="!loading && detailData">
+            <template x-if="!loading && detailData">
                 <div style="margin-bottom:16px;">
                     <h3 style="margin:0 0 4px 0" x-text="detailData.name"></h3>
                     <div class="text-sm text-muted" x-text="detailData.sku"></div>
@@ -570,7 +551,7 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
+            </template>
         </div>
     </div>
 </div>

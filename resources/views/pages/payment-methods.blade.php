@@ -483,7 +483,7 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     const ctx = document.getElementById('trendChart');
     if (!ctx) return;
 
@@ -501,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function () {
         backgroundColor: colors[i % colors.length],
         borderRadius: 4,
     }));
+    const Chart = await window.loadChart();
 
     new Chart(ctx, {
         type: 'bar',

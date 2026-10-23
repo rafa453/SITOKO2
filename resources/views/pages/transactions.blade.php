@@ -11,50 +11,28 @@
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
             <input type="text" name="search" class="form-input" placeholder="Cari ID..."
-                value="{{ request('search') }}" onchange="this.form.submit()">
+                value="{{ request('search') }}">
         </div>
 
-        <div style="position: relative;" x-data="{ showFilters: false }">
-            <button type="button" class="btn-icon" title="Filter" @click="showFilters = !showFilters" :style="showFilters ? 'background:var(--border-light); color:var(--indigo-600)' : ''">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-            </button>
-
-            {{-- Floating Filter Popover --}}
-            <div x-show="showFilters" 
-                 @click.away="showFilters = false" 
-                 style="display:none; position:absolute; top:100%; right:0; z-index:99; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 25px rgba(15,23,42,0.15); padding:16px; width:280px; margin-top:8px;"
-                 x-cloak>
-            
-                <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-light); padding-bottom:8px;">
-                    Filter Transaksi
-                </div>
-                
-                <div style="display:flex; flex-direction:column; gap:12px">
-                    <div style="display:flex; gap:6px; align-items:center">
-                        <input type="date" name="date_from" class="form-input" style="flex:1" value="{{ $dateFrom }}" onchange="this.form.submit()">
-                        <span style="font-size:12px; color:var(--text-muted)">—</span>
-                        <input type="date" name="date_to" class="form-input" style="flex:1" value="{{ $dateTo }}" onchange="this.form.submit()">
-                    </div>
-
-                    <select name="method" class="form-select" onchange="this.form.submit()">
-                        <option value="">Semua Metode</option>
-                        @foreach($paymentBreakdown as $pm)
-                            <option value="{{ $pm->payment_method }}" {{ request('method')===$pm->payment_method ? 'selected' : '' }}>
-                                {{ $pm->payment_method }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <select name="status" class="form-select" onchange="this.form.submit()">
-                        <option value="">Semua Status</option>
-                        <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Selesai</option>
-                        <option value="voided"    {{ request('status')==='voided'    ? 'selected' : '' }}>Dibatal</option>
-                    </select>
-                </div>
+        <x-filter-popover title="Filter Transaksi" form-id="filterForm" :is-active="request()->filled('search') || request()->filled('date_from') || request()->filled('date_to') || request()->filled('method') || request()->filled('status')">
+            <div style="display:flex; flex-direction:column; gap:6px">
+                <input type="date" name="date_from" class="form-input" value="{{ $dateFrom->format('Y-m-d') }}">
+                <input type="date" name="date_to" class="form-input" value="{{ $dateTo->format('Y-m-d') }}">
             </div>
-        </div>
+            <select name="method" class="form-select">
+                <option value="">Semua Metode</option>
+                @foreach($paymentBreakdown as $pm)
+                    <option value="{{ $pm->payment_method }}" {{ request('method')===$pm->payment_method ? 'selected' : '' }}>
+                        {{ $pm->payment_method }}
+                    </option>
+                @endforeach
+            </select>
+            <select name="status" class="form-select">
+                <option value="">Semua Status</option>
+                <option value="completed" {{ request('status')==='completed' ? 'selected' : '' }}>Selesai</option>
+                <option value="voided" {{ request('status')==='voided' ? 'selected' : '' }}>Dibatal</option>
+            </select>
+        </x-filter-popover>
 
         @if(auth()->user()->role === 'admin')
         <a href="{{ route('transactions.export', request()->only(['date_from','date_to','search','method','status'])) }}"
@@ -302,19 +280,22 @@
 </div>
 @endif
 
-{{-- ===== TRANSACTION LOG + DETAIL PANEL ===== --}}
-<div class="card-grid trx-detail-layout" style="grid-template-columns:1fr 380px; margin-top: 24px;"
-     x-data="{
-         selectedId: null,
-         selected: null,
-         loadDetail(trx) {
-             this.selectedId = trx.id;
-             this.selected = JSON.parse(JSON.stringify(trx));
-         }
-     }">
+{{-- ===== TRANSACTION LOG + DETAIL MODAL ===== --}}
+<div x-data="{
+    selectedId: null,
+    selected: null,
+    closeModal() {
+        this.selected = null;
+        this.selectedId = null;
+    },
+    loadDetail(trx) {
+        this.selectedId = trx.id;
+        this.selected = JSON.parse(JSON.stringify(trx));
+    }
+}" @keyup.escape.window="closeModal">
 
     {{-- Detailed Log --}}
-    <div class="card card--overflow-x">
+    <div class="card card--overflow-x" style="margin-top:24px">
         <div class="card-header">
             <div class="card-title">Log Detail</div>
         </div>
@@ -404,114 +385,122 @@
         </div>
     </div>
 
-    {{-- Detail Panel --}}
-    <div class="card" style="align-self:start; position:sticky; top:90px" x-show="selected" x-transition>
-        <template x-if="selected">
-            <div>
-                <div class="card-header" style="padding:14px 18px">
-                    <div>
-                        <span class="badge" :class="selected.status === 'completed' ? 'badge--green' : 'badge--red'"
-                              style="margin-bottom:6px; display:inline-flex"
-                              x-text="selected.status.toUpperCase()"></span>
-                        <div style="font-size:14px; font-weight:700; font-family:var(--font-mono); letter-spacing:-.5px"
-                             x-text="selected.code"></div>
-                    </div>
-                    <button class="btn-icon" @click="selected = null; selectedId = null">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-
-                <div style="padding:12px 18px; border-bottom:1px solid var(--border-light); display:grid; grid-template-columns:1fr 1fr; gap:12px">
-                    <div>
-                        <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Date & Time</div>
-                        <div style="font-size:12.5px; font-weight:600" x-text="selected.created_at"></div>
-                    </div>
-                    <div>
-                        <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Cashier</div>
-                        <div style="font-size:12.5px; font-weight:600" x-text="selected.cashier"></div>
-                    </div>
-                </div>
-
-                {{-- Items --}}
-                <div style="padding:14px 18px">
-                    <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:10px">Itemized Receipt</div>
-
-                    <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12px; margin-bottom:4px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px">
-                        <span>Item</span><span>Qty</span><span>Price</span><span>Sub</span>
-                    </div>
-
-                    <template x-for="item in selected.items" :key="item.name">
-                        <div style="display:flex; justify-content:space-between; align-items:start;
-                                    padding:8px 0; border-bottom:1px solid var(--border-light); font-size:13px">
-                            <div>
-                                <div style="font-weight:500" x-text="item.name"></div>
-                                <div style="font-size:11.5px; color:var(--text-muted)"
-                                    x-text="`${item.qty} ${item.unit} × Rp ${Number(item.price).toLocaleString('id-ID')}`"></div>
-                            </div>
-                            <div style="font-weight:600; flex-shrink:0; margin-left:12px"
-                                x-text="`Rp ${Number(item.subtotal).toLocaleString('id-ID')}`"></div>
+    {{-- Detail Modal --}}
+    <div x-show="selected" x-cloak
+         role="dialog" aria-modal="true" aria-label="Detail transaksi"
+         @click.self="closeModal"
+         style="position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.5)">
+        <div x-show="selected" x-transition.scale.85
+             style="width:100%; max-width:440px; max-height:90vh; display:flex; flex-direction:column; background:var(--surface); border-radius:var(--radius); box-shadow:0 20px 50px rgba(15,23,42,.25); overflow:hidden">
+            <template x-if="selected">
+                <div style="display:flex; flex-direction:column; max-height:90vh">
+                    <div class="card-header" style="padding:14px 18px; flex-shrink:0">
+                        <div>
+                            <span class="badge" :class="selected.status === 'completed' ? 'badge--green' : 'badge--red'"
+                                  style="margin-bottom:6px; display:inline-flex"
+                                  x-text="selected.status.toUpperCase()"></span>
+                            <div style="font-size:14px; font-weight:700; font-family:var(--font-mono); letter-spacing:-.5px"
+                                 x-text="selected.code"></div>
                         </div>
-                    </template>
-
-                    {{-- Totals --}}
-                    <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:12.5px">
-                        <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
-                            <span>Subtotal</span>
-                            <span x-text="Number(selected.total).toLocaleString('id-ID')"></span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px">
-                            <span>Total</span>
-                            <span style="color:var(--blue-600)" x-text="'Rp ' + Number(selected.total).toLocaleString('id-ID')"></span>
-                        </div>
-                        <template x-if="selected.payment_method === 'Tunai'">
-                            <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
-                                <span>Bayar</span>
-                                <span x-text="'Rp ' + Number(selected.amount_paid).toLocaleString('id-ID')"></span>
-                            </div>
-                        </template>
-                        <template x-if="selected.payment_method === 'Tunai' && selected.change > 0">
-                            <div style="display:flex; justify-content:space-between; color:#16A34A; font-weight:700">
-                                <span>Kembalian</span>
-                                <span x-text="'Rp ' + Number(selected.change).toLocaleString('id-ID')"></span>
-                            </div>
-                        </template>
-                    </div>
-
-                    {{-- Payment method --}}
-                    <div style="margin-top:12px; padding:10px 12px; background:var(--border-light); border-radius:var(--radius-sm); display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600">
-                        <span class="badge badge--blue" x-text="selected.payment_method"></span>
-                        <span x-text="'Paid via ' + selected.payment_method"></span>
-                    </div>
-                </div>
-
-                {{-- Actions --}}
-                <div style="padding:12px 18px 16px; display:flex; gap:8px; border-top:1px solid var(--border-light)">
-                    <button class="btn btn--secondary"
-                            style="flex:1; justify-content:center; font-size:12.5px"
-                            @click="window.open(`{{ url('transactions') }}/${selected.id}/receipt`, '_blank', 'width=420,height=700,scrollbars=yes')">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 6 2 18 2 18 9"/>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                            <rect x="6" y="14" width="12" height="8"/>
-                        </svg>
-                        Print Receipt
-                    </button>
-                    @if(auth()->user()->role === 'admin')
-                    <form method="POST" :action="`{{ url('transactions') }}/${selected.id}/void`">
-                        @csrf
-                        <button type="submit" class="btn btn--danger"
-                                style="font-size:12.5px"
-                                x-show="selected.status === 'completed'"
-                                onclick="return confirm('Void transaksi ini?')">
-                            Void
+                        <button class="btn-icon" @click="closeModal" aria-label="Tutup detail transaksi">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
                         </button>
-                    </form>
-                    @endif
+                    </div>
+
+                    <div style="overflow-y:auto; flex:1">
+                        <div style="padding:12px 18px; border-bottom:1px solid var(--border-light); display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                            <div>
+                                <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Date & Time</div>
+                                <div style="font-size:12.5px; font-weight:600" x-text="selected.created_at"></div>
+                            </div>
+                            <div>
+                                <div style="font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:3px">Cashier</div>
+                                <div style="font-size:12.5px; font-weight:600" x-text="selected.cashier"></div>
+                            </div>
+                        </div>
+
+                        {{-- Items --}}
+                        <div style="padding:14px 18px">
+                            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); margin-bottom:10px">Itemized Receipt</div>
+
+                            <div style="display:grid; grid-template-columns:1fr auto auto auto; gap:4px 12px; font-size:12px; margin-bottom:4px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px">
+                                <span>Item</span><span>Qty</span><span>Price</span><span>Sub</span>
+                            </div>
+
+                            <template x-for="item in selected.items" :key="item.name">
+                                <div style="display:flex; justify-content:space-between; align-items:start;
+                                            padding:8px 0; border-bottom:1px solid var(--border-light); font-size:13px">
+                                    <div>
+                                        <div style="font-weight:500" x-text="item.name"></div>
+                                        <div style="font-size:11.5px; color:var(--text-muted)"
+                                            x-text="`${item.qty} ${item.unit} × Rp ${Number(item.price).toLocaleString('id-ID')}`"></div>
+                                    </div>
+                                    <div style="font-weight:600; flex-shrink:0; margin-left:12px"
+                                        x-text="`Rp ${Number(item.subtotal).toLocaleString('id-ID')}`"></div>
+                                </div>
+                            </template>
+
+                            {{-- Totals --}}
+                            <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px; font-size:12.5px">
+                                <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
+                                    <span>Subtotal</span>
+                                    <span x-text="Number(selected.total).toLocaleString('id-ID')"></span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; font-weight:800; font-size:14px">
+                                    <span>Total</span>
+                                    <span style="color:var(--blue-600)" x-text="'Rp ' + Number(selected.total).toLocaleString('id-ID')"></span>
+                                </div>
+                                <template x-if="selected.payment_method === 'Tunai'">
+                                    <div style="display:flex; justify-content:space-between; color:var(--text-secondary)">
+                                        <span>Bayar</span>
+                                        <span x-text="'Rp ' + Number(selected.amount_paid).toLocaleString('id-ID')"></span>
+                                    </div>
+                                </template>
+                                <template x-if="selected.payment_method === 'Tunai' && selected.change > 0">
+                                    <div style="display:flex; justify-content:space-between; color:#16A34A; font-weight:700">
+                                        <span>Kembalian</span>
+                                        <span x-text="'Rp ' + Number(selected.change).toLocaleString('id-ID')"></span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- Payment method --}}
+                            <div style="margin-top:12px; padding:10px 12px; background:var(--border-light); border-radius:var(--radius-sm); display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600">
+                                <span class="badge badge--blue" x-text="selected.payment_method"></span>
+                                <span x-text="'Paid via ' + selected.payment_method"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Actions --}}
+                    <div style="padding:12px 18px 16px; display:flex; gap:8px; border-top:1px solid var(--border-light); flex-shrink:0">
+                        <button class="btn btn--secondary"
+                                style="flex:1; justify-content:center; font-size:12.5px"
+                                @click="window.open(`{{ url('transactions') }}/${selected.id}/receipt`, '_blank', 'width=420,height=700,scrollbars=yes')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 6 2 18 2 18 9"/>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                                <rect x="6" y="14" width="12" height="8"/>
+                            </svg>
+                            Print Receipt
+                        </button>
+                        @if(auth()->user()->role === 'admin')
+                        <form method="POST" :action="`{{ url('transactions') }}/${selected.id}/void`">
+                            @csrf
+                            <button type="submit" class="btn btn--danger"
+                                    style="font-size:12.5px"
+                                    x-show="selected.status === 'completed'"
+                                    onclick="return confirm('Void transaksi ini?')">
+                                Void
+                            </button>
+                        </form>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        </template>
+            </template>
+        </div>
     </div>
 
 </div>
@@ -520,7 +509,7 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     const ctx = document.getElementById('dailyChart');
     if (!ctx) return;
 
@@ -533,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
             : d.label
     );
     const counts = chartData.map(d => d.count);
+    const Chart = await window.loadChart();
 
     new Chart(ctx, {
         type: 'line',

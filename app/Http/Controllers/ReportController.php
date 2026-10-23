@@ -15,7 +15,22 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $period = $request->get('period', 'this_month');
-        [$startDate, $endDate] = $this->resolvePeriod($period);
+        [$presetStart, $presetEnd] = $this->resolvePeriod($period);
+
+        $startDate = $presetStart;
+        $endDate = $presetEnd;
+
+        if ($request->filled('date_from') && $request->filled('date_to')) {
+            $startDate = $this->parseReportDate($request->date_from)?->startOfDay() ?? $presetStart;
+            $endDate = $this->parseReportDate($request->date_to)?->endOfDay() ?? $presetEnd;
+
+            if ($startDate->gt($endDate)) {
+                [$startDate, $endDate] = [$presetStart, $presetEnd];
+            }
+        }
+
+        $dateFrom = $startDate->format('d-m-y');
+        $dateTo = $endDate->format('d-m-y');
 
         // Stat cards — tidak ada JOIN, pakai created_at biasa
         $totalRevenue = Transaction::whereBetween('created_at', [$startDate, $endDate])
@@ -112,7 +127,7 @@ class ReportController extends Controller
             'totalRevenue', 'totalTrx', 'netProfit', 'bestSeller', 'topCategory',
             'dailyRevenue', 'topProducts', 'categoryRevenue',
             'cashierPerformance', 'inventoryMovement', 'shiftSummary',
-            'period'
+            'period', 'dateFrom', 'dateTo'
         ));
     }
 
@@ -397,5 +412,19 @@ class ReportController extends Controller
             'last_month' => [Carbon::now()->startOfMonth()->subMonth(), Carbon::now()->subMonth()->endOfMonth()],
             default => [Carbon::now()->startOfMonth(), Carbon::now()],
         };
+    }
+
+    private function parseReportDate(?string $value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+        foreach (['d-m-Y', 'd-m-y'] as $fmt) {
+            if (Carbon::canBeCreatedFromFormat($value, $fmt)) {
+                return Carbon::createFromFormat('!'.$fmt, $value);
+            }
+        }
+
+        return null;
     }
 }

@@ -18,6 +18,8 @@ class StaffController extends Controller
     public function index(Request $request)
     {
         $today = Carbon::today();
+        $dayStart = $today->copy()->startOfDay();
+        $dayEnd = $today->copy()->endOfDay();
 
         $query = User::where('role', 'cashier'); // ← filter cashier saja
 
@@ -40,21 +42,19 @@ class StaffController extends Controller
 
         // Stat cards
         $totalStaff = User::where('role', 'cashier')->count(); // ← filter cashier
-        $onDuty = Shift::whereDate('started_at', $today)->whereNull('ended_at')->count();
-        $avgTrans = 0;
-        $onDutyShifts = Shift::with('user')->whereNull('ended_at')->get();
-        $trxPerCashier = Transaction::whereDate('created_at', $today)
+        $onDuty = Shift::whereBetween('started_at', [$dayStart, $dayEnd])
+            ->whereNull('ended_at')
+            ->count();
+
+        $trxPerCashier = Transaction::whereBetween('created_at', [$dayStart, $dayEnd])
             ->selectRaw('cashier_id, COUNT(*) as cnt')
             ->groupBy('cashier_id')
             ->pluck('cnt');
 
-        if ($trxPerCashier->count() > 0) {
-            $avgTrans = round($trxPerCashier->avg());
-        }
+        $avgTrans = $trxPerCashier->count() > 0 ? round($trxPerCashier->avg()) : 0;
 
-        // Shift hari ini
         $todayShifts = Shift::with('user')
-            ->whereDate('started_at', $today)
+            ->whereBetween('started_at', [$dayStart, $dayEnd])
             ->get()
             ->groupBy('type')
             ->map(fn ($group) => $group->take(1));
@@ -62,10 +62,10 @@ class StaffController extends Controller
         // Top 3 performers hari ini
         $topPerformers = User::where('role', 'cashier') // ← filter cashier
             ->withCount([
-                'transactions as trx_today' => fn ($q) => $q->whereDate('created_at', $today)->where('status', 'completed'),
+                'transactions as trx_today' => fn ($q) => $q->whereBetween('created_at', [$dayStart, $dayEnd])->where('status', 'completed'),
             ])
             ->withSum([
-                'transactions as revenue_today' => fn ($q) => $q->whereDate('created_at', $today)->where('status', 'completed'),
+                'transactions as revenue_today' => fn ($q) => $q->whereBetween('created_at', [$dayStart, $dayEnd])->where('status', 'completed'),
             ], 'total')
             ->orderByDesc('trx_today')
             ->limit(3)
@@ -97,7 +97,7 @@ class StaffController extends Controller
         $allUsers = User::orderBy('name')->get(['id', 'name', 'role']);
 
         return view('pages.staff', compact(
-            'staff', 'totalStaff', 'onDuty', 'onDutyShifts', 'avgTrans',
+            'staff', 'totalStaff', 'onDuty', 'avgTrans',
             'todayShifts', 'topPerformers', 'activityLogs', 'allUsers'
         ));
     }

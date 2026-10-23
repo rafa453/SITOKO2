@@ -39,22 +39,20 @@ class TransactionController extends Controller
             $dateTo = Carbon::today()->endOfDay();
         }
 
-        $baseQuery = fn () => Transaction::where('status', 'completed')
-            ->whereBetween('created_at', [
-                $dateFrom->toDateTimeString(),
-                $dateTo->toDateTimeString(),
-            ]);
+        $statusTotals = Transaction::whereBetween('created_at', [
+            $dateFrom->toDateTimeString(),
+            $dateTo->toDateTimeString(),
+        ])
+            ->whereIn('status', ['completed', 'voided'])
+            ->selectRaw('status, COUNT(*) as transaction_count, SUM(total) as transaction_total')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
 
-        $voidedQuery = fn () => Transaction::where('status', 'voided')
-            ->whereBetween('created_at', [
-                $dateFrom->toDateTimeString(),
-                $dateTo->toDateTimeString(),
-            ]);
-
-        $totalTransactions = $baseQuery()->count();
-        $totalRevenue = $baseQuery()->sum('total');
-        $voidedCount = $voidedQuery()->count();
-        $voidedValue = $voidedQuery()->sum('total');
+        $totalTransactions = (int) ($statusTotals->get('completed')->transaction_count ?? 0);
+        $totalRevenue = (int) ($statusTotals->get('completed')->transaction_total ?? 0);
+        $voidedCount = (int) ($statusTotals->get('voided')->transaction_count ?? 0);
+        $voidedValue = (int) ($statusTotals->get('voided')->transaction_total ?? 0);
         $avgBasket = $totalTransactions > 0 ? round($totalRevenue / $totalTransactions) : 0;
 
         $diffDays = $dateFrom->diffInDays($dateTo);

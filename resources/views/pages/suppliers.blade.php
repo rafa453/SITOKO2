@@ -16,22 +16,19 @@
 @section('content')
 
 {{-- Filter --}}
-<div class="card" style="margin-bottom:0">
+<div class="card" style="margin-bottom:0; overflow:visible">
     <div class="card-body" style="padding:14px 20px">
-        <form method="GET" action="{{ route('suppliers.index') }}"
-              style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+        <form method="GET" action="{{ route('suppliers.index') }}" id="filterForm" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
             <input type="text" name="search" value="{{ request('search') }}"
                    placeholder="Cari nama atau kategori..."
                    class="form-input" style="width:240px">
-            <select name="status" class="form-select" style="width:140px">
-                <option value="">Semua Status</option>
-                <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Aktif</option>
-                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
-            </select>
-            <button type="submit" class="btn btn--secondary">Filter</button>
-            @if(request('search') || request('status'))
-                <a href="{{ route('suppliers.index') }}" class="btn btn--ghost">Reset</a>
-            @endif
+            <x-filter-popover title="Filter Supplier" form-id="filterForm" :is-active="request()->filled('search') || request()->filled('status')">
+                <select name="status" class="form-select" style="width:100%">
+                    <option value="">Semua Status</option>
+                    <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>Aktif</option>
+                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Nonaktif</option>
+                </select>
+            </x-filter-popover>
         </form>
     </div>
 </div>

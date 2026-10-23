@@ -5,14 +5,36 @@
 @section('page-subtitle', 'Analisis performa toko pada penjualan, inventaris, dan staf.')
 
 @section('header-actions')
-    <form method="GET" action="{{ route('reports.index') }}" style="display:flex; gap:8px; align-items:center">
-        <select name="period" class="form-select" style="width:160px" onchange="this.form.submit()">
-            <option value="this_month" {{ $period === 'this_month' ? 'selected' : '' }}>Bulan Ini</option>
-            <option value="last_month" {{ $period === 'last_month' ? 'selected' : '' }}>Bulan Lalu</option>
-            <option value="last_7"     {{ $period === 'last_7'     ? 'selected' : '' }}>7 Hari Terakhir</option>
-            <option value="today"      {{ $period === 'today'      ? 'selected' : '' }}>Hari Ini</option>
-        </select>
-        <button type="submit" class="btn btn--secondary">Terapkan</button>
+    <form method="GET" action="{{ route('reports.index') }}" id="reportFilterForm" style="display:flex; gap:8px; align-items:center">
+        <x-filter-popover title="Filter Laporan" form-id="reportFilterForm" :is-active="request()->filled('date_from') && request()->filled('date_to')">
+            <div style="display:flex; gap:6px; align-items:center">
+                <input
+                    type="text"
+                    name="date_from"
+                    class="form-input"
+                    style="flex:1; text-align:center"
+                    placeholder="dd-mm-yy"
+                    maxlength="10"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    value="{{ $dateFrom ?? '' }}"
+                    oninput="formatReportDate(this)"
+                >
+                <span style="color:var(--text-muted)">–</span>
+                <input
+                    type="text"
+                    name="date_to"
+                    class="form-input"
+                    style="flex:1; text-align:center"
+                    placeholder="dd-mm-yy"
+                    maxlength="10"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    value="{{ $dateTo ?? '' }}"
+                    oninput="formatReportDate(this)"
+                >
+            </div>
+        </x-filter-popover>
         <button type="button" class="btn btn--primary" onclick="exportDashboardToPDF()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -549,20 +571,11 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
+@vite('resources/js/reports.js')
 <script>
-function exportDashboardToPDF() {
-    const element = document.getElementById('dashboard-report-area');
-    const opt = {
-        margin:       0.3,
-        filename:     'SITOKO_Dashboard_Report.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
-    };
-
-    html2pdf().set(opt).from(element).save();
+function formatReportDate(input) {
+    const digits = input.value.replace(/\D/g, '').slice(0, 8);
+    input.value = digits.replace(/^(\d{2})(\d)/, '$1-$2').replace(/^(\d{2}-\d{2})(\d)/, '$1-$2');
 }
 
 // ── Data dari controller (dipakai chart & modal) ──
@@ -643,9 +656,12 @@ document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') closeReportModal();
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
 
     // ── Revenue Trend Chart (data dari controller) ──
+    const Chart = (document.getElementById('revenueChart') || document.getElementById('categoryChart'))
+        ? await window.loadChart()
+        : null;
     const revCanvas = document.getElementById('revenueChart');
     if (revCanvas) {
         const rawDates    = reportDailyDates;
