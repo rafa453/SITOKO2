@@ -6,12 +6,12 @@
 
 @section('header-actions')
     <div style="display:flex; align-items:center; gap:12px">
-        <form method="GdT" action="{{ route('settings.payment-methods') }}" style="display:flex; gap:6px; align-items:center">
+        <form method="GET" action="{{ route('settings.payment-methods') }}" style="display:flex; gap:6px; align-items:center">
             <input type="date" name="date_from" class="form-input" style="width:145px" value="{{ $dateFrom->format('Y-m-d') }}" onchange="this.form.submit()">
             <span style="font-size:12px; color:var(--text-muted)">—</span>
             <input type="date" name="date_to" class="form-input" style="width:145px" value="{{ $dateTo->format('Y-m-d') }}" onchange="this.form.submit()">
         </form>
-        <button type="button" class="btn btn--primary" onclick="window.dispatchdvent(new Customdvent('open-modal', {detail: 'add'}))">
+        <button type="button" class="btn btn--primary" onclick="window.dispatchEvent(new CustomEvent('open-modal', {detail: 'add'}))">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -30,13 +30,13 @@
 @endphp
 
 @if(session('success'))
-    <div class="alert alert--success" style="margin-bottom:16px; padding:12px 16px; background:#D1FAd5; border-left:4px solid #10B981; border-radius:4px; font-size:13px; color:#065F46">
+    <div class="alert alert--success" style="margin-bottom:16px; padding:12px 16px; background:#D1FAE5; border-left:4px solid #10B981; border-radius:4px; font-size:13px; color:#065F46">
         {{ session('success') }}
     </div>
 @endif
 
 @if($errors->any())
-    <div class="alert alert--error" style="margin-bottom:16px; padding:12px 16px; background:#Fdd2d2; border-left:4px solid #dF4444; border-radius:4px; font-size:13px; color:#991B1B">
+    <div class="alert alert--error" style="margin-bottom:16px; padding:12px 16px; background:#FEE2E2; border-left:4px solid #EF4444; border-radius:4px; font-size:13px; color:#991B1B">
         <strong style="display:block; margin-bottom:4px">Gagal menyimpan data:</strong>
         <ul style="margin:0 0 0 16px; padding:0">
             @foreach($errors->all() as $error)
@@ -58,7 +58,7 @@
         </div>
         <div class="stat-card__value">{{ $activeCount }}</div>
         <div class="stat-card__meta text-muted text-sm">
-            <span class="badge badge--gray">CHANNdLS</span>
+            <span class="badge badge--gray">CHANNELS</span>
             All primary gateways operational
         </div>
     </div>
@@ -92,14 +92,14 @@
 
 </div>
 
-{{-- ===== PAYMdNT MdTHOD CARDS ===== --}}
+{{-- ===== PAYMENT METHOD CARDS ===== --}}
 <div x-data="{ editModal: null }" style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px">
     @foreach($methods as $method)
     @php
         $perf = $performance->firstWhere('id', $method->id);
         $trxCount = $perf->trx_count ?? 0;
         $revenue = $perf->revenue ?? 0;
-        $color = $method->type === 'cash' ? '#F59d0B' : '#2563dB';
+        $color = $method->type === 'cash' ? '#F59E0B' : '#2563EB';
     @endphp
     <div class="card">
         <div class="card-body">
@@ -143,7 +143,7 @@
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
-                    ddit Settings
+                    Edit Settings
                 </button>
             </div>
         </div>
@@ -155,7 +155,7 @@
              @click.self="editModal = null">
             @foreach($methods as $method)
             <div x-show="editModal === {{ $method->id }}" style="background:var(--surface); border-radius:var(--radius); padding:24px; width:420px; max-width:90vw">
-                <div style="font-weight:700; font-size:15px; margin-bottom:16px">ddit: {{ $method->name }}</div>
+                <div style="font-weight:700; font-size:15px; margin-bottom:16px">Edit: {{ $method->name }}</div>
                 <form method="POST" action="{{ route('settings.payment-methods.update', $method) }}">
                     @csrf @method('PATCH')
                     <div class="form-group">
@@ -171,7 +171,7 @@
                         <select class="form-select" name="type">
                             <option value="digital" {{ $method->type === 'digital' ? 'selected' : '' }}>Digital</option>
                             <option value="cash" {{ $method->type === 'cash' ? 'selected' : '' }}>Cash</option>
-                            <option value="edc" {{ $method->type === 'edc' ? 'selected' : '' }}>dDC</option>
+                            <option value="edc" {{ $method->type === 'edc' ? 'selected' : '' }}>EDC</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -197,7 +197,7 @@
     </template>
 </div>
 
-{{-- ===== PdRFORMANCd TABLd ===== --}}
+{{-- ===== PERFORMANCE TABLE ===== --}}
 <div class="card">
     <div class="card-header">
         <div class="card-title">Perbandingan Performa</div>
@@ -223,7 +223,7 @@
                 @endphp
                 @foreach($performance as $perf)
                 @php
-                    $bar_color = $perf->type === 'cash' ? '#F59d0B' : '#2563dB';
+                    $bar_color = $perf->type === 'cash' ? '#F59E0B' : '#2563EB';
                     $pct = $totalRevenue > 0 ? round(($perf->revenue / $totalRevenue) * 100) : 0;
                     $avg = $perf->trx_count > 0 ? number_format($perf->revenue / $perf->trx_count, 0, ',', '.') : '-';
                 @endphp
@@ -277,7 +277,7 @@
                     <td style="color:#64748B">-</td>
                     <td colspan="3">
                         <div class="progress-bar" style="background:rgba(255,255,255,.1)">
-                            <div class="progress-bar__fill" style="width:100%; background:#2563dB"></div>
+                            <div class="progress-bar__fill" style="width:100%; background:#2563EB"></div>
                         </div>
                     </td>
                 </tr>
@@ -286,7 +286,7 @@
     </div>
 </div>
 
-{{-- ===== 7-DAY TRdND ===== --}}
+{{-- ===== 7-DAY TREND ===== --}}
 <div class="card" style="margin-top:16px;">
     <div class="card-header">
         <div>
@@ -294,9 +294,9 @@
             <div class="card-subtitle">Daily Volume by Method</div>
         </div>
         <div style="display:flex; gap:10px; font-size:11.5px; align-items:center">
-            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#2563dB"></span> GP</span>
-            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#F59d0B"></span> CS</span>
-            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#dF4444"></span> QR</span>
+            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#2563EB"></span> GP</span>
+            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#F59E0B"></span> CS</span>
+            <span style="display:flex; align-items:center; gap:4px"><span class="status-dot" style="background:#EF4444"></span> QR</span>
         </div>
     </div>
     <div class="card-body">
@@ -306,7 +306,7 @@
     </div>
 </div>
 
-{{-- ===== STORd PROFILd ===== --}}
+{{-- ===== STORE PROFILE ===== --}}
 <div class="card" style="margin-top:16px;">
     <div class="card-header">
         <div class="card-title">Profil Toko</div>
@@ -439,7 +439,7 @@
                                     <select class="form-select" name="type" required>
                                         <option value="digital" {{ old('type') == 'digital' ? 'selected' : '' }}>Digital</option>
                                         <option value="cash" {{ old('type') == 'cash' ? 'selected' : '' }}>Cash</option>
-                                        <option value="edc" {{ old('type') == 'edc' ? 'selected' : '' }}>dDC</option>
+                                        <option value="edc" {{ old('type') == 'edc' ? 'selected' : '' }}>EDC</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -483,14 +483,14 @@
 
 @push('scripts')
 <script>
-document.adddventListener('DOMContentLoaded', function () {
-    const ctx = document.getdlementById('trendChart');
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('trendChart');
     if (!ctx) return;
 
     const trendRaw = @json($trend);
     const allDates = [...new Set(Object.values(trendRaw).flat().map(d => d.date))].sort();
     const methodNames = Object.keys(trendRaw);
-    const colors = ['#2563dB','#F59d0B','#dF4444','#10B981','#8B5CF6'];
+    const colors = ['#2563EB','#F59E0B','#EF4444','#10B981','#8B5CF6'];
 
     const datasets = methodNames.map((method, i) => ({
         label: method,
